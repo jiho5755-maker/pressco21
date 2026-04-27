@@ -1,0 +1,19 @@
+{
+  "operation": "11st_disable_instant_discount_aggregate",
+  "execute_files": [
+    "n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-execute-20260427-220553.json",
+    "n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-execute-20260427-220755.json",
+    "n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-execute-20260427-220834.json"
+  ],
+  "counts": {
+    "success": 96,
+    "failed": 34
+  },
+  "verified_success": 96,
+  "failure_reason_counts": {
+    "판매가가 기본즉시할인금액 이하 제한": 22,
+    "최대 80% 인하 제한": 9,
+    "옵션가격/판매가 범위 제한": 3
+  },
+  "result_count": 130
+}

@@ -1,0 +1,199 @@
+{
+  "operation": "11st_disable_instant_discount",
+  "execute": true,
+  "started_at": "2026-04-27T13:05:49+00:00",
+  "target_count": 3,
+  "summary": {
+    "would_update": 3,
+    "success": 3,
+    "failed": 0,
+    "skipped": 0,
+    "verified": 3
+  },
+  "results": [
+    {
+      "prdNo": "8236633432",
+      "audit": {
+        "prdNo": "8236633432",
+        "prdNm": "프레스코21 34x41 프레임 연골드(36액자)",
+        "sellerPrdCd": "1014",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "audit_selPrc": "45000",
+        "audit_dscAmtPercnt": "15000",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 30000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236633432",
+        "prdNm": "프레스코21 34x41 프레임 연골드(36액자)",
+        "sellerPrdCd": "1014",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "45000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "15000",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236633432",
+        "prdNm": "프레스코21 34x41 프레임 연골드(36액자)",
+        "sellerPrdCd": "1014",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "30000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236633432] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 30000,
+      "target_payload": {
+        "selPrc": 30000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236633432",
+        "productNo": "8236633432"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236633432] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    },
+    {
+      "prdNo": "8236623981",
+      "audit": {
+        "prdNo": "8236623981",
+        "prdNm": "프레스코21 레진 공예 UV컬러레진 에메랄드그린 25g",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "audit_selPrc": "14000",
+        "audit_dscAmtPercnt": "5000",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 9000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236623981",
+        "prdNm": "프레스코21 레진 공예 UV컬러레진 에메랄드그린 25g",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "14000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "5000",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236623981",
+        "prdNm": "프레스코21 레진 공예 UV컬러레진 에메랄드그린 25g",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "9000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236623981] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 9000,
+      "target_payload": {
+        "selPrc": 9000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236623981",
+        "productNo": "8236623981"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236623981] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    },
+    {
+      "prdNo": "8236631382",
+      "audit": {
+        "prdNo": "8236631382",
+        "prdNm": "네잎클로버 압화 압화꽃 조화 압화재료 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "audit_selPrc": "7500",
+        "audit_dscAmtPercnt": "2500",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 5000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236631382",
+        "prdNm": "네잎클로버 압화 압화꽃 조화 압화재료 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "7500",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "2500",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236631382",
+        "prdNm": "네잎클로버 압화 압화꽃 조화 압화재료 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "103",
+        "selStatNm": "판매중",
+        "selPrc": "5000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236631382] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 5000,
+      "target_payload": {
+        "selPrc": 5000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236631382",
+        "productNo": "8236631382"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236631382] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    }
+  ],
+  "finished_at": "2026-04-27T13:05:53+00:00"
+}

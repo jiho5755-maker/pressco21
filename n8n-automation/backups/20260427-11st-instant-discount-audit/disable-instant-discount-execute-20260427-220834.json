@@ -1,0 +1,331 @@
+{
+  "operation": "11st_disable_instant_discount",
+  "execute": true,
+  "started_at": "2026-04-27T13:08:29+00:00",
+  "target_count": 6,
+  "summary": {
+    "would_update": 6,
+    "success": 3,
+    "failed": 3,
+    "skipped": 0,
+    "verified": 3
+  },
+  "results": [
+    {
+      "prdNo": "8236636330",
+      "audit": {
+        "prdNo": "8236636330",
+        "prdNm": "프레스코21 압화 만들기 종이필통 무지",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "4500",
+        "audit_dscAmtPercnt": "1500",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 3000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236636330",
+        "prdNm": "프레스코21 압화 만들기 종이필통 무지",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "4500",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "1500",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236636330",
+        "prdNm": "프레스코21 압화 만들기 종이필통 무지",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "3000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236636330] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 3000,
+      "target_payload": {
+        "selPrc": 3000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236636330",
+        "productNo": "8236636330"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236636330] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    },
+    {
+      "prdNo": "8236625741",
+      "audit": {
+        "prdNo": "8236625741",
+        "prdNm": "부채 만들기 압화 키트 부채 제작 꾸미기 어린이집 캘리그라피 조개 선녀 한국 꽃부채소",
+        "sellerPrdCd": "1060",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "3000",
+        "audit_dscAmtPercnt": "1700",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 1300
+      },
+      "status": "failed",
+      "before": {
+        "prdNo": "8236625741",
+        "prdNm": "부채 만들기 압화 키트 부채 제작 꾸미기 어린이집 캘리그라피 조개 선녀 한국 꽃부채소",
+        "sellerPrdCd": "1060",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "3000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "1700",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {},
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236625741] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 1300,
+      "target_payload": {
+        "selPrc": 1300,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "500",
+        "message": "(상품번호:8236625741)의 가격 업데이트 실패. MSG : 판매가는 기본즉시할인금액 이하로 설정할 수 없습니다.",
+        "productNo": "8236625741"
+      }
+    },
+    {
+      "prdNo": "8236629181",
+      "audit": {
+        "prdNo": "8236629181",
+        "prdNm": "프레스코21 핀셋 모음",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "19000",
+        "audit_dscAmtPercnt": "18500",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 500
+      },
+      "status": "failed",
+      "before": {
+        "prdNo": "8236629181",
+        "prdNm": "프레스코21 핀셋 모음",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "19000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "18500",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {},
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236629181] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 500,
+      "target_payload": {
+        "selPrc": 500,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "500",
+        "message": "(상품번호:8236629181)의 가격 업데이트 실패. MSG : 판매가는 최대 80%인하까지 수정하실 수 있습니다.",
+        "productNo": "8236629181"
+      }
+    },
+    {
+      "prdNo": "8236629560",
+      "audit": {
+        "prdNo": "8236629560",
+        "prdNm": "프레스코21 투명 1:1 에폭시 레진 70ml 2액형 레진 공예 아트 재료",
+        "sellerPrdCd": "1277",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "6500",
+        "audit_dscAmtPercnt": "1500",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 5000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236629560",
+        "prdNm": "프레스코21 투명 1:1 에폭시 레진 70ml 2액형 레진 공예 아트 재료",
+        "sellerPrdCd": "1277",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "6500",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "1500",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236629560",
+        "prdNm": "프레스코21 투명 1:1 에폭시 레진 70ml 2액형 레진 공예 아트 재료",
+        "sellerPrdCd": "1277",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "5000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236629560] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 5000,
+      "target_payload": {
+        "selPrc": 5000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236629560",
+        "productNo": "8236629560"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236629560] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    },
+    {
+      "prdNo": "8814118038",
+      "audit": {
+        "prdNo": "8814118038",
+        "prdNm": "하바리움 용기 유리 원형돔 우드 유리볼 우드볼 조명돔 조명볼",
+        "sellerPrdCd": "1022",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "14000",
+        "audit_dscAmtPercnt": "7400",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 6600
+      },
+      "status": "failed",
+      "before": {
+        "prdNo": "8814118038",
+        "prdNm": "하바리움 용기 유리 원형돔 우드 유리볼 우드볼 조명돔 조명볼",
+        "sellerPrdCd": "1022",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "14000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "7400",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {},
+      "before_response": {
+        "status_code": 200,
+        "message": "[8814118038] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 6600,
+      "target_payload": {
+        "selPrc": 6600,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "500",
+        "message": "(상품번호:8814118038)의 가격 업데이트 실패. MSG : 판매가는 기본즉시할인금액 이하로 설정할 수 없습니다.",
+        "productNo": "8814118038"
+      }
+    },
+    {
+      "prdNo": "8236625687",
+      "audit": {
+        "prdNo": "8236625687",
+        "prdNm": "책갈피 만들기 투명 압화 책갈피 꽃 스티커 다꾸 DIY 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "audit_selPrc": "5000",
+        "audit_dscAmtPercnt": "1000",
+        "audit_cupnDscMthdCd": "01",
+        "audit_estimated_discounted_price": 4000
+      },
+      "status": "success",
+      "before": {
+        "prdNo": "8236625687",
+        "prdNm": "책갈피 만들기 투명 압화 책갈피 꽃 스티커 다꾸 DIY 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "5000",
+        "cuponcheck": "Y",
+        "dscAmtPercnt": "1000",
+        "cupnDscMthdCd": "01",
+        "cupnUseLmtDyYn": "Y",
+        "cupnIssEndDy": "9999-12-31 23:59:59.0"
+      },
+      "after": {
+        "prdNo": "8236625687",
+        "prdNm": "책갈피 만들기 투명 압화 책갈피 꽃 스티커 다꾸 DIY 프레스코21",
+        "sellerPrdCd": "",
+        "selStatCd": "105",
+        "selStatNm": "판매중지중",
+        "selPrc": "4000",
+        "cuponcheck": "N",
+        "dscAmtPercnt": "",
+        "cupnDscMthdCd": "",
+        "cupnUseLmtDyYn": "N",
+        "cupnIssEndDy": ""
+      },
+      "before_response": {
+        "status_code": 200,
+        "message": "[8236625687] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "target_price": 4000,
+      "target_payload": {
+        "selPrc": 4000,
+        "cuponcheck": "N"
+      },
+      "write_response": {
+        "status_code": 200,
+        "resultCode": "200",
+        "message": "상품 가격 및 기본즉시할인 정보가 정상적으로 수정 되었습니다. 상품번호 : 8236625687",
+        "productNo": "8236625687"
+      },
+      "after_response": {
+        "status_code": 200,
+        "message": "[8236625687] 상품 정보가 정상적으로 조회되었습니다."
+      },
+      "verified": true
+    }
+  ],
+  "finished_at": "2026-04-27T13:08:34+00:00"
+}

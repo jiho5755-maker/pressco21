@@ -68,3 +68,54 @@
 - 고객 노출가를 유지하려면 `selPrc`를 기존 할인 후 실판매가로 낮추며 `cuponcheck=N`을 보내야 한다.
 - 다만 11번가 옵션가 한도/가격 변경폭 제한으로 일부 상품은 실패할 수 있다. 실패 상품은 예외 리포트로 분리해야 한다.
 - 이 감사에서는 쓰기 API를 호출하지 않았다.
+
+## 기본즉시할인 제거 실행 결과
+
+- 실행일: 2026-04-27 22:05~22:08 KST
+- 실행 도구: `n8n-automation/_tools/openmarket/11st_disable_instant_discount.py`
+- 실행 방식: 할인 후 실판매가를 새 `selPrc`로 설정하고 `cuponcheck=N` 전환
+- 쓰기 API: `POST https://api.11st.co.kr/rest/prodservices/product/priceCoupon/[prdNo]`
+
+### 결과 요약
+
+- 처리 대상: 상세조회 기준 기본즉시할인 확인 130개
+  - 판매중: 124개
+  - 판매중지중: 6개
+- 성공 및 검증 완료: 96개
+  - 판매중 성공: 93개
+  - 판매중지중 성공: 3개
+- 실패/잔여: 34개
+  - 판매중 잔여: 31개
+  - 판매중지중 잔여: 3개
+
+최종 dry-run 재검증:
+
+- 판매중 대상 124개 중 93개는 fresh detail에서 `cuponcheck=N`으로 확인되어 skip, 잔여 31개만 would_update 상태.
+- 판매중지중 대상 6개 중 3개는 fresh detail에서 `cuponcheck=N`으로 확인되어 skip, 잔여 3개만 would_update 상태.
+
+### 실패 사유 집계
+
+- 판매가가 기본즉시할인금액 이하 제한: 22개
+- 최대 80% 인하 제한: 9개
+- 옵션가격/판매가 범위 제한: 3개
+
+실패 목록 CSV:
+
+- `n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-failures.csv`
+
+실행/검증 JSON:
+
+- `disable-instant-discount-execute-20260427-220553.json` — 판매중 3개 선실행, 3개 성공
+- `disable-instant-discount-execute-20260427-220755.json` — 판매중 전체 실행, 90개 추가 성공, 31개 실패, 3개 skip
+- `disable-instant-discount-execute-20260427-220834.json` — 판매중지중 6개 실행, 3개 성공, 3개 실패
+- `disable-instant-discount-dry-run-20260427-220923.json` — 판매중 최종 재검증
+- `disable-instant-discount-dry-run-20260427-220925.json` — 판매중지중 최종 재검증
+- `disable-instant-discount-aggregate-summary.json` — 통합 결과 요약
+
+### 잔여 34개에 대한 다음 판단
+
+잔여 상품은 API가 정책상 차단했다. 특히 `판매가는 기본즉시할인금액 이하로 설정할 수 없습니다` 오류는 11번가가 동일 요청 안에서 `selPrc`를 할인금액 이하로 낮추면서 쿠폰을 끄는 조합을 차단하는 케이스다. 이 경우 아래 중 하나가 필요하다.
+
+1. 셀러오피스에서 옵션가를 먼저 조정한 뒤 가격/즉시할인을 재시도한다.
+2. 11번가 `상품 옵션 수정` API로 옵션가 범위를 먼저 재구성한 뒤 `priceCoupon`을 재시도한다.
+3. 가격 노출 상승을 감수하고 현재 판매가를 유지한 채 `cuponcheck=N`만 적용한다. 단, 고객가가 급상승하므로 권장하지 않는다.

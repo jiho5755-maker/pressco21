@@ -44,3 +44,22 @@
 - `n8n-automation/backups/20260427-꽃레진-50g-restock/makeshop-uid184-stock-fix.json`
 - `n8n-automation/backups/20260427-꽃레진-50g-restock/final-verify.json`
 - `n8n-automation/backups/20260427-꽃레진-50g-restock/SUMMARY.md`
+
+## 11번가 URL 카탈로그 기준 추가 재시도
+
+- 추가 작업 시각: 2026-04-27 13:25~13:35 KST
+- 기준 문서: `docs/openmarket-ops/11st-openapi-url-catalog.md`
+- 확인한 재고 변경 URL: `http://api.11st.co.kr/rest/prodservices/stockqty/[prdStckNo]`
+- 확인한 전시 재개 URL: `http://api.11st.co.kr/rest/prodstatservice/stat/restartdisplay/[prdNo]`
+- 추가 확인 URL: `prodmarket`, `sellerprodcode`, `prodmarket/stocks`, `getRealTimeCheckSoldOutOpt/{startDt}/{endDt}`
+
+추가 재시도 결과, 주문 API는 정상 동작했지만 `꽃레진/50g`의 11번가 `prdNo`/`prdStckNo`를 확보하지 못했다. 공개 상품검색에서도 PRESSCO21 `꽃레진/50g` 정확 매칭은 0건이었고, 2026-01-01부터 현재까지 주문 이력 102회 호출/96개 주문 chunk 역추적에서도 `꽃레진/50g` 매칭은 0건이었다. `sellerprdcd` 후보 `103885`, `184`, `12195529`, `201617`, `201643`, `PC21-SKU-876F51C76E`, `flower_resin_50g`도 빈 결과였다.
+
+따라서 오등록/타상품 재고 변경을 막기 위해 11번가 쓰기 API(`stockqty`, `restartdisplay`)는 호출하지 않았다. 다음 재시도에는 Seller Office에서 해당 상품의 `prdNo`/`prdStckNo`를 먼저 확인하거나, 현재 키에 11번가 상품조회/상품수정 API 권한을 등록해야 한다.
+
+추가 산출물:
+
+- `n8n-automation/backups/20260427-꽃레진-50g-restock/st11-url-catalog-probe-1.json`
+- `n8n-automation/backups/20260427-꽃레진-50g-restock/st11-url-catalog-probe-2.json`
+- `n8n-automation/backups/20260427-꽃레진-50g-restock/st11-public-search-regex-fix.json`
+- `n8n-automation/backups/20260427-꽃레진-50g-restock/st11-url-catalog-probe-summary.md`

@@ -1,0 +1,1232 @@
+{
+  "operation": "st11_url_catalog_probe_1",
+  "at": "2026-04-27T04:25:49+00:00",
+  "source_doc": "docs/openmarket-ops/11st-openapi-url-catalog.md",
+  "write_attempted": false,
+  "sections": {
+    "public_product_search": [
+      {
+        "url": "https://openapi.11st.co.kr/openapi/OpenApiService.tmall",
+        "params": {
+          "key": "***REDACTED***",
+          "apiCode": "ProductSearch",
+          "keyword": "프레스코21 꽃레진 50g",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 꽃레진 50g\"></Argument></Arguments><ProcessingTime>",
+        "root": "ProductSearchResponse",
+        "all_tags_sample": [
+          "Argument",
+          "Arguments",
+          "ProcessingTime",
+          "ProductSearchResponse",
+          "Products",
+          "Request",
+          "TotalCount"
+        ]
+      },
+      {
+        "url": "https://openapi.11st.co.kr/openapi/OpenApiService.tmall",
+        "params": {
+          "key": "***REDACTED***",
+          "apiCode": "ProductSearch",
+          "keyword": "꽃레진 50g",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"꽃레진 50g\"></Argument></Arguments><ProcessingTime>0.034 s",
+        "root": "ProductSearchResponse",
+        "product_numbers": [
+          "9296166449"
+        ],
+        "product_names": [
+          "50g(500-600개) 대용량 3D 믹스 컬러풀 레진 오로라 보우 꽃 나비 네일 참 하트//달 플랫백 장식 용품"
+        ],
+        "all_tags_sample": [
+          "Argument",
+          "Arguments",
+          "Benefit",
+          "BuySatisfy",
+          "Delivery",
+          "DetailPageUrl",
+          "Discount",
+          "MinorYn",
+          "ProcessingTime",
+          "Product",
+          "ProductCode",
+          "ProductImage",
+          "ProductImage100",
+          "ProductImage110",
+          "ProductImage120",
+          "ProductImage130",
+          "ProductImage140",
+          "ProductImage150",
+          "ProductImage170",
+          "ProductImage200",
+          "ProductImage250",
+          "ProductImage270",
+          "ProductImage300",
+          "ProductName",
+          "ProductPrice",
+          "ProductSearchResponse",
+          "Products",
+          "Rating",
+          "Request",
+          "ReviewCount",
+          "SalePrice",
+          "Seller",
+          "SellerGrd",
+          "SellerNick",
+          "Text1",
+          "Text2",
+          "TotalCount"
+        ]
+      },
+      {
+        "url": "https://openapi.11st.co.kr/openapi/OpenApiService.tmall",
+        "params": {
+          "key": "***REDACTED***",
+          "apiCode": "ProductSearch",
+          "keyword": "꽃레진 실리콘레진 50g",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"꽃레진 실리콘레진 50g\"></Argument></Arguments><ProcessingTime>0",
+        "root": "ProductSearchResponse",
+        "all_tags_sample": [
+          "Argument",
+          "Arguments",
+          "ProcessingTime",
+          "ProductSearchResponse",
+          "Products",
+          "Request",
+          "TotalCount"
+        ]
+      },
+      {
+        "url": "https://openapi.11st.co.kr/openapi/OpenApiService.tmall",
+        "params": {
+          "key": "***REDACTED***",
+          "apiCode": "ProductSearch",
+          "keyword": "프레스코21 실리콘레진",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 실리콘레진\"></Argument></Arguments><ProcessingTime>0.",
+        "root": "ProductSearchResponse",
+        "product_numbers": [
+          "8814119468",
+          "8712917765",
+          "8306947869",
+          "8290687301",
+          "8236638190",
+          "8236637532",
+          "8236637168",
+          "8236637112",
+          "8236637043",
+          "8236636908",
+          "8236636722",
+          "8236636663",
+          "8236636537",
+          "8236636460",
+          "8236636410",
+          "8236636272",
+          "8236636143",
+          "8236636004",
+          "8236635850",
+          "8236635724"
+        ],
+        "product_names": [
+          "레진 공예 실리콘 몰드 캔들볼 캔들홀더",
+          "레진 공예 실리콘 몰드 도어벨 차임벨",
+          "레진 공예 실리콘 몰드 한송이 화병 꽃병",
+          "프레스코21 레진 만들기키트 실리콘몰드 컵받침 네임텍 가방걸이",
+          "프레스코21 레진 공예 실리콘 몰드 미니 보석함",
+          "레진 아트 공예 실리콘 몰드 링홀더 반지꽂이 결혼반지 보관 압화 만들기",
+          "프레스코21 레진 공예 실리콘 몰드 다용도함 꽃모양",
+          "프레스코21 레진 공예 실리콘 몰드 컵받침세트 코스터 압화 만들기",
+          "프레스코21 레진 공예 실리콘 몰드 재떨이 팔각형 소",
+          "프레스코21 레진 공예 실리콘 몰드 재떨이 사각형 대",
+          "프레스코21 레진 공예 실리콘 몰드 컵받침 5종",
+          "프레스코21 레진 공예 실리콘 몰드 비누받침대 조개모양",
+          "프레스코21 레진 공예 실리콘 몰드 비누받침대 꽃모양",
+          "프레스코21 레진 공예 실리콘 몰드 타원 미니쟁반 트레이",
+          "프레스코21 레진 공예 실리콘 몰드 브러쉬 소",
+          "프레스코21 레진 공예 실리콘 몰드 브러쉬 대",
+          "프레스코21 레진 공예 실리콘 몰드 문자모음 알바펫 숫자",
+          "프레스코21 레진 공예 실리콘 몰드 펜꽂이 팔각형",
+          "프레스코21 레진 공예 실리콘 몰드 눈금자 토끼모양",
+          "프레스코21 레진 공예 실리콘 몰드 눈금자 하트크라운"
+        ],
+        "all_tags_sample": [
+          "Argument",
+          "Arguments",
+          "Benefit",
+          "BuySatisfy",
+          "Delivery",
+          "DetailPageUrl",
+          "Discount",
+          "MinorYn",
+          "ProcessingTime",
+          "Product",
+          "ProductCode",
+          "ProductImage",
+          "ProductImage100",
+          "ProductImage110",
+          "ProductImage120",
+          "ProductImage130",
+          "ProductImage140",
+          "ProductImage150",
+          "ProductImage170",
+          "ProductImage200",
+          "ProductImage250",
+          "ProductImage270",
+          "ProductImage300",
+          "ProductName",
+          "ProductPrice",
+          "ProductSearchResponse",
+          "Products",
+          "Rating",
+          "Request",
+          "ReviewCount",
+          "SalePrice",
+          "Seller",
+          "SellerGrd",
+          "SellerNick",
+          "Text1",
+          "Text2",
+          "TotalCount"
+        ]
+      }
+    ],
+    "seller_read_probes": [
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "searchKeyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "sellerPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "selPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "sellerprdcd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "prdNm": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "keyword": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "searchKeyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "sellerPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "selPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "sellerprdcd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "prdNm": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "keyword": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "searchKeyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "sellerPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "selPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "sellerprdcd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "prdNm": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "params": {
+          "keyword": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "searchKeyword": "꽃레진"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "sellerPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "selPrdCd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "sellerprdcd": "103885"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "prdNm": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/product/list",
+        "params": {
+          "keyword": "꽃레진",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "params": {},
+        "status_code": 200,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><ns2:products xmlns:ns2=\"http://skt.tmall.business.openapi.spring.service.client.domain/\"/>",
+        "root": "products",
+        "all_tags_sample": [
+          "products"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      }
+    ],
+    "endpoint_shape_probes_get_only": [
+      {
+        "url": "https://api.11st.co.kr/rest/prodservices/stockqty/0",
+        "params": {
+          "prdStockQty": "1000"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodservices/stockqty/0",
+        "params": {
+          "prdStockQty": "1000"
+        },
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "https://api.11st.co.kr/rest/prodstatservice/stat/restartdisplay/0",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      },
+      {
+        "url": "http://api.11st.co.kr/rest/prodstatservice/stat/restartdisplay/0",
+        "params": {},
+        "status_code": 500,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "root": "AuthMessage",
+        "codes": [
+          "-997"
+        ],
+        "messages": [
+          "등록된 API 정보가 존재하지 않습니다."
+        ],
+        "all_tags_sample": [
+          "AuthMessage",
+          "resultCode",
+          "resultMessage"
+        ]
+      }
+    ]
+  }
+}

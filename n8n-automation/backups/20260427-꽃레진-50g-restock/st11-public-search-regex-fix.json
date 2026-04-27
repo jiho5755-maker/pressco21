@@ -1,0 +1,700 @@
+{
+    "operation": "st11_public_search_regex_fix",
+    "at": "2026-04-27T04:34:06.448542+00:00",
+    "write_attempted": false,
+    "rows": [
+        {
+            "query": "\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4 50g",
+            "status_code": 200,
+            "total_count": "0",
+            "product_count": 0,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4 50g\"></Argument></Arguments><ProcessingTime>"
+        },
+        {
+            "query": "\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4/50g",
+            "status_code": 200,
+            "total_count": "0",
+            "product_count": 0,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4/50g\"></Argument></Arguments><ProcessingTime>"
+        },
+        {
+            "query": "\uaf43\ub808\uc9c4/50g",
+            "status_code": 200,
+            "total_count": "1",
+            "product_count": 1,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [
+                {
+                    "ProductCode": "9296166449",
+                    "ProductName": "50g(500-600\uac1c) \ub300\uc6a9\ub7c9 3D \ubbf9\uc2a4 \uceec\ub7ec\ud480 \ub808\uc9c4 \uc624\ub85c\ub77c \ubcf4\uc6b0 \uaf43 \ub098\ube44 \ub124\uc77c \ucc38 \ud558\ud2b8//\ub2ec \ud50c\ub7ab\ubc31 \uc7a5\uc2dd \uc6a9\ud488",
+                    "Seller": "hogofodo44",
+                    "SellerNick": "\uc0b0\uc5c5\uc131\uc6d0",
+                    "ProductPrice": "10800",
+                    "SalePrice": "10700",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=9296166449"
+                }
+            ],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\uaf43\ub808\uc9c4/50g\"></Argument></Arguments><ProcessingTime>0.032 s"
+        },
+        {
+            "query": "\uaf43\ub808\uc9c4 50g",
+            "status_code": 200,
+            "total_count": "1",
+            "product_count": 1,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [
+                {
+                    "ProductCode": "9296166449",
+                    "ProductName": "50g(500-600\uac1c) \ub300\uc6a9\ub7c9 3D \ubbf9\uc2a4 \uceec\ub7ec\ud480 \ub808\uc9c4 \uc624\ub85c\ub77c \ubcf4\uc6b0 \uaf43 \ub098\ube44 \ub124\uc77c \ucc38 \ud558\ud2b8//\ub2ec \ud50c\ub7ab\ubc31 \uc7a5\uc2dd \uc6a9\ud488",
+                    "Seller": "hogofodo44",
+                    "SellerNick": "\uc0b0\uc5c5\uc131\uc6d0",
+                    "ProductPrice": "10800",
+                    "SalePrice": "10700",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=9296166449"
+                }
+            ],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\uaf43\ub808\uc9c4 50g\"></Argument></Arguments><ProcessingTime>0.034 s"
+        },
+        {
+            "query": "\uaf43\ub808\uc9c4 \uc2e4\ub9ac\ucf58\ub808\uc9c4 50g",
+            "status_code": 200,
+            "total_count": "0",
+            "product_count": 0,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\uaf43\ub808\uc9c4 \uc2e4\ub9ac\ucf58\ub808\uc9c4 50g\"></Argument></Arguments><ProcessingTime>0"
+        },
+        {
+            "query": "\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4",
+            "status_code": 200,
+            "total_count": "16",
+            "product_count": 16,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [
+                {
+                    "ProductCode": "8236637168",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub2e4\uc6a9\ub3c4\ud568 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637168"
+                },
+                {
+                    "ProductCode": "8236636537",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube44\ub204\ubc1b\uce68\ub300 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636537"
+                },
+                {
+                    "ProductCode": "8236632389",
+                    "ProductName": "\ub77d\uc2a4\ud37c(\ud770\uc0c9/\ucc29\uc0c9) \uc555\ud654 \uaf43\uc1a1\uc774 \ud3b8\uc9c0 \ub9cc\ub4e4\uae30 \ub808\uc9c4 \uacf5\uc608\uc7ac\ub8cc \ubd81\ub9c8\ud06c \ub2e4\uafb8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "4400",
+                    "SalePrice": "4400",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236632389"
+                },
+                {
+                    "ProductCode": "8236627523",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \ub9cc\ub4e4\uae30 \uaf43\ubaa8\uc591\uc694\uc9c0\ud1b5 DIY \ud504\ub9ac\uc800\ube0c\ub4dc\ud50c\ub77c\uc6cc \ub808\uc9c4 \uacf5\uc608 \uc7ac\ub8cc \ubc18\uc81c\ud488 \ud770\uc0c9 \ub3c4\uc790\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627523"
+                },
+                {
+                    "ProductCode": "8236627426",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \uc904\uae30 \uc548\uac1c\uaf43(\ud770\uc0c9) 20p \ud3b8\uc9c0 \ub9cc\ub4e4\uae30 \ub808\uc9c4 \uacf5\uc608\uc7ac\ub8cc \ubd81\ub9c8\ud06c \ub2e4\uafb8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "4000",
+                    "SalePrice": "4000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627426"
+                },
+                {
+                    "ProductCode": "8236626918",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4\uacf5\uc608 \ubab0\ub4dc/\uaf43",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "1200",
+                    "SalePrice": "1200",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236626918"
+                },
+                {
+                    "ProductCode": "8236624656",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \uc555\ud654\uaf43 \uaf43\uc1a1\uc774 \ub808\uc9c4\uc544\ud2b8 \ub2e4\uafb8 \ud504\ub9ac\ubbf8\uc5c4 \uc77c\ubcf8 \ub124\ubaa8\ud544\ub77c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "22000",
+                    "SalePrice": "20000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236624656"
+                },
+                {
+                    "ProductCode": "1632254689",
+                    "ProductName": "\ubcf4\uc874\ud654 \uc720\ub9ac\ub3d4 \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4/\uc608\ub2e8/\uacf5\uc608/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1632254689"
+                },
+                {
+                    "ProductCode": "1632248675",
+                    "ProductName": "\uc0bc\uac01\ud615 \ube0c\ub85c\ucc0c \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4/\uc608\ub2e8/\uacf5\uc608/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "7000",
+                    "SalePrice": "7000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1632248675"
+                },
+                {
+                    "ProductCode": "1627478362",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-\ub9c8\uac00\ub81b,\ub77d\uc2a4\ud37c) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1627478362"
+                },
+                {
+                    "ProductCode": "1595217216",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-221) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1595217216"
+                },
+                {
+                    "ProductCode": "1595214442",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-220) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "12000",
+                    "SalePrice": "12000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1595214442"
+                },
+                {
+                    "ProductCode": "1595212511",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-219) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "12000",
+                    "SalePrice": "12000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1595212511"
+                },
+                {
+                    "ProductCode": "1595203868",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-217) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "12000",
+                    "SalePrice": "12000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1595203868"
+                },
+                {
+                    "ProductCode": "1594401170",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-216) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "10000",
+                    "SalePrice": "10000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1594401170"
+                },
+                {
+                    "ProductCode": "1594388254",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-215) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\uc608\ub2e8/\ub808\uc9c4/\uacf5\uc608",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "7000",
+                    "SalePrice": "7000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1594388254"
+                }
+            ],
+            "first_products": [
+                {
+                    "ProductCode": "8236637168",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub2e4\uc6a9\ub3c4\ud568 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637168"
+                },
+                {
+                    "ProductCode": "8236636537",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube44\ub204\ubc1b\uce68\ub300 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636537"
+                },
+                {
+                    "ProductCode": "8236632389",
+                    "ProductName": "\ub77d\uc2a4\ud37c(\ud770\uc0c9/\ucc29\uc0c9) \uc555\ud654 \uaf43\uc1a1\uc774 \ud3b8\uc9c0 \ub9cc\ub4e4\uae30 \ub808\uc9c4 \uacf5\uc608\uc7ac\ub8cc \ubd81\ub9c8\ud06c \ub2e4\uafb8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "4400",
+                    "SalePrice": "4400",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236632389"
+                },
+                {
+                    "ProductCode": "8236627523",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \ub9cc\ub4e4\uae30 \uaf43\ubaa8\uc591\uc694\uc9c0\ud1b5 DIY \ud504\ub9ac\uc800\ube0c\ub4dc\ud50c\ub77c\uc6cc \ub808\uc9c4 \uacf5\uc608 \uc7ac\ub8cc \ubc18\uc81c\ud488 \ud770\uc0c9 \ub3c4\uc790\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627523"
+                },
+                {
+                    "ProductCode": "8236627426",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \uc904\uae30 \uc548\uac1c\uaf43(\ud770\uc0c9) 20p \ud3b8\uc9c0 \ub9cc\ub4e4\uae30 \ub808\uc9c4 \uacf5\uc608\uc7ac\ub8cc \ubd81\ub9c8\ud06c \ub2e4\uafb8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "4000",
+                    "SalePrice": "4000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627426"
+                },
+                {
+                    "ProductCode": "8236626918",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4\uacf5\uc608 \ubab0\ub4dc/\uaf43",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "1200",
+                    "SalePrice": "1200",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236626918"
+                },
+                {
+                    "ProductCode": "8236624656",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \uc555\ud654\uaf43 \uaf43\uc1a1\uc774 \ub808\uc9c4\uc544\ud2b8 \ub2e4\uafb8 \ud504\ub9ac\ubbf8\uc5c4 \uc77c\ubcf8 \ub124\ubaa8\ud544\ub77c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "22000",
+                    "SalePrice": "20000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236624656"
+                },
+                {
+                    "ProductCode": "1632254689",
+                    "ProductName": "\ubcf4\uc874\ud654 \uc720\ub9ac\ub3d4 \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4/\uc608\ub2e8/\uacf5\uc608/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1632254689"
+                },
+                {
+                    "ProductCode": "1632248675",
+                    "ProductName": "\uc0bc\uac01\ud615 \ube0c\ub85c\ucc0c \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4/\uc608\ub2e8/\uacf5\uc608/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "7000",
+                    "SalePrice": "7000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1632248675"
+                },
+                {
+                    "ProductCode": "1627478362",
+                    "ProductName": "\uccb4\ud5d8\uaf43\ud329(FP/K-\ub9c8\uac00\ub81b,\ub77d\uc2a4\ud37c) \uaf43\ub204\ub984/\ud3b8\uc9c0/\uc555\ud654/\ub808\uc9c4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=1627478362"
+                }
+            ],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\ud504\ub808\uc2a4\ucf5421 \uaf43\ub808\uc9c4\"></Argument></Arguments><ProcessingTime>0.04"
+        },
+        {
+            "query": "\ud504\ub808\uc2a4\ucf5421 \uc2e4\ub9ac\ucf58\ub808\uc9c4",
+            "status_code": 200,
+            "total_count": "53",
+            "product_count": 53,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [
+                {
+                    "ProductCode": "8814119468",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uce94\ub4e4\ubcfc \uce94\ub4e4\ud640\ub354",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8814119468"
+                },
+                {
+                    "ProductCode": "8712917765",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub3c4\uc5b4\ubca8 \ucc28\uc784\ubca8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "2500",
+                    "SalePrice": "2500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8712917765"
+                },
+                {
+                    "ProductCode": "8306947869",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ud55c\uc1a1\uc774 \ud654\ubcd1 \uaf43\ubcd1",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "7000",
+                    "SalePrice": "7000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8306947869"
+                },
+                {
+                    "ProductCode": "8290687301",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \ub9cc\ub4e4\uae30\ud0a4\ud2b8 \uc2e4\ub9ac\ucf58\ubab0\ub4dc \ucef5\ubc1b\uce68 \ub124\uc784\ud14d \uac00\ubc29\uac78\uc774",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "15000",
+                    "SalePrice": "15000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8290687301"
+                },
+                {
+                    "ProductCode": "8236638190",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ubbf8\ub2c8 \ubcf4\uc11d\ud568",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "11000",
+                    "SalePrice": "8600",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236638190"
+                },
+                {
+                    "ProductCode": "8236637532",
+                    "ProductName": "\ub808\uc9c4 \uc544\ud2b8 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub9c1\ud640\ub354 \ubc18\uc9c0\uaf42\uc774 \uacb0\ud63c\ubc18\uc9c0 \ubcf4\uad00 \uc555\ud654 \ub9cc\ub4e4\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3500",
+                    "SalePrice": "3500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637532"
+                },
+                {
+                    "ProductCode": "8236637168",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub2e4\uc6a9\ub3c4\ud568 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637168"
+                },
+                {
+                    "ProductCode": "8236637112",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ucef5\ubc1b\uce68\uc138\ud2b8 \ucf54\uc2a4\ud130 \uc555\ud654 \ub9cc\ub4e4\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6500",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637112"
+                },
+                {
+                    "ProductCode": "8236637043",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uc7ac\ub5a8\uc774 \ud314\uac01\ud615 \uc18c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637043"
+                },
+                {
+                    "ProductCode": "8236636908",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uc7ac\ub5a8\uc774 \uc0ac\uac01\ud615 \ub300",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636908"
+                },
+                {
+                    "ProductCode": "8236636722",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ucef5\ubc1b\uce68 5\uc885",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6500",
+                    "SalePrice": "5500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636722"
+                },
+                {
+                    "ProductCode": "8236636663",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube44\ub204\ubc1b\uce68\ub300 \uc870\uac1c\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636663"
+                },
+                {
+                    "ProductCode": "8236636537",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube44\ub204\ubc1b\uce68\ub300 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636537"
+                },
+                {
+                    "ProductCode": "8236636460",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ud0c0\uc6d0 \ubbf8\ub2c8\uc7c1\ubc18 \ud2b8\ub808\uc774",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6500",
+                    "SalePrice": "5500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636460"
+                },
+                {
+                    "ProductCode": "8236636410",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube0c\ub7ec\uc26c \uc18c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636410"
+                },
+                {
+                    "ProductCode": "8236636272",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ube0c\ub7ec\uc26c \ub300",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636272"
+                },
+                {
+                    "ProductCode": "8236636143",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ubb38\uc790\ubaa8\uc74c \uc54c\ubc14\ud3ab \uc22b\uc790",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "8000",
+                    "SalePrice": "8000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636143"
+                },
+                {
+                    "ProductCode": "8236636004",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ud39c\uaf42\uc774 \ud314\uac01\ud615",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "13000",
+                    "SalePrice": "13000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636004"
+                },
+                {
+                    "ProductCode": "8236635850",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub208\uae08\uc790 \ud1a0\ub07c\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "2000",
+                    "SalePrice": "2000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635850"
+                },
+                {
+                    "ProductCode": "8236635724",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub208\uae08\uc790 \ud558\ud2b8\ud06c\ub77c\uc6b4",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "2000",
+                    "SalePrice": "2000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635724"
+                },
+                {
+                    "ProductCode": "8236635688",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc218\uc81c\ubab0\ub4dc/\uc0bc\uac01\ud615",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "12000",
+                    "SalePrice": "12000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635688"
+                },
+                {
+                    "ProductCode": "8236635591",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub208\uae08\uc790 \ud558\ud2b8\ub9ac\ubcf8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "2000",
+                    "SalePrice": "2000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635591"
+                },
+                {
+                    "ProductCode": "8236635579",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc218\uc81c\ubab0\ub4dc/3\uc8856\uad6c\ubc18\uad6c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "15000",
+                    "SalePrice": "15000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635579"
+                },
+                {
+                    "ProductCode": "8236635379",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uc6d0\uc11d\ubaa8\uc591 4\uc885",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "1900",
+                    "SalePrice": "1900",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635379"
+                },
+                {
+                    "ProductCode": "8236635215",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ucc45\uac08\ud53c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "800",
+                    "SalePrice": "800",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236635215"
+                }
+            ],
+            "first_products": [
+                {
+                    "ProductCode": "8814119468",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uce94\ub4e4\ubcfc \uce94\ub4e4\ud640\ub354",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8814119468"
+                },
+                {
+                    "ProductCode": "8712917765",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub3c4\uc5b4\ubca8 \ucc28\uc784\ubca8",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "2500",
+                    "SalePrice": "2500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8712917765"
+                },
+                {
+                    "ProductCode": "8306947869",
+                    "ProductName": "\ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ud55c\uc1a1\uc774 \ud654\ubcd1 \uaf43\ubcd1",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "7000",
+                    "SalePrice": "7000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8306947869"
+                },
+                {
+                    "ProductCode": "8290687301",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \ub9cc\ub4e4\uae30\ud0a4\ud2b8 \uc2e4\ub9ac\ucf58\ubab0\ub4dc \ucef5\ubc1b\uce68 \ub124\uc784\ud14d \uac00\ubc29\uac78\uc774",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "15000",
+                    "SalePrice": "15000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8290687301"
+                },
+                {
+                    "ProductCode": "8236638190",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ubbf8\ub2c8 \ubcf4\uc11d\ud568",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "11000",
+                    "SalePrice": "8600",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236638190"
+                },
+                {
+                    "ProductCode": "8236637532",
+                    "ProductName": "\ub808\uc9c4 \uc544\ud2b8 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub9c1\ud640\ub354 \ubc18\uc9c0\uaf42\uc774 \uacb0\ud63c\ubc18\uc9c0 \ubcf4\uad00 \uc555\ud654 \ub9cc\ub4e4\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3500",
+                    "SalePrice": "3500",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637532"
+                },
+                {
+                    "ProductCode": "8236637168",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ub2e4\uc6a9\ub3c4\ud568 \uaf43\ubaa8\uc591",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6000",
+                    "SalePrice": "6000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637168"
+                },
+                {
+                    "ProductCode": "8236637112",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \ucef5\ubc1b\uce68\uc138\ud2b8 \ucf54\uc2a4\ud130 \uc555\ud654 \ub9cc\ub4e4\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "6500",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637112"
+                },
+                {
+                    "ProductCode": "8236637043",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uc7ac\ub5a8\uc774 \ud314\uac01\ud615 \uc18c",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236637043"
+                },
+                {
+                    "ProductCode": "8236636908",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608 \uc2e4\ub9ac\ucf58 \ubab0\ub4dc \uc7ac\ub5a8\uc774 \uc0ac\uac01\ud615 \ub300",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "5000",
+                    "SalePrice": "5000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236636908"
+                }
+            ],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\ud504\ub808\uc2a4\ucf5421 \uc2e4\ub9ac\ucf58\ub808\uc9c4\"></Argument></Arguments><ProcessingTime>0."
+        },
+        {
+            "query": "\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608\uc6a9 \ub9c8\uac10\uc7ac \uaf43\ub808\uc9c4",
+            "status_code": 200,
+            "total_count": "0",
+            "product_count": 0,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"\ud504\ub808\uc2a4\ucf5421 \ub808\uc9c4 \uacf5\uc608\uc6a9 \ub9c8\uac10\uc7ac \uaf43\ub808\uc9c4\"></Argument></Arguments><Processi"
+        },
+        {
+            "query": "foreverlove \uaf43\ub808\uc9c4",
+            "status_code": 200,
+            "total_count": "0",
+            "product_count": 0,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [],
+            "first_products": [],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"foreverlove \uaf43\ub808\uc9c4\"></Argument></Arguments><ProcessingTime"
+        },
+        {
+            "query": "pressco21 flower resin",
+            "status_code": 200,
+            "total_count": "1",
+            "product_count": 1,
+            "exact_pressco_target_count": 0,
+            "targetish_products": [
+                {
+                    "ProductCode": "8236627523",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \ub9cc\ub4e4\uae30 \uaf43\ubaa8\uc591\uc694\uc9c0\ud1b5 DIY \ud504\ub9ac\uc800\ube0c\ub4dc\ud50c\ub77c\uc6cc \ub808\uc9c4 \uacf5\uc608 \uc7ac\ub8cc \ubc18\uc81c\ud488 \ud770\uc0c9 \ub3c4\uc790\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627523"
+                }
+            ],
+            "first_products": [
+                {
+                    "ProductCode": "8236627523",
+                    "ProductName": "\ud504\ub808\uc2a4\ucf5421 \uc555\ud654 \ub9cc\ub4e4\uae30 \uaf43\ubaa8\uc591\uc694\uc9c0\ud1b5 DIY \ud504\ub9ac\uc800\ube0c\ub4dc\ud50c\ub77c\uc6cc \ub808\uc9c4 \uacf5\uc608 \uc7ac\ub8cc \ubc18\uc81c\ud488 \ud770\uc0c9 \ub3c4\uc790\uae30",
+                    "Seller": "pressco21",
+                    "SellerNick": "\ud504\ub808\uc2a4\ucf5421",
+                    "ProductPrice": "3000",
+                    "SalePrice": "3000",
+                    "DetailPageUrl": "http://www.11st.co.kr/product/SellerProductDetail.tmall?method=getSellerProductDetail&prdNo=8236627523"
+                }
+            ],
+            "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"pressco21 flower resin\"></Argument></Arguments><Process"
+        }
+    ]
+}

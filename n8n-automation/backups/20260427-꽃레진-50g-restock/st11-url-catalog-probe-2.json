@@ -1,0 +1,1684 @@
+{
+  "operation": "st11_url_catalog_probe_2",
+  "at": "2026-04-27T04:32:14.238861+00:00",
+  "source_doc": "docs/openmarket-ops/11st-openapi-url-catalog.md + 11st-openapi-catalog-from-screenshots-2026-04-17.md",
+  "target": "꽃레진/50g",
+  "target_stock": 1000,
+  "write_attempted": false,
+  "write_block_reason": "exact 11st prdNo/prdStckNo and product-management API permission must be confirmed before stock/restart writes",
+  "catalog_urls_used": {
+    "product_search": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+    "seller_product_search": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/[sellerprdcd]",
+    "stock_read": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/[prdNo]",
+    "soldout_option_list": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt}",
+    "stock_write": "http://api.11st.co.kr/rest/prodservices/stockqty/[prdStckNo]",
+    "restart_display": "http://api.11st.co.kr/rest/prodstatservice/stat/restartdisplay/[prdNo]"
+  },
+  "sections": {
+    "order_api_health": {
+      "label": "header_openapikey|주문API상태확인",
+      "method": "GET",
+      "url": "https://api.11st.co.kr/rest/ordservices/completed/202604200000/202604272359",
+      "auth_mode": "header_openapikey",
+      "params": {},
+      "status_code": 200,
+      "elapsed_ms": 307,
+      "xml_parse_error": "multi-byte encodings are not supported"
+    },
+    "public_product_search": [
+      {
+        "query": "프레스코21 꽃레진 50g",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "0"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 꽃레진 50g\"></Argument></Arguments><ProcessingTime>0.03 sec</ProcessingTime></Request><Products><Tota"
+      },
+      {
+        "query": "프레스코21 꽃레진/50g",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "0"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 꽃레진/50g\"></Argument></Arguments><ProcessingTime>0.031 sec</ProcessingTime></Request><Products><Tot"
+      },
+      {
+        "query": "꽃레진/50g",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "1"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"꽃레진/50g\"></Argument></Arguments><ProcessingTime>0.037 sec</ProcessingTime></Request><Products><TotalCount"
+      },
+      {
+        "query": "꽃레진 50g",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "1"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"꽃레진 50g\"></Argument></Arguments><ProcessingTime>0.033 sec</ProcessingTime></Request><Products><TotalCount"
+      },
+      {
+        "query": "꽃레진 실리콘레진 50g",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "0"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"꽃레진 실리콘레진 50g\"></Argument></Arguments><ProcessingTime>0.028 sec</ProcessingTime></Request><Products><Tota"
+      },
+      {
+        "query": "프레스코21 꽃레진",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "16"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 꽃레진\"></Argument></Arguments><ProcessingTime>0.051 sec</ProcessingTime></Request><Products><TotalCo"
+      },
+      {
+        "query": "프레스코21 실리콘레진",
+        "status_code": 200,
+        "summary": {
+          "xml_parse_error": "multi-byte encodings are not supported",
+          "TotalCount": "53"
+        },
+        "product_count": 0,
+        "targetish_count": 0,
+        "targetish_products": [],
+        "first_products": [],
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\"?><ProductSearchResponse><Request><Arguments><Argument name=\"key\" value=\"***REDACTED***\"></Argument><Argument name=\"apiCode\" value=\"ProductSearch\"></Argument><Argument name=\"keyword\" value=\"프레스코21 실리콘레진\"></Argument></Arguments><ProcessingTime>0.073 sec</ProcessingTime></Request><Products><Total"
+      }
+    ],
+    "catalog_endpoint_auth_probes": [
+      {
+        "label": "header_openapikey|다중상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "header_openapikey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "header_openapikey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "elapsed_ms": 97,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "message": "[stocks] 상품 정보 조회중 오류입니다.상품번호는 숫자만 가능합니다."
+      },
+      {
+        "label": "header_openapikey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 124,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "200",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><soldoutList><resultCode>200</resultCode><resultText>해당 기간 조회된 데이터가 없습니다.</resultText></soldoutList>"
+      },
+      {
+        "label": "header_openapikey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 108,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "500",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><soldoutList><resultCode>500</resultCode><resultText>startDt의 조회 기간 포멧('YYYYMMDDHH24:MI')이 올바르지 않습니다.</resultText></soldoutList>"
+      },
+      {
+        "label": "header_openapikey|다중상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "header_openapikey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 32,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "header_openapikey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "header_openapikey",
+        "params": {
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 200,
+        "elapsed_ms": 44,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "message": "[stocks] 상품 정보 조회중 오류입니다.상품번호는 숫자만 가능합니다."
+      },
+      {
+        "label": "header_openapikey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 51,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "200",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><soldoutList><resultCode>200</resultCode><resultText>해당 기간 조회된 데이터가 없습니다.</resultText></soldoutList>"
+      },
+      {
+        "label": "header_openapikey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 39,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "500",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?><soldoutList><resultCode>500</resultCode><resultText>startDt의 조회 기간 포멧('YYYYMMDDHH24:MI')이 올바르지 않습니다.</resultText></soldoutList>"
+      },
+      {
+        "label": "query_openapikey|다중상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 85,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|다중상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 32,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openapikey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 88,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 93,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 33,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 25,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 32,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_openApiKey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_openApiKey",
+        "params": {
+          "openApiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 88,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 85,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 86,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품조회_keyword",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|다중상품재고정보조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 27,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_apiKey|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_apiKey",
+        "params": {
+          "apiKey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 28,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품조회_keyword",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 93,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품재고정보조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 88,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "prdNm": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 27,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품조회_keyword",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50",
+          "keyword": "꽃레진"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|다중상품재고정보조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/prodmarket/stocks",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***",
+          "pageNo": "1",
+          "pageSize": "50"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|옵션품절리스트조회_12자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/202604131332/202604271332",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 33,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      },
+      {
+        "label": "query_key|옵션품절리스트조회_8자리",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/20260413/20260427",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>"
+      }
+    ],
+    "seller_code_probes": [
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 101,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 45,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 105,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 49,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 109,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 41,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 110,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 53,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 109,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 50,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 108,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 43,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 114,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 200,
+        "elapsed_ms": 50,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 500,
+        "elapsed_ms": 92,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      },
+      {
+        "label": "header_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "header_openapikey",
+        "params": {},
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 34,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 85,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 33,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 29,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 91,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 91,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 91,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      },
+      {
+        "label": "query_openapikey|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "query_openapikey",
+        "params": {
+          "openapikey": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/103885",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "103885"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 87,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/184",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 27,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "184"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 89,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/12195529",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 33,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "12195529"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 92,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201617",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 31,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201617"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/201643",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 32,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "201643"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 90,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/PC21-SKU-876F51C76E",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 32,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "PC21-SKU-876F51C76E"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 88,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/flower_resin_50g",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 28,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-100",
+        "resultMessage": "OpenAPI Key가 누락되었습니다.",
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-100</resultCode><resultMessage>OpenAPI Key가 누락되었습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "flower_resin_50g"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 92,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      },
+      {
+        "label": "query_key|셀러상품조회",
+        "method": "GET",
+        "url": "http://api.11st.co.kr/rest/prodmarketservice/sellerprodcode/%EA%BD%83%EB%A0%88%EC%A7%84%2F50g",
+        "auth_mode": "query_key",
+        "params": {
+          "key": "***REDACTED***"
+        },
+        "status_code": 500,
+        "elapsed_ms": 30,
+        "xml_parse_error": "multi-byte encodings are not supported",
+        "resultCode": "-997",
+        "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+        "permission_error": true,
+        "raw_preview": "<?xml version=\"1.0\" encoding=\"EUC-KR\" standalone=\"yes\"?><AuthMessage><resultCode>-997</resultCode><resultMessage>등록된 API 정보가 존재하지 않습니다.</resultMessage></AuthMessage>",
+        "sellerprdcd_candidate": "꽃레진/50g"
+      }
+    ],
+    "order_history_scan": {
+      "scan_range_kst": [
+        "2026-01-01T00:00:00+09:00",
+        "2026-04-27T13:32:14.238697+09:00"
+      ],
+      "counts": {
+        "requests": 102,
+        "status_codes": {
+          "200": 102
+        },
+        "xml_order_chunks": 96
+      },
+      "match_count": 0,
+      "matches": [],
+      "errors_sample": []
+    },
+    "candidate_ids_from_order_history": {
+      "prdNos": [],
+      "prdStckNos": []
+    }
+  },
+  "conclusion": {
+    "order_api_key_works": true,
+    "product_endpoint_permission_errors": 20,
+    "exact_public_pressco_target_count": 0,
+    "order_history_exact_match_count": 0,
+    "candidate_prdNos": [],
+    "candidate_prdStckNos": [],
+    "safe_to_write": false,
+    "safe_to_write_reason": "No exact 11st target with writable product-management API confirmed"
+  }
+}

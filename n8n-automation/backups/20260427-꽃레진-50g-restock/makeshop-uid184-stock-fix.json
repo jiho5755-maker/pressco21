@@ -1,0 +1,28 @@
+{
+  "update_status": 200,
+  "update_body": {
+    "return_code": "0000",
+    "datas": [
+      {
+        "result": true,
+        "product_id": "184",
+        "stock_id": "1"
+      }
+    ]
+  },
+  "verify": {
+    "uid": "184",
+    "display": "Y",
+    "sell_accept": "Y",
+    "quantity": "Unlimited",
+    "basic": [
+      {
+        "sto_id": "1",
+        "real_stock": "1000",
+        "unlimit": "N",
+        "stop_use": "N",
+        "state": "SALE"
+      }
+    ]
+  }
+}

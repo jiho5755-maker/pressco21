@@ -1,0 +1,213 @@
+{
+  "operation": "flower_resin_50g_final_verify",
+  "verified_at": "2026-04-27T03:34:45+00:00",
+  "target_stock": 1000,
+  "channels": {
+    "makeshop": {
+      "main": [
+        {
+          "uid": "12195529",
+          "product_name": "꽃레진/50g (실리콘레진)",
+          "category_name": "강사공간 < 반제품 < 부재료,마감재",
+          "display": "N",
+          "sell_accept": "N",
+          "quantity": "1000",
+          "basic": [
+            {
+              "sto_id": "1",
+              "value": null,
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ],
+          "target_additions": []
+        },
+        {
+          "uid": "184",
+          "product_name": "꽃레진/50g (실리콘레진)",
+          "category_name": "압화 < 압화재료(마감재) < 코팅·마감제",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "Unlimited",
+          "basic": [
+            {
+              "sto_id": "1",
+              "value": null,
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ],
+          "target_additions": []
+        }
+      ],
+      "addition": [
+        {
+          "uid": "11701520",
+          "product_name": "하바리움 용기_부케글라스",
+          "category_name": "하바리움 < 하바리움 용기 < 유리",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "2981",
+          "target_additions": [
+            {
+              "sto_id": "100",
+              "value": "꽃레진/50g(실리콘레진)",
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699694",
+          "product_name": "진공흡입기/미니",
+          "category_name": "압화 < 압화도구 < 건조 장비",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "Unlimited",
+          "target_additions": [
+            {
+              "sto_id": "31",
+              "value": "꽃레진/50g(실리콘레진)",
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11698310",
+          "product_name": "알루미늄호일/길이10m/사이즈선택",
+          "category_name": "압화 < 압화재료(마감재) < 코팅·마감제",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "Unlimited",
+          "target_additions": [
+            {
+              "sto_id": "25",
+              "value": "꽃레진/실리콘레진(50g)",
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "340120",
+          "product_name": "웨딩액자 모음전",
+          "category_name": "압화 < 압화재료(액자) < 웨딩",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "Unlimited",
+          "target_additions": [
+            {
+              "sto_id": "310",
+              "value": "꽃레진/50g(실리콘레진)",
+              "real_stock": "1000",
+              "unlimit": "N",
+              "stop_use": "N",
+              "state": "SALE"
+            }
+          ]
+        }
+      ]
+    },
+    "smartstore": {
+      "originProductNo": 11584792106,
+      "status_code": 200,
+      "productName": "알루미늄호일 액자 마감용 압화 호일 폭 52cm",
+      "statusType": "SALE",
+      "targetSupplement": [
+        {
+          "id": 3086451007,
+          "groupName": "관련재료",
+          "name": "꽃레진/실리콘레진(50g)",
+          "price": 2200,
+          "stockQuantity": 1000,
+          "usable": true
+        }
+      ]
+    },
+    "coupang": {
+      "search_probes": [
+        {
+          "query": "꽃레진",
+          "status_code": 200,
+          "code": "SUCCESS",
+          "count": 1
+        },
+        {
+          "query": "실리콘레진",
+          "status_code": 200,
+          "code": "SUCCESS",
+          "count": 0
+        },
+        {
+          "query": "꽃레진/50g",
+          "status_code": 200,
+          "code": "SUCCESS",
+          "count": 0
+        },
+        {
+          "query": "50g",
+          "status_code": 200,
+          "code": "SUCCESS",
+          "count": 0
+        }
+      ],
+      "exact_50g_matched_products": 0,
+      "exact_50g_matches": []
+    },
+    "st11": {
+      "product_api_permission_blocked": true,
+      "probe_results": [
+        {
+          "endpoint": "/rest/prodservices/product/list",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+          "permission_error": true
+        },
+        {
+          "endpoint": "/rest/prodservices/product",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+          "permission_error": true
+        },
+        {
+          "endpoint": "/rest/prodmarketservice/prodmarket",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다.",
+          "permission_error": true
+        }
+      ],
+      "seller_code_reads": [
+        {
+          "sellerprdcd": "103885",
+          "status_code": 200,
+          "empty_products": true
+        },
+        {
+          "sellerprdcd": "184",
+          "status_code": 200,
+          "empty_products": true
+        },
+        {
+          "sellerprdcd": "12195529",
+          "status_code": 200,
+          "empty_products": true
+        }
+      ],
+      "write_attempted": false
+    }
+  }
+}

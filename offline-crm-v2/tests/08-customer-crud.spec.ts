@@ -146,6 +146,6 @@ test('T8-06: VIP 등급 배지 색상 확인', async ({ page }) => {
     .locator('xpath=following-sibling::*[2]')
   await expect(vipBadge).toBeVisible({ timeout: API_TIMEOUT })
 
-  const backgroundColor = await vipBadge.evaluate((element) => window.getComputedStyle(element).backgroundColor)
-  expect(backgroundColor).toMatch(/rgb\(184,\s*155,\s*94\)/)
+  const borderColor = await vipBadge.evaluate((element) => window.getComputedStyle(element).borderColor)
+  expect(borderColor).toMatch(/rgb\(184,\s*155,\s*94\)/)
 })

@@ -220,7 +220,21 @@ test('T7-09: 저장 후 고객 잔액 자동 재계산 확인', async ({ page, r
   await dialog.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 40_000 })
 
-  const afterCustomer = await getTestCustomer(request, customerId)
-  const afterBalance = afterCustomer.outstanding_balance ?? 0
-  expect(afterBalance).toBeGreaterThanOrEqual(beforeBalance + 10_000)
+  const afterSaveCustomer = await getTestCustomer(request, customerId)
+  const afterSaveBalance = afterSaveCustomer.outstanding_balance ?? 0
+  expect(afterSaveBalance).toBe(beforeBalance)
+
+  await waitForTableLoaded(page)
+  const createdRow = invoiceRows(page).filter({ hasText: invoiceNo }).first()
+  await expect(createdRow).toBeVisible({ timeout: API_TIMEOUT })
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('포장·출고확정')
+    await dialog.accept()
+  })
+  await createdRow.getByRole('button', { name: /포장·출고확정/ }).click()
+  await expect(page.getByText('포장·출고확정 처리되었습니다')).toBeVisible({ timeout: API_TIMEOUT })
+
+  const afterConfirmCustomer = await getTestCustomer(request, customerId)
+  const afterConfirmBalance = afterConfirmCustomer.outstanding_balance ?? 0
+  expect(afterConfirmBalance).toBeGreaterThanOrEqual(beforeBalance + 10_000)
 })

@@ -518,7 +518,7 @@ export function getPreviewPageCount(itemCount: number, documentType: PrintDocume
     return getEstimatePageItemCounts(itemCount).length
   }
   if (documentType === 'comparison') {
-    return getEstimatePageItemCounts(itemCount).length
+    return Math.max(1, Math.ceil(Math.max(1, itemCount) / COMPARISON_TEMPLATE_ROWS_PER_PAGE))
   }
   if (documentType === 'packing') {
     return Math.max(1, Math.ceil(Math.max(1, itemCount) / 12))
@@ -744,6 +744,12 @@ function formatLineTotal(item: PrintItem): number {
   return Math.max(0, (item.supply_amount ?? 0) + (item.tax_amount ?? 0))
 }
 
+function formatPrintNumber(value?: number | null): string {
+  const numeric = Number(value ?? 0)
+  if (!Number.isFinite(numeric) || numeric === 0) return ''
+  return Math.round(numeric).toLocaleString()
+}
+
 function buildPackingHtml(inv: PrintInvoice, items: PrintItem[]): string {
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const totalAmt = inv.total_amount ?? 0
@@ -834,34 +840,112 @@ function sumPrintItems(items: PrintItem[]): Pick<PrintInvoice, 'supply_amount' |
   }
 }
 
+const COMPARISON_TEMPLATE_ROWS_PER_PAGE = 20
+
+function splitComparisonItemsToPages(items: PrintItem[]): PrintItem[][] {
+  if (items.length === 0) return [[]]
+  const pages: PrintItem[][] = []
+  for (let index = 0; index < items.length; index += COMPARISON_TEMPLATE_ROWS_PER_PAGE) {
+    pages.push(items.slice(index, index + COMPARISON_TEMPLATE_ROWS_PER_PAGE))
+  }
+  return pages
+}
+
+function buildComparisonItemRows(items: PrintItem[]): string {
+  const rows: string[] = []
+  for (let index = 0; index < COMPARISON_TEMPLATE_ROWS_PER_PAGE; index += 1) {
+    const item = items[index]
+    rows.push(
+      `<tr class="cq-row-item">` +
+      `<td class="cq-product" colspan="4">${esc(item?.product_name ?? '')}</td>` +
+      `<td class="cq-number">${formatPrintNumber(item?.quantity)}</td>` +
+      `<td class="cq-number">${formatPrintNumber(item?.unit_price)}</td>` +
+      `<td class="cq-number cq-amount" colspan="2">${formatPrintNumber(formatLineTotal(item ?? {}))}</td>` +
+      `</tr>`,
+    )
+  }
+  return rows.join('')
+}
+
+function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], pageIndex: number, pageCount: number): string {
+  const settings = loadComparisonQuoteSettings()
+  const totals = sumPrintItems(items)
+  const pageLabel = pageCount > 1 ? ` ${pageIndex + 1}/${pageCount}` : ''
+
+  return (
+    '<section class="cq-page">' +
+    '<table class="cq-sheet" aria-label="협력업체 비교견적서">' +
+    '<colgroup>' +
+    '<col class="cq-col-b" />' +
+    '<col class="cq-col-c" />' +
+    '<col class="cq-col-d" />' +
+    '<col class="cq-col-e" />' +
+    '<col class="cq-col-f" />' +
+    '<col class="cq-col-g" />' +
+    '<col class="cq-col-h" />' +
+    '<col class="cq-col-i" />' +
+    '</colgroup>' +
+    '<tbody>' +
+    `<tr class="cq-row-title"><td class="cq-title" colspan="8">&lt; 견 적 서 &gt;${esc(pageLabel)}</td></tr>` +
+    '<tr class="cq-row-gap"><td colspan="8"></td></tr>' +
+    '<tr class="cq-row-gap-small"><td></td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td></tr>' +
+    '<tr class="cq-row-party">' +
+    '<td class="cq-side-label" rowspan="4">공급받는자</td>' +
+    `<td class="cq-customer" colspan="2">${esc(inv.customer_name ?? '')}</td>` +
+    '<td></td><td></td>' +
+    '<td class="cq-side-label" rowspan="4">공급자</td>' +
+    `<td class="cq-supplier-name" colspan="2">${esc(settings.partnerCompany)}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-supplier-address" colspan="2">${esc(settings.partnerAddress ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-supplier-ceo" colspan="2">대 표 : ${esc(settings.partnerCeo ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-biz-type">${esc(settings.partnerBizType ?? '')}</td>` +
+    `<td class="cq-biz-item">${esc(settings.partnerBizItem ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party cq-business-row">' +
+    '<td></td><td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-business-number" colspan="3">사업자번호 : ${esc(formatBusinessNumber(settings.partnerBizno))}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-message">' +
+    '<td class="cq-message" colspan="5">아래와 같이 견적하오니, 긍정적인 검토 부탁드립니다.</td>' +
+    '<td></td><td></td><td></td>' +
+    '</tr>' +
+    '<tr class="cq-row-total-top">' +
+    '<td></td><td></td><td></td><td></td><td></td>' +
+    '<td class="cq-total-label">합계금액&nbsp;</td>' +
+    `<td class="cq-total-value" colspan="2">: \\ ${formatPrintNumber(totals.total_amount)}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-header">' +
+    '<td class="cq-header cq-product-header" colspan="4">품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명</td>' +
+    '<td class="cq-header">수&nbsp;&nbsp;량</td>' +
+    '<td class="cq-header">단&nbsp;&nbsp;가</td>' +
+    '<td class="cq-header" colspan="2">금&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td>' +
+    '</tr>' +
+    buildComparisonItemRows(items) +
+    '<tr class="cq-row-sum">' +
+    '<td colspan="4"></td>' +
+    '<td class="cq-sum-label" colspan="2">합&nbsp;&nbsp;계</td>' +
+    `<td class="cq-number cq-sum-amount" colspan="2">${formatPrintNumber(totals.total_amount)}</td>` +
+    '</tr>' +
+    '</tbody>' +
+    '</table>' +
+    '<img class="cq-stamp" src="/images/flowerdami-stamp.jpeg" alt="꽃다미 직인" />' +
+    '</section>'
+  )
+}
+
 function buildPartnerEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
   const settings = loadComparisonQuoteSettings()
   const partnerItems = buildPartnerItems(items, settings.markupRate)
-  const totals = sumPrintItems(partnerItems)
-  const supplier: EstimateSupplier = {
-    company: settings.partnerCompany,
-    bizno: settings.partnerBizno,
-    ceo: settings.partnerCeo,
-    bizType: settings.partnerBizType,
-    bizItem: settings.partnerBizItem,
-    address: settings.partnerAddress,
-    phone: settings.partnerPhone,
-    logoHtml: `<div class="est-logo-text">${esc(settings.partnerCompany)}</div>`,
-    stampHtml: '(인)',
-    bankInfo: '',
-    subtitle: '협력업체 비교견적',
-    noteText: '동일 품목 기준 협력업체 비교견적입니다.',
-  }
-  return buildEstimateHtml(
-    {
-      ...inv,
-      supply_amount: totals.supply_amount,
-      tax_amount: totals.tax_amount,
-      total_amount: totals.total_amount,
-    },
-    partnerItems,
-    supplier,
-  )
+  const pages = splitComparisonItemsToPages(partnerItems)
+  return pages.map((pageItems, pageIndex) => buildComparisonTemplatePage(inv, pageItems, pageIndex, pages.length)).join('')
 }
 
 function buildComparisonQuoteHtml(inv: PrintInvoice, items: PrintItem[]): string {
@@ -1024,6 +1108,55 @@ const ESTIMATE_CSS = [
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
+const COMPARISON_QUOTE_CSS = [
+  '@page { size: A4 portrait; margin: 18mm 12mm; }',
+  "body { margin:0; font-family:'GulimChe','굴림체','Gulim','굴림','Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
+  '* { box-sizing:border-box; }',
+  '.cq-page { position:relative; width:186mm; margin:0 auto; page-break-after:always; break-after:page; }',
+  '.cq-page:last-child { page-break-after:auto; break-after:auto; }',
+  '.cq-sheet { width:100%; border-collapse:collapse; table-layout:fixed; font-family:inherit; }',
+  '.cq-sheet td { padding:0 3px; height:6.88mm; font-size:10pt; font-weight:400; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; }',
+  '.cq-col-b { width:10mm; }',
+  '.cq-col-c { width:7mm; }',
+  '.cq-col-d { width:43mm; }',
+  '.cq-col-e { width:18mm; }',
+  '.cq-col-f { width:28mm; }',
+  '.cq-col-g { width:28mm; }',
+  '.cq-col-h { width:31mm; }',
+  '.cq-col-i { width:21mm; }',
+  '.cq-row-title td { height:16.93mm; }',
+  '.cq-row-gap td { height:6.88mm; }',
+  '.cq-row-gap-small td { height:6.35mm; }',
+  '.cq-row-party td { height:6.88mm; font-size:12pt; }',
+  '.cq-row-message td, .cq-row-total-top td { height:6.88mm; }',
+  '.cq-row-header td { height:9.53mm; font-size:10pt; }',
+  '.cq-row-item td { height:7.41mm; }',
+  '.cq-row-sum td { height:7.06mm; }',
+  '.cq-title { border-left:2px solid #000; border-right:2px solid #000; border-top:2px solid #000; border-bottom:1px solid #000; font-size:16pt !important; font-weight:700 !important; letter-spacing:0.5px; }',
+  '.cq-side-label { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; }',
+  '.cq-customer { border:1px solid #000; }',
+  '.cq-supplier-name { border-top:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; }',
+  '.cq-supplier-address { border-right:2px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
+  '.cq-supplier-ceo { border-left:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:7px !important; }',
+  '.cq-biz-type { border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
+  '.cq-biz-item { border-right:2px solid #000; border-left:1px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
+  '.cq-business-number { border-top:1px solid #000; border-right:2px solid #000; font-size:10pt !important; }',
+  '.cq-message { border-left:2px solid #000; text-align:center !important; font-size:10pt !important; }',
+  '.cq-total-label { border-bottom:2px solid #000; text-align:left !important; font-size:10pt !important; }',
+  '.cq-total-value { border-right:2px solid #000; border-bottom:2px solid #000; text-align:left !important; padding-left:8px !important; font-size:11pt !important; }',
+  '.cq-header { border:1px solid #000; border-top:2px solid #000; font-size:10pt !important; }',
+  '.cq-product-header { border-left:2px solid #000; }',
+  '.cq-row-header .cq-header:last-child { border-right:2px solid #000; }',
+  '.cq-product { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
+  '.cq-number { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-amount, .cq-sum-amount { border-right:2px solid #000; }',
+  '.cq-sum-label { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-row-sum td:first-child { border-left:2px solid #000; border-bottom:1px solid #000; }',
+  '.cq-stamp { position:absolute; width:28mm; height:28mm; object-fit:contain; right:15mm; top:33.2mm; opacity:0.96; mix-blend-mode:multiply; }',
+  '@media print { .cq-page, .cq-sheet, .cq-sheet tr, .cq-sheet td { break-inside:avoid; page-break-inside:avoid; } }',
+  '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
+].join('\n')
+
 const PACKING_CSS = [
   '@page { size: A4 portrait; margin: 8mm; }',
   "body { margin:0; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
@@ -1082,7 +1215,7 @@ export function buildDuplexBlobUrl(
         ? buildPackingHtml(inv, items)
         : buildDuplexInvoiceHtml(inv, items, documentType)
   const fitScript = isEstimateLike || isPacking ? '' : buildDuplexFitScript()
-  const css = isPacking ? PACKING_CSS : isEstimateLike ? ESTIMATE_CSS : DUPLEX_CSS
+  const css = isPacking ? PACKING_CSS : documentType === 'comparison' ? COMPARISON_QUOTE_CSS : isEstimateLike ? ESTIMATE_CSS : DUPLEX_CSS
   const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     '<style>' + css + '</style>' +

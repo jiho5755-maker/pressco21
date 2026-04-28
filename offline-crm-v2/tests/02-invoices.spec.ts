@@ -353,12 +353,16 @@ test('T2-12: 비교견적 출력은 협력업체 견적서 단독 생성', async
   URL.revokeObjectURL(blobUrl)
   const result = {
     html,
-    pageCount: (html.match(/class="est-page"/g) ?? []).length,
+    pageCount: (html.match(/class="cq-page"/g) ?? []).length,
   }
 
   expect(result.pageCount).toBe(1)
+  expect(result.html).toContain('&lt; 견 적 서 &gt;')
+  expect(result.html).toContain('공급받는자')
+  expect(result.html).toContain('공급자')
   expect(result.html).toContain('꽃다미')
-  expect(result.html).toContain('협력업체 비교견적')
+  expect(result.html).toContain('아래와 같이 견적하오니, 긍정적인 검토 부탁드립니다.')
+  expect(result.html).toContain('flowerdami-stamp.jpeg')
   expect(result.html).toContain('천스탠드/사각')
   expect(result.html).toContain('11,500')
   expect(result.html).toContain('23,000')

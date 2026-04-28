@@ -171,3 +171,58 @@ python3 _tools/openmarket/11st/11st_crawl_guides.py --output-dir /tmp/st11-crawl
 - `11st_api.py`는 외부 `requests` 의존 없이 Python 표준 라이브러리로 HTTP/XML을 처리한다.
 - `catalog-search`는 API 키가 없어도 가능하다.
 - write 계열 명령은 기본 dry-run이고 `--execute`가 있어야 실제 호출한다.
+
+## 11. 메인 병합 후 공용 사용법
+
+메인에 병합되면 모든 프로젝트/worktree에서 아래 기준으로 11번가 API를 사용한다.
+
+```bash
+export PRESSCO21_ROOT=/Users/jangjiho/workspace/pressco21
+python3 "$PRESSCO21_ROOT/_tools/openmarket/11st/11st_api.py" catalog-search 즉시할인 --limit 3
+python3 "$PRESSCO21_ROOT/_tools/openmarket/11st/11st_api.py" catalog-show 1855 --limit 1
+```
+
+인증 우선순위는 `--api-key` → `ST11_API_KEY` 환경변수 → `--env-file`의 `ST11_API_KEY`다. `.secrets`, `.secrets.env`, `.env.local`은 읽기만 하고 수정하지 않는다.
+
+권장 진입 문서:
+
+- 빠른 시작: `docs/openmarket-ops/11st-openapi-global-quickstart.md`
+- 쓰기 안전 체크리스트: `docs/openmarket-ops/11st-openapi-write-safety-checklist.md`
+- 공용 CLI README: `_tools/openmarket/11st/README.md`
+
+## 12. 카탈로그 신뢰도와 한계
+
+2026-04-28 로그인된 11번가 공식 개발가이드 화면을 브라우저로 순회해 생성했다.
+
+- 총 API: 150개
+- Method 미표기: 5개
+- URL 미확인: 6개
+- URL 미확인 apiSeq: `1316`, `1318`, `1319`, `6705`, `6706`, `6732`
+- 카탈로그는 `schema_version=1.1`부터 `coverage_summary`, `known_gaps`, `risk_level`, `mutation_reason`, `verify_strategy`를 포함한다.
+
+주의할 점:
+
+- `GET`이라고 항상 read-only가 아니다. 처리/승인/거부/발송/수정/등록/해제/완료/업데이트 계열은 쓰기성 API로 취급한다.
+- `mutation=true`는 안전을 위한 보수적 판정이다. execute 전 공식 문서와 fresh read로 반드시 확인한다.
+- 같은 API가 여러 카테고리에 반복 등장할 수 있으므로 `api_seq`, `url`, `canonical_key`를 함께 본다.
+- 공식 문서 UI가 바뀌면 `11st_crawl_guides.py`로 재크롤하고 이전 JSON과 diff를 확인한다.
+
+## 13. 작업 전 필수 확인
+
+- 현재 branch/worktree가 해당 프로젝트 허용 범위인지 확인한다.
+- `docs/openmarket-ops/11st-openapi-url-catalog.json`이 존재하고 JSON 파싱이 되는지 확인한다.
+- API KEY, IP 직접 입력, 개발자 PC/n8n/Oracle/운영 서버 IP 등록 여부를 확인한다.
+- write API는 `fresh read → dry-run → 승인 → execute → verify` 순서를 지킨다.
+- 가격/즉시할인/정산/주문/클레임 영향이 있으면 대표 승인 없이 일괄 실행하지 않는다.
+
+## 14. 긴급 중단/복구 기준
+
+아래 상황에서는 즉시 일괄 실행을 중단한다.
+
+- HTTP 4xx/5xx 또는 실패성 `resultCode`가 반복된다.
+- 실행 전 조회한 대상과 실제 execute 대상이 일치하지 않는다.
+- verify 조회에서 변경 후 값이 확인되지 않는다.
+- 고객 노출가 상승, 옵션가 한도 초과, 정산 손실 가능성이 발견된다.
+- IP 등록/추가인증/API KEY 상태가 의심된다.
+
+중단 후에는 실패 대상 CSV/JSON, dry-run payload, fresh read/verify 결과를 저장하고 재시도 전 원인을 분류한다.

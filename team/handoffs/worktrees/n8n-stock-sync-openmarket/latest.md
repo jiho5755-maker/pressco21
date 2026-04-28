@@ -1,6 +1,6 @@
 ---
-handoff_id: HOFF-20260427-222434-n8n-11st-discount-handoff
-created_at: 2026-04-27T22:24:34+0900
+handoff_id: HOFF-20260428-144551-n8n-stock-sync-openmarket-handoff
+created_at: 2026-04-28T14:45:51+0900
 runtime: codex-omx
 owner_agent_id: yoo-junho-paircoder
 contributors: []
@@ -11,41 +11,39 @@ repo_root: /Users/jangjiho/workspace/pressco21-worktrees/n8n-stock-sync-openmark
 branch: "work/n8n/stock-sync-openmarket"
 worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/n8n-stock-sync-openmarket"
 source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/n8n-stock-sync-openmarket"
-commit_sha: 9c14269
+commit_sha: 4b5a712
 status: active
 promoted_to_global: false
-summary: "11번가 기본즉시할인 감사 및 제거 실행 완료. 11번가 전체 1126개 조회, 기본즉시할인 상세확인 130개 중 96개는 할인 후 실판매가를 새 판매가로 낮추고 cuponcheck=N 전환/재조회 검증 완료. 잔여 34개는 11번가 정책 제한으로 실패. 꽃레진/50g 품절 복구는 MakeShop 본상품/추가구성 및 SmartStore 추가상품 반영 완료, Coupang/11번가 정확 매칭 없음."
+summary: "n8n 오픈마켓 재고/11번가 기본즉시할인 정리 작업을 이어받을 수 있게 저장. 현재 브랜치에 main 최신 변경분을 병합했고, 11번가 기본즉시할인 제거 잔여 34개는 수동 처리용 XLSX로 변환해 데스크탑에 저장했다. XLSX 경로는 /Users/jangjiho/Desktop/11번가_기본즉시할인_잔여34개_수동처리목록_20260428.xlsx 이며 원본 CSV는 n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-failures.csv 이다."
 decision: "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다."
 changed_artifacts:
-  - "n8n-automation/_tools/openmarket/11st_disable_instant_discount.py"
-  - "n8n-automation/backups/20260427-11st-instant-discount-audit/SUMMARY.md"
-  - "n8n-automation/docs/openmarket-ops/11st-auth-browser-automation-learnings.md"
+  - "(no working-tree changes at handoff time)"
 verification:
-  - "local output handoff saved: output/codex-handoffs/20260427-222434-n8n-11st-discount-handoff.md"
+  - "local output handoff saved: output/codex-handoffs/20260428-144551-n8n-stock-sync-openmarket-handoff.md"
   - "git status captured at handoff time"
 open_risks:
-  - "11번가 잔여 34개는 판매가가 기본즉시할인금액 이하, 최대 80% 인하, 옵션가격/판매가 범위 제한으로 API 차단됨. 옵션 수정 API를 검토하되 가격 노출 상승과 옵션가 한도 위반 리스크가 큼."
-next_step: "다음 세션은 n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-failures.csv의 잔여 34개를 기준으로 11번가 옵션가 조정 또는 셀러오피스 수동 처리 전략을 결정한다. 단순 cuponcheck=N만 적용하면 고객 노출가가 급상승할 수 있으므로 금지."
+  - "잔여 34개는 API 정책 제한으로 실패한 상품이며 단순 cuponcheck=N 적용 시 고객 노출가가 급상승할 수 있어 금지. 데스크탑 XLSX는 Git 추적 대상이 아니므로 파일 삭제/이동 시 별도 백업 필요."
+next_step: "다음 세션은 잔여 34개를 API로 추가 수정하지 말고 데스크탑 XLSX를 기준으로 셀러오피스 수동 처리하거나, 사용자가 별도로 요청할 때만 11번가 옵션 수정 API 전략을 검토한다. 작업을 마감하려면 이 브랜치를 main에 통합할지 결정하면 된다."
 learn_to_save:
   - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
-local_output_handoff: "output/codex-handoffs/20260427-222434-n8n-11st-discount-handoff.md"
+local_output_handoff: "output/codex-handoffs/20260428-144551-n8n-stock-sync-openmarket-handoff.md"
 session_log: "output/codex-sessions/20260427-222434-n8n.md"
-backup_folder: "output/codex-backups/20260427-222434-n8n-11st-discount-handoff"
+backup_folder: "(none)"
 ---
 
 # Codex durable handoff
 
 ## 요약
-11번가 기본즉시할인 감사 및 제거 실행 완료. 11번가 전체 1126개 조회, 기본즉시할인 상세확인 130개 중 96개는 할인 후 실판매가를 새 판매가로 낮추고 cuponcheck=N 전환/재조회 검증 완료. 잔여 34개는 11번가 정책 제한으로 실패. 꽃레진/50g 품절 복구는 MakeShop 본상품/추가구성 및 SmartStore 추가상품 반영 완료, Coupang/11번가 정확 매칭 없음.
+n8n 오픈마켓 재고/11번가 기본즉시할인 정리 작업을 이어받을 수 있게 저장. 현재 브랜치에 main 최신 변경분을 병합했고, 11번가 기본즉시할인 제거 잔여 34개는 수동 처리용 XLSX로 변환해 데스크탑에 저장했다. XLSX 경로는 /Users/jangjiho/Desktop/11번가_기본즉시할인_잔여34개_수동처리목록_20260428.xlsx 이며 원본 CSV는 n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-failures.csv 이다.
 
 ## 다음 작업
-다음 세션은 n8n-automation/backups/20260427-11st-instant-discount-audit/disable-instant-discount-failures.csv의 잔여 34개를 기준으로 11번가 옵션가 조정 또는 셀러오피스 수동 처리 전략을 결정한다. 단순 cuponcheck=N만 적용하면 고객 노출가가 급상승할 수 있으므로 금지.
+다음 세션은 잔여 34개를 API로 추가 수정하지 말고 데스크탑 XLSX를 기준으로 셀러오피스 수동 처리하거나, 사용자가 별도로 요청할 때만 11번가 옵션 수정 API 전략을 검토한다. 작업을 마감하려면 이 브랜치를 main에 통합할지 결정하면 된다.
 
 ## 리스크
-11번가 잔여 34개는 판매가가 기본즉시할인금액 이하, 최대 80% 인하, 옵션가격/판매가 범위 제한으로 API 차단됨. 옵션 수정 API를 검토하되 가격 노출 상승과 옵션가 한도 위반 리스크가 큼.
+잔여 34개는 API 정책 제한으로 실패한 상품이며 단순 cuponcheck=N 적용 시 고객 노출가가 급상승할 수 있어 금지. 데스크탑 XLSX는 Git 추적 대상이 아니므로 파일 삭제/이동 시 별도 백업 필요.
 
 ## 로컬 output handoff
-`output/codex-handoffs/20260427-222434-n8n-11st-discount-handoff.md`
+`output/codex-handoffs/20260428-144551-n8n-stock-sync-openmarket-handoff.md`
 
 ## Git 상태
 
@@ -56,7 +54,7 @@ backup_folder: "output/codex-backups/20260427-222434-n8n-11st-discount-handoff"
 ## 최근 커밋
 
 ```text
-9c14269 [codex] 11번가 기본즉시할인 제거 실행 기록
-c9f19aa [codex] 11번가 기본즉시할인 감사 기록 추가
-68eb7be [codex] 11번가 꽃레진 50g 재시도 로그 추가
+4b5a712 Merge origin/main into work/n8n/stock-sync-openmarket
+1cd4244 Merge work/offline-crm/comparison-template-exact
+f513efb [codex] 비교견적 양식과 직인 반영
 ```

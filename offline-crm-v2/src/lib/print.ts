@@ -179,7 +179,15 @@ function escAttr(str: string): string {
 }
 
 function buildPrintDocumentRef(prefix: string): string {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12)
+  // Tailwind content scanner가 정규식 문자 클래스를 임의 CSS 속성으로 오인하지 않도록
+  // 구분자 제거를 명시적인 replaceAll 체인으로 처리한다.
+  const stamp = new Date().toISOString()
+    .replaceAll('-', '')
+    .replaceAll(':', '')
+    .replaceAll('T', '')
+    .replaceAll('Z', '')
+    .replaceAll('.', '')
+    .slice(0, 12)
   return `${prefix}-${stamp}`
 }
 

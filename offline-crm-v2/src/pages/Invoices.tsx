@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText, PackageCheck } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText, PackageCheck, CheckSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -93,6 +93,10 @@ function getOutstandingAmount(invoice: Invoice) {
   const totalAmount = Number(invoice.total_amount ?? 0)
   const paidAmount = Number(invoice.paid_amount ?? 0)
   return Math.max(totalAmount - paidAmount, 0)
+}
+
+function isShipmentConfirmable(invoice: Invoice): boolean {
+  return getInvoiceFulfillmentStatus(invoice.memo as string | undefined) !== 'shipment_confirmed'
 }
 
 function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
@@ -217,6 +221,8 @@ export function Invoices() {
   const [printDialogInvoice, setPrintDialogInvoice] = useState<Invoice | null>(null)
   const [printDocumentType, setPrintDocumentType] = useState<PrintDocumentType>('invoice')
   const [confirmingShipmentId, setConfirmingShipmentId] = useState<number | null>(null)
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<number>>(() => new Set())
+  const [isBulkShipmentConfirming, setIsBulkShipmentConfirming] = useState(false)
   const didInitDateSyncRef = useRef(false)
 
   const debouncedSearch = useDebounce(search, 400)
@@ -349,6 +355,29 @@ export function Invoices() {
   const totalRows = filteredInvoices.length
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const invoices = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const currentPageConfirmableInvoices = useMemo(
+    () => invoices.filter(isShipmentConfirmable),
+    [invoices],
+  )
+  const selectedShipmentInvoices = useMemo(
+    () => filteredInvoices.filter((invoice) => selectedShipmentIds.has(invoice.Id) && isShipmentConfirmable(invoice)),
+    [filteredInvoices, selectedShipmentIds],
+  )
+  const selectedShipmentAmount = useMemo(
+    () => selectedShipmentInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount ?? 0), 0),
+    [selectedShipmentInvoices],
+  )
+  const allCurrentPageShipmentSelected = currentPageConfirmableInvoices.length > 0
+    && currentPageConfirmableInvoices.every((invoice) => selectedShipmentIds.has(invoice.Id))
+
+  useEffect(() => {
+    setSelectedShipmentIds((prev) => {
+      if (prev.size === 0) return prev
+      const validIds = new Set(filteredInvoices.filter(isShipmentConfirmable).map((invoice) => invoice.Id))
+      const next = new Set([...prev].filter((id) => validIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filteredInvoices])
   const quickDateRanges = useMemo(
     () => [
       { key: 'today', label: '오늘', from: today, to: today },
@@ -590,6 +619,67 @@ export function Invoices() {
     }
   }
 
+  function toggleShipmentSelection(invoiceId: number, checked: boolean) {
+    setSelectedShipmentIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(invoiceId)
+      else next.delete(invoiceId)
+      return next
+    })
+  }
+
+  function toggleCurrentPageShipmentSelection(checked: boolean) {
+    setSelectedShipmentIds((prev) => {
+      const next = new Set(prev)
+      currentPageConfirmableInvoices.forEach((invoice) => {
+        if (checked) next.add(invoice.Id)
+        else next.delete(invoice.Id)
+      })
+      return next
+    })
+  }
+
+  function clearShipmentSelection() {
+    setSelectedShipmentIds(new Set())
+  }
+
+  function invalidateRevenueViews() {
+    void refetch()
+    qc.invalidateQueries({ queryKey: ['transactions'] })
+    qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+    qc.invalidateQueries({ queryKey: ['receivables'] })
+    qc.invalidateQueries({
+      predicate: (q) => {
+        const key = q.queryKey[0]
+        return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+      },
+    })
+  }
+
+  async function confirmShipmentInvoice(inv: Invoice, confirmedAt: string, revenueDate: string) {
+    const latestInvoice = await getInvoice(inv.Id)
+    const latestStatus = getInvoiceFulfillmentStatus(latestInvoice.memo as string | undefined)
+    const customerId = typeof latestInvoice.customer_id === 'number' && Number.isFinite(latestInvoice.customer_id)
+      ? latestInvoice.customer_id
+      : undefined
+    if (latestStatus === 'shipment_confirmed') {
+      return { status: 'skipped' as const, customerId }
+    }
+
+    const confirmedMemo = buildShipmentConfirmedInvoiceMemo(
+      latestInvoice.memo as string | undefined,
+      {
+        invoiceId: inv.Id,
+        invoiceNo: latestInvoice.invoice_no,
+        confirmedAt,
+        revenueDate,
+        taxInvoiceStatus: 'not_requested',
+      },
+    )
+    await updateInvoice(inv.Id, { memo: confirmedMemo })
+    return { status: 'confirmed' as const, customerId }
+  }
+
   async function handleShipmentConfirm(inv: Invoice) {
     const currentStatus = getInvoiceFulfillmentStatus(inv.memo as string | undefined)
     if (currentStatus === 'shipment_confirmed') {
@@ -603,41 +693,86 @@ export function Invoices() {
 
     setConfirmingShipmentId(inv.Id)
     try {
-      const latestInvoice = await getInvoice(inv.Id)
-      const confirmedMemo = buildShipmentConfirmedInvoiceMemo(
-        latestInvoice.memo as string | undefined,
-        {
-          invoiceId: inv.Id,
-          invoiceNo: latestInvoice.invoice_no,
-          confirmedAt: new Date().toISOString(),
-          revenueDate: getTodayDateString(),
-          taxInvoiceStatus: 'not_requested',
-        },
-      )
-      await updateInvoice(inv.Id, { memo: confirmedMemo })
-      if (latestInvoice.customer_id) {
+      const result = await confirmShipmentInvoice(inv, new Date().toISOString(), getTodayDateString())
+      if (result.status === 'skipped') {
+        toast.info('이미 출고확정된 명세표입니다')
+        clearShipmentSelection()
+        invalidateRevenueViews()
+        return
+      }
+      if (result.customerId) {
         try {
-          await recalcCustomerStats(latestInvoice.customer_id as number)
+          await recalcCustomerStats(result.customerId)
         } catch {
           // 출고확정 자체는 완료됐으므로 통계 재계산 실패는 새로고침에서 복구한다.
         }
       }
       toast.success('포장·출고확정 처리되었습니다')
-      void refetch()
-      qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
-      qc.invalidateQueries({ queryKey: ['receivables'] })
-      qc.invalidateQueries({
-        predicate: (q) => {
-          const key = q.queryKey[0]
-          return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
-        },
-      })
+      toggleShipmentSelection(inv.Id, false)
+      invalidateRevenueViews()
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       toast.error(`출고확정 실패: ${msg.slice(0, 80)}`)
     } finally {
       setConfirmingShipmentId(null)
+    }
+  }
+
+  async function handleBulkShipmentConfirm() {
+    const targets = selectedShipmentInvoices
+    if (targets.length === 0) {
+      toast.error('출고확정할 명세표를 선택해주세요')
+      return
+    }
+
+    const ok = window.confirm(
+      `선택한 ${targets.length.toLocaleString()}건을 포장·출고확정 처리할까요?\n\n합계: ${formatAmount(selectedShipmentAmount)}\n\n확정 후 선택 건은 매출 자동화 대상이 됩니다.`,
+    )
+    if (!ok) return
+
+    setIsBulkShipmentConfirming(true)
+    const confirmedAt = new Date().toISOString()
+    const revenueDate = getTodayDateString()
+    const customerIds = new Set<number>()
+    let confirmedCount = 0
+    let skippedCount = 0
+    let failedCount = 0
+
+    try {
+      for (const target of targets) {
+        setConfirmingShipmentId(target.Id)
+        try {
+          const result = await confirmShipmentInvoice(target, confirmedAt, revenueDate)
+          if (result.status === 'confirmed') confirmedCount += 1
+          else skippedCount += 1
+          if (typeof result.customerId === 'number' && Number.isFinite(result.customerId)) {
+            customerIds.add(result.customerId)
+          }
+        } catch {
+          failedCount += 1
+        }
+      }
+
+      for (const customerId of customerIds) {
+        try {
+          await recalcCustomerStats(customerId)
+        } catch {
+          // 고객 통계는 목록 갱신과 다음 재계산에서 복구 가능하므로 일괄 확정은 유지한다.
+        }
+      }
+
+      clearShipmentSelection()
+      invalidateRevenueViews()
+      if (failedCount > 0) {
+        toast.error(`일괄 출고확정: ${confirmedCount.toLocaleString()}건 완료, ${failedCount.toLocaleString()}건 실패`)
+      } else if (skippedCount > 0) {
+        toast.success(`선택 ${confirmedCount.toLocaleString()}건 출고확정, 이미 확정된 ${skippedCount.toLocaleString()}건 제외`)
+      } else {
+        toast.success(`선택 ${confirmedCount.toLocaleString()}건 출고확정 처리되었습니다`)
+      }
+    } finally {
+      setConfirmingShipmentId(null)
+      setIsBulkShipmentConfirming(false)
     }
   }
 
@@ -853,6 +988,54 @@ export function Invoices() {
         )}
       </div>
 
+      <div className="mb-4 rounded-xl border border-[#d8e4d6] bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <CheckSquare className="h-4 w-4 text-[#5e8a6e]" />
+              일괄 출고확정
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              포장이 끝난 명세표만 선택해 한 번에 출고확정합니다. 확정된 건만 매출 자동화에 반영됩니다.
+            </p>
+            <p className="mt-1 text-xs font-medium text-[#3d6b4a]">
+              선택 {selectedShipmentInvoices.length.toLocaleString()}건 · 합계 {selectedShipmentAmount.toLocaleString()}원
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-[#d8e4d6] text-[#3d6b4a]"
+              disabled={currentPageConfirmableInvoices.length === 0 || isBulkShipmentConfirming}
+              onClick={() => toggleCurrentPageShipmentSelection(!allCurrentPageShipmentSelected)}
+            >
+              {allCurrentPageShipmentSelected ? '현재 화면 선택 해제' : '현재 화면 미확정 선택'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={selectedShipmentInvoices.length === 0 || isBulkShipmentConfirming}
+              onClick={clearShipmentSelection}
+            >
+              선택 해제
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-[#7d9675] text-white hover:bg-[#6a8462]"
+              disabled={selectedShipmentInvoices.length === 0 || isBulkShipmentConfirming}
+              onClick={() => void handleBulkShipmentConfirm()}
+            >
+              <PackageCheck className="h-4 w-4" />
+              {isBulkShipmentConfirming ? '일괄 처리 중...' : '선택 출고확정'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4 md:hidden">
         {isLoading && (
           <div className="rounded-lg border bg-white px-4 py-12 text-center text-muted-foreground">
@@ -883,6 +1066,19 @@ export function Invoices() {
 
           return (
             <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
+              {!isShipmentConfirmed && (
+                <label className="mb-3 flex items-center gap-2 rounded-lg border border-[#d8e4d6] bg-[#f8faf7] px-3 py-2 text-xs font-medium text-[#3d6b4a]">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[#7d9675]"
+                    aria-label={`출고확정 선택 ${inv.invoice_no ?? inv.customer_name ?? inv.Id}`}
+                    checked={selectedShipmentIds.has(inv.Id)}
+                    disabled={isBulkShipmentConfirming}
+                    onChange={(e) => toggleShipmentSelection(inv.Id, e.target.checked)}
+                  />
+                  일괄 출고확정 선택
+                </label>
+              )}
               <div className="flex items-start justify-between gap-3">
                 <button
                   type="button"
@@ -1017,6 +1213,16 @@ export function Invoices() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
+              <th className="w-12 px-4 py-3 text-center font-medium text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#7d9675]"
+                  aria-label="현재 화면 미확정 전체 선택"
+                  checked={allCurrentPageShipmentSelected}
+                  disabled={currentPageConfirmableInvoices.length === 0 || isBulkShipmentConfirming}
+                  onChange={(e) => toggleCurrentPageShipmentSelection(e.target.checked)}
+                />
+              </th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행정보</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
@@ -1027,21 +1233,21 @@ export function Invoices() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                <td colSpan={6} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-red-500">
+                <td colSpan={6} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && invoices.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                <td colSpan={6} className="text-center py-12 text-muted-foreground">
                   발행된 명세표가 없습니다. 새 명세표를 만들어보세요.
                 </td>
               </tr>
@@ -1058,6 +1264,17 @@ export function Invoices() {
                   key={inv.Id}
                   className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
                 >
+                  <td className="px-4 py-3 align-top text-center">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-[#7d9675]"
+                      aria-label={`출고확정 선택 ${inv.invoice_no ?? inv.customer_name ?? inv.Id}`}
+                      checked={selectedShipmentIds.has(inv.Id)}
+                      disabled={isShipmentConfirmed || isBulkShipmentConfirming}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => toggleShipmentSelection(inv.Id, e.target.checked)}
+                    />
+                  </td>
                   <td
                     className="px-4 py-3 align-top cursor-pointer"
                     onClick={() => openTransactionPreview(inv)}
@@ -1264,7 +1481,7 @@ export function Invoices() {
             )}
             {printDocumentType === 'comparison' && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-                현재 명세표 기준으로 자사 견적서와 협력업체 비교견적서를 함께 출력합니다.
+                현재 명세표 품목·수량 기준으로 협력업체 명의 비교견적서를 출력합니다.
               </div>
             )}
           </div>

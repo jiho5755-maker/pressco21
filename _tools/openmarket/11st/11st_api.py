@@ -192,14 +192,22 @@ def xml_response_to_json(response: dict[str, Any]) -> dict[str, Any]:
             if value:
                 info[key] = value
         products = []
+        stocks = []
         for node in root.iter():
-            if strip_ns(node.tag) in {"product", "Product"}:
+            tag = strip_ns(node.tag)
+            if tag in {"product", "Product"}:
                 row = direct_children(node)
                 if row:
                     products.append(row)
+            if tag in {"ProductStock", "productStock", "Stock", "stock"}:
+                row = direct_children(node)
+                if row:
+                    stocks.append(row)
         if products:
             info["products"] = products
-        elif direct_children(root):
+        if stocks:
+            info["stocks"] = stocks
+        if not products and not stocks and direct_children(root):
             info["data"] = direct_children(root)
     except Exception as exc:  # noqa: BLE001 - 운영 도구이므로 짧은 preview 제공
         info["parse_error"] = str(exc)
@@ -216,7 +224,10 @@ def is_api_failure(payload: dict[str, Any]) -> bool:
     if int(payload.get("status_code") or 0) >= 400:
         return True
     code = result_code(payload)
-    return bool(code and code.upper() not in SUCCESS_RESULT_CODES)
+    if code and code.upper() not in SUCCESS_RESULT_CODES:
+        return True
+    message = str(payload.get("message") or payload.get("Message") or payload.get("resultMessage") or "")
+    return any(token in message for token in ["오류", "찾을 수 없습니다", "존재하지 않습니다", "실패"])
 
 
 def print_json(value: Any) -> None:

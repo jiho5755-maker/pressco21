@@ -18,7 +18,9 @@ export function loadStoredCrmSettings(): Record<string, unknown> {
   try {
     const raw = localStorage.getItem(CRM_SETTINGS_KEY)
     if (raw) return JSON.parse(raw) as Record<string, unknown>
-  } catch {}
+  } catch {
+    // 손상된 로컬 설정은 빈 설정으로 간주한다.
+  }
   return {}
 }
 

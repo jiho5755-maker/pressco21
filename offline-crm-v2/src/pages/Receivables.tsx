@@ -277,7 +277,11 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
       }
 
       if (invoice!.customer_id) {
-        try { await recalcCustomerStats(invoice!.customer_id as number) } catch {}
+        try {
+          await recalcCustomerStats(invoice!.customer_id as number)
+        } catch {
+          // 입금 처리는 유지하고 통계 재계산 실패는 다음 조회/저장 시 재시도한다.
+        }
       }
       await refreshPaymentViews(typeof invoice?.customer_id === 'number' ? invoice.customer_id : undefined)
       onSaved()
@@ -1251,7 +1255,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     },
     staleTime: 10 * 60 * 1000,
   })
-  const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
+  const customerById = useMemo(
+    () => new Map(customersForLink.map((customer) => [customer.Id, customer])),
+    [customersForLink],
+  )
   const isReferenceDataLoading = isCustomersLoading || isLegacySnapshotsLoading || isFiscalSnapshotsLoading
   const isTodayView = asOfDate === todayDate()
   const resolvedInvoices: ResolvedReceivableInvoice[] = useMemo(
@@ -1705,8 +1712,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     visibleReceivableLedger,
       visibleRefundPendingLedger,
   ])
-  const activeSelectionSignature = activeSelectionRows.map((row) => row.key).join('|')
-  const activeSelectionKeySet = useMemo(() => new Set(activeSelectionRows.map((row) => row.key)), [activeSelectionSignature])
+  const activeSelectionKeySet = useMemo(() => new Set(activeSelectionRows.map((row) => row.key)), [activeSelectionRows])
   useEffect(() => {
     setSelectedRowKeys((prev) => {
       const next = prev.filter((key) => activeSelectionKeySet.has(key))

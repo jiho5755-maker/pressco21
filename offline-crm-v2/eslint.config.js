@@ -19,5 +19,11 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // 현재 앱은 URL/다이얼로그 상태 동기화 useEffect가 많아 React Compiler 권장 규칙을
+      // 일괄 적용하면 동작 변경이 큰 리팩터가 필요하다. 안정적인 린트 기준에서는 제외한다.
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+    },
   },
 ])

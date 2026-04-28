@@ -36,9 +36,18 @@ function App() {
     getSettings().then((server) => {
       if (server) {
         // NocoDB 자동 필드 제거 후 localStorage 캐시 갱신
-        const { Id, CreatedAt, UpdatedAt, nc_order, ...rest } = server as Record<string, unknown>
+        const rest = { ...(server as Record<string, unknown>) }
+        delete rest.Id
+        delete rest.CreatedAt
+        delete rest.UpdatedAt
+        delete rest.nc_order
         let merged: Record<string, unknown> = {}
-        try { const s = localStorage.getItem(SETTINGS_KEY); if (s) merged = JSON.parse(s) } catch {}
+        try {
+          const s = localStorage.getItem(SETTINGS_KEY)
+          if (s) merged = JSON.parse(s)
+        } catch {
+          // 손상된 로컬 설정 캐시는 서버 설정으로 덮어쓴다.
+        }
         const combined = { ...merged, ...rest }
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(combined))
         saveCompanyInfo(combined as Parameters<typeof saveCompanyInfo>[0])

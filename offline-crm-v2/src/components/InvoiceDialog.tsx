@@ -622,6 +622,9 @@ export function InvoiceDialog({
     }
   }, [open, isNew, isCopy, existingInvoice, existingItems, initialInvoiceDate, initialCustomerName])
 
+  // 주소 스냅샷은 고객/열림 상태 기준으로만 동기화한다.
+  // form 주소 필드를 의존성에 넣으면 setForm과 맞물려 불필요한 재실행이 생긴다.
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (!open || !currentCustomer) return
     const nextAddressKey = resolveCustomerAddressKey(
@@ -642,6 +645,7 @@ export function InvoiceDialog({
       customer_name: currentCustomer.name ?? prev.customer_name,
     }))
   }, [open, currentCustomer, existingInvoice?.customer_address])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     if (!open || !isNew || isCopy || !initialCustomer) return
@@ -1223,9 +1227,7 @@ export function InvoiceDialog({
     }
   }
 
-  useEffect(() => {
-    saveActionRef.current = handleSave
-  }, [handleSave])
+  saveActionRef.current = handleSave
 
   // 인쇄 데이터 빌더
   function buildPrintData() {

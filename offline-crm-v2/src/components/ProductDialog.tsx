@@ -33,7 +33,9 @@ function loadDiscountRates(): { price2: number; price3: number; price4: number; 
         price5: s.price5_rate ?? 20,
       }
     }
-  } catch {}
+  } catch {
+    // 손상된 설정 캐시는 기본 할인율로 대체한다.
+  }
   return { price2: 5, price3: 12, price4: 15, price5: 20 }
 }
 

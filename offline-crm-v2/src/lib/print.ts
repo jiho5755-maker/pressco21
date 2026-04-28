@@ -864,10 +864,10 @@ function buildComparisonItemRows(items: PrintItem[]): string {
     const item = items[index]
     rows.push(
       `<tr class="cq-row-item">` +
-      `<td class="cq-product" colspan="4">${esc(item?.product_name ?? '')}</td>` +
+      `<td class="cq-product">${esc(item?.product_name ?? '')}</td>` +
       `<td class="cq-number">${formatPrintNumber(item?.quantity)}</td>` +
       `<td class="cq-number">${formatPrintNumber(item?.unit_price)}</td>` +
-      `<td class="cq-number cq-amount" colspan="2">${formatPrintNumber(formatLineTotal(item ?? {}))}</td>` +
+      `<td class="cq-number cq-amount">${formatPrintNumber(formatLineTotal(item ?? {}))}</td>` +
       `</tr>`,
     )
   }
@@ -883,65 +883,65 @@ function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], page
   return (
     '<section class="cq-page">' +
     '<div class="cq-sheet-wrap">' +
-    '<table class="cq-sheet" aria-label="협력업체 비교견적서">' +
-    '<colgroup>' +
-    '<col class="cq-col-b" />' +
-    '<col class="cq-col-c" />' +
-    '<col class="cq-col-d" />' +
-    '<col class="cq-col-e" />' +
-    '<col class="cq-col-f" />' +
-    '<col class="cq-col-g" />' +
-    '<col class="cq-col-h" />' +
-    '<col class="cq-col-i" />' +
-    '</colgroup>' +
+    `<div class="cq-title-box">&lt; 견 적 서 &gt;${esc(pageLabel)}</div>` +
+    '<div class="cq-party-grid">' +
+    '<table class="cq-party-table cq-recipient-table" aria-label="공급받는자 정보">' +
     '<tbody>' +
-    `<tr class="cq-row-title"><td class="cq-title" colspan="8">&lt; 견 적 서 &gt;${esc(pageLabel)}</td></tr>` +
-    '<tr class="cq-row-gap"><td colspan="8"></td></tr>' +
-    '<tr class="cq-row-gap-small"><td></td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td></tr>' +
-    '<tr class="cq-row-party">' +
+    '<tr>' +
     '<td class="cq-side-label" rowspan="4"><span class="cq-vertical-label">공급받는자</span></td>' +
-    `<td class="cq-customer" colspan="2">${esc(inv.customer_name ?? '')}</td>` +
-    '<td></td><td></td>' +
+    `<td class="cq-customer">${esc(inv.customer_name ?? '')}</td>` +
+    '</tr>' +
+    '<tr><td></td></tr>' +
+    '<tr><td></td></tr>' +
+    '<tr><td></td></tr>' +
+    '</tbody>' +
+    '</table>' +
+    '<div class="cq-supplier-block">' +
+    '<table class="cq-party-table cq-supplier-table" aria-label="공급자 정보">' +
+    '<tbody>' +
+    '<tr>' +
     '<td class="cq-side-label" rowspan="4"><span class="cq-vertical-label">공급자</span></td>' +
     `<td class="cq-supplier-name" colspan="2">${esc(settings.partnerCompany)}</td>` +
     '</tr>' +
-    '<tr class="cq-row-party">' +
-    '<td colspan="2"></td><td></td><td></td>' +
-    `<td class="cq-supplier-address" colspan="2">${esc(settings.partnerAddress ?? '')}</td>` +
-    '</tr>' +
-    '<tr class="cq-row-party">' +
-    '<td colspan="2"></td><td></td><td></td>' +
-    `<td class="cq-supplier-ceo" colspan="2">대 표 : ${esc(settings.partnerCeo ?? '')}</td>` +
-    '</tr>' +
-    '<tr class="cq-row-party">' +
-    '<td colspan="2"></td><td></td><td></td>' +
+    `<tr><td class="cq-supplier-address" colspan="2">${esc(settings.partnerAddress ?? '')}</td></tr>` +
+    `<tr><td class="cq-supplier-ceo" colspan="2">대 표 : ${esc(settings.partnerCeo ?? '')}</td></tr>` +
+    '<tr>' +
     `<td class="cq-biz-type">${esc(settings.partnerBizType ?? '')}</td>` +
     `<td class="cq-biz-item">${esc(settings.partnerBizItem ?? '')}</td>` +
     '</tr>' +
-    '<tr class="cq-row-party cq-business-row">' +
-    '<td></td><td colspan="2"></td><td></td><td></td>' +
-    `<td class="cq-business-number" colspan="3">사업자번호 : ${esc(formatBusinessNumber(settings.partnerBizno))}</td>` +
-    '</tr>' +
-    '<tr class="cq-row-message">' +
-    '<td class="cq-message" colspan="5">아래와 같이 견적하오니, 긍정적인 검토 부탁드립니다.</td>' +
-    '<td></td><td></td><td></td>' +
-    '</tr>' +
-    '<tr class="cq-row-total-top">' +
-    '<td></td><td></td><td></td><td></td><td></td>' +
-    '<td class="cq-total-label">합계금액&nbsp;</td>' +
-    `<td class="cq-total-value" colspan="2">: \\ ${formatPrintNumber(totals.total_amount)}</td>` +
-    '</tr>' +
+    '</tbody>' +
+    '</table>' +
+    `<div class="cq-business-number">사업자번호 : ${esc(formatBusinessNumber(settings.partnerBizno))}</div>` +
+    '</div>' +
+    '</div>' +
+    '<div class="cq-notice-total">' +
+    '<div class="cq-message">아래와 같이 견적하오니, 긍정적인 검토 부탁드립니다.</div>' +
+    '<div class="cq-total-line">' +
+    '<span>합계금액</span>' +
+    `<strong>: \\ ${formatPrintNumber(totals.total_amount)}</strong>` +
+    '</div>' +
+    '</div>' +
+    '<table class="cq-items-table" aria-label="비교견적 품목">' +
+    '<colgroup>' +
+    '<col class="cq-item-col-product" />' +
+    '<col class="cq-item-col-qty" />' +
+    '<col class="cq-item-col-price" />' +
+    '<col class="cq-item-col-amount" />' +
+    '</colgroup>' +
+    '<thead>' +
     '<tr class="cq-row-header">' +
-    '<td class="cq-header cq-product-header" colspan="4">품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명</td>' +
-    '<td class="cq-header">수&nbsp;&nbsp;량</td>' +
-    '<td class="cq-header">단&nbsp;&nbsp;가</td>' +
-    '<td class="cq-header" colspan="2">금&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td>' +
+    '<th>품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명</th>' +
+    '<th>수&nbsp;&nbsp;량</th>' +
+    '<th>단&nbsp;&nbsp;가</th>' +
+    '<th>금&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</th>' +
     '</tr>' +
+    '</thead>' +
+    '<tbody>' +
     buildComparisonItemRows(items) +
     '<tr class="cq-row-sum">' +
-    '<td colspan="4"></td>' +
+    '<td></td>' +
     '<td class="cq-sum-label" colspan="2">합&nbsp;&nbsp;계</td>' +
-    `<td class="cq-number cq-sum-amount" colspan="2">${formatPrintNumber(totals.total_amount)}</td>` +
+    `<td class="cq-number cq-sum-amount">${formatPrintNumber(totals.total_amount)}</td>` +
     '</tr>' +
     '</tbody>' +
     '</table>' +
@@ -1125,47 +1125,43 @@ const COMPARISON_QUOTE_CSS = [
   '.cq-page { position:relative; width:210mm; min-height:297mm; padding:27mm 0 14mm; display:flex; justify-content:center; page-break-after:always; break-after:page; overflow:hidden; }',
   '.cq-page:last-child { page-break-after:auto; break-after:auto; }',
   '.cq-sheet-wrap { position:relative; width:146.5mm; flex:0 0 146.5mm; isolation:isolate; }',
-  '.cq-sheet { position:relative; z-index:1; width:146.5mm; border-collapse:collapse; table-layout:fixed; font-family:inherit; }',
-  '.cq-sheet td { padding:0 2px; height:6.88mm; font-size:10.2pt; font-weight:400; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; line-height:1.15; }',
-  '.cq-col-b { width:6.9mm; }',
-  '.cq-col-c { width:5.1mm; }',
-  '.cq-col-d { width:33.1mm; }',
-  '.cq-col-e { width:14mm; }',
-  '.cq-col-f { width:23.3mm; }',
-  '.cq-col-g { width:23.3mm; }',
-  '.cq-col-h { width:24.8mm; }',
-  '.cq-col-i { width:16mm; }',
-  '.cq-row-title td { height:16.93mm; }',
-  '.cq-row-gap td { height:6.88mm; }',
-  '.cq-row-gap-small td { height:6.35mm; }',
-  '.cq-row-party td { height:6.88mm; font-size:11.2pt; }',
-  '.cq-row-message td, .cq-row-total-top td { height:6.88mm; }',
-  '.cq-row-header td { height:9.53mm; font-size:10.2pt; }',
-  '.cq-row-item td { height:7.41mm; }',
-  '.cq-row-sum td { height:7.06mm; }',
-  '.cq-title { border-left:2px solid #000; border-right:2px solid #000; border-top:2px solid #000; border-bottom:1px solid #000; font-size:17pt !important; font-weight:700 !important; letter-spacing:0.4px; }',
-  '.cq-side-label { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; padding:0 !important; }',
+  '.cq-title-box { height:17mm; border:2px solid #000; display:flex; align-items:center; justify-content:center; font-size:17pt; font-weight:700; letter-spacing:0.4px; line-height:1; }',
+  '.cq-party-grid { margin-top:13.2mm; display:flex; align-items:flex-start; justify-content:space-between; }',
+  '.cq-party-table { border-collapse:collapse; table-layout:fixed; background:#fff; }',
+  '.cq-party-table td { height:6.88mm; padding:0 3px; border:1px solid #000; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; font-size:10.6pt; line-height:1.1; }',
+  '.cq-recipient-table { width:45.5mm; }',
+  '.cq-recipient-table .cq-side-label { width:7mm; }',
+  '.cq-supplier-block { position:relative; width:64.2mm; }',
+  '.cq-supplier-table { width:64.2mm; }',
+  '.cq-supplier-table .cq-side-label { width:23.3mm; }',
+  '.cq-supplier-table td { text-align:left; }',
+  '.cq-supplier-table .cq-side-label { text-align:center; }',
+  '.cq-side-label { padding:0 !important; border:2px solid #000 !important; }',
   '.cq-vertical-label { display:inline-block; writing-mode:vertical-rl; text-orientation:upright; letter-spacing:0.05em; line-height:1; font-size:10.4pt; }',
-  '.cq-customer { border:1px solid #000; font-size:11.5pt !important; }',
-  '.cq-supplier-name { border-top:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:right !important; padding-right:4px !important; }',
-  '.cq-supplier-address { border-right:2px solid #000; border-bottom:1px solid #000; font-size:9.2pt !important; text-align:left !important; padding-left:4px !important; }',
-  '.cq-supplier-ceo { border-left:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
-  '.cq-biz-type { border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
-  '.cq-biz-item { border-right:2px solid #000; border-left:1px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
-  '.cq-business-number { border-top:1px solid #000; border-right:2px solid #000; font-size:9.8pt !important; text-align:left !important; padding-left:6px !important; }',
-  '.cq-message { border-left:2px solid #000; text-align:center !important; font-size:10pt !important; }',
-  '.cq-total-label { border-bottom:2px solid #000; text-align:left !important; font-size:10pt !important; }',
-  '.cq-total-value { border-right:2px solid #000; border-bottom:2px solid #000; text-align:left !important; padding-left:4px !important; font-size:10.5pt !important; }',
-  '.cq-header { border:1px solid #000; border-top:2px solid #000; font-size:10pt !important; }',
-  '.cq-product-header { border-left:2px solid #000; }',
-  '.cq-row-header .cq-header:last-child { border-right:2px solid #000; }',
-  '.cq-product { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; font-size:9.6pt !important; }',
-  '.cq-number { border:1px solid #000; font-size:9.8pt !important; text-align:right !important; padding-right:3px !important; }',
-  '.cq-amount, .cq-sum-amount { border-right:2px solid #000; }',
-  '.cq-sum-label { border:1px solid #000; font-size:10pt !important; text-align:center !important; }',
-  '.cq-row-sum td:first-child { border-left:2px solid #000; border-bottom:1px solid #000; }',
+  '.cq-customer { font-size:11.3pt !important; }',
+  '.cq-supplier-name { text-align:right !important; padding-right:4px !important; font-size:10.8pt !important; }',
+  '.cq-supplier-address { padding-left:4px !important; font-size:9.1pt !important; }',
+  '.cq-supplier-ceo, .cq-biz-type, .cq-biz-item { padding-left:4px !important; font-size:10.2pt !important; }',
+  '.cq-business-number { height:6.88mm; display:flex; align-items:center; justify-content:center; padding:0 3px; font-size:9.8pt; white-space:nowrap; }',
+  '.cq-notice-total { margin-top:5.9mm; display:grid; grid-template-columns:1fr 64.2mm; align-items:end; column-gap:0; }',
+  '.cq-message { height:9.1mm; display:flex; align-items:center; justify-content:center; padding:0 4px; font-size:10pt; white-space:nowrap; }',
+  '.cq-total-line { height:9.1mm; display:grid; grid-template-columns:23.3mm 1fr; align-items:center; font-size:10pt; }',
+  '.cq-total-line span { text-align:left; }',
+  '.cq-total-line strong { font-weight:400; text-align:left; padding-left:4px; font-size:10.5pt; }',
+  '.cq-items-table { width:146.5mm; border-collapse:collapse; table-layout:fixed; border:2px solid #000; background:#fff; }',
+  '.cq-items-table th, .cq-items-table td { border:1px solid #000; padding:0 3px; vertical-align:middle; white-space:nowrap; overflow:hidden; line-height:1.12; }',
+  '.cq-items-table th { height:9.53mm; text-align:center; font-size:10pt; font-weight:400; }',
+  '.cq-row-item td { height:7.41mm; font-size:9.8pt; }',
+  '.cq-row-sum td { height:7.06mm; font-size:9.8pt; }',
+  '.cq-item-col-product { width:59mm; }',
+  '.cq-item-col-qty { width:23.3mm; }',
+  '.cq-item-col-price { width:23.3mm; }',
+  '.cq-item-col-amount { width:40.9mm; }',
+  '.cq-product { text-align:center; }',
+  '.cq-number { text-align:right; padding-right:5px !important; }',
+  '.cq-sum-label { text-align:center; }',
   '.cq-stamp { position:absolute; width:20mm; height:20mm; object-fit:contain; left:124mm; top:31.8mm; opacity:0.78; mix-blend-mode:multiply; z-index:0; pointer-events:none; }',
-  '@media print { .cq-page, .cq-sheet, .cq-sheet tr, .cq-sheet td { break-inside:avoid; page-break-inside:avoid; } }',
+  '@media print { .cq-page, .cq-sheet-wrap, .cq-party-grid, .cq-items-table, .cq-items-table tr, .cq-items-table td { break-inside:avoid; page-break-inside:avoid; } }',
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 

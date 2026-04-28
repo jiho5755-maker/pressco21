@@ -49,6 +49,28 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 - **브랜드 전략**: `docs/파트너클래스/brand-strategy-comprehensive.md`
 - **수정 규칙**: company-profile.md만 수정 → NocoDB/WF/HWPX에 동기화
 
+
+## 11번가 Open API 공용 키트 라우팅
+
+11번가, 11st, 11번가 Open API, 오픈마켓 11번가 API 관련 기획/개발/운영 요청이 나오면 작업 전에 반드시 아래 공용 키트부터 확인한다.
+
+- 전체 지침: `docs/openmarket-ops/11st-openapi-global-kit.md`
+- 빠른 시작: `docs/openmarket-ops/11st-openapi-global-quickstart.md`
+- URL/Method 카탈로그 JSON: `docs/openmarket-ops/11st-openapi-url-catalog.json`
+- 사람이 보는 카탈로그: `docs/openmarket-ops/11st-openapi-url-catalog.md`
+- 미확인 항목 정리: `docs/openmarket-ops/11st-openapi-missing-url-resolution-2026-04-28.md`
+- 공용 CLI: `_tools/openmarket/11st/11st_api.py`
+- CLI README: `_tools/openmarket/11st/README.md`
+
+작업 원칙:
+
+1. 카탈로그에서 API를 먼저 검색하고 Method/URL/Payload/위험도/`availability`/`usable`을 확인한다.
+2. CLI에 이미 있는 명령은 직접 HTTP 구현보다 CLI를 우선 사용한다.
+3. CLI에 없는 명령은 카탈로그 기준으로 dry-run 가능한 형태부터 추가한다.
+4. write API는 항상 `fresh read → dry-run → 승인 → execute → verify` 순서로만 진행한다.
+5. API KEY, 세션 쿠키, 추가인증 결과, 실제 IP는 출력/문서/커밋/handoff에 남기지 않는다.
+6. 공식 문서상 `official_no_content` 또는 `usable=false`인 항목은 자동화 대상으로 쓰지 않고, `replacement_api_seq`가 있으면 대체 API를 사용한다.
+
 ## AI 에이전트 조직 (Shared Agent Kernel)
 
 이 저장소의 AI 에이전트는 Claude Code와 Codex/OMX가 공유하는 조직이다.

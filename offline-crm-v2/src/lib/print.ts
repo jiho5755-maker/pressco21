@@ -57,7 +57,7 @@ export interface PrintItem {
   tax_amount?: number
 }
 
-export type PrintDocumentType = 'invoice' | 'estimate' | 'delivery' | 'bill'
+export type PrintDocumentType = 'invoice' | 'estimate' | 'delivery' | 'bill' | 'packing' | 'comparison'
 
 interface PrintDocumentDefinition {
   value: PrintDocumentType
@@ -74,9 +74,36 @@ interface PrintDocumentOptions {
   documentType?: PrintDocumentType
 }
 
+interface ComparisonQuoteSettings {
+  partnerCompany: string
+  partnerBizno?: string
+  partnerCeo?: string
+  partnerBizType?: string
+  partnerBizItem?: string
+  partnerAddress?: string
+  partnerPhone?: string
+  markupRate: number
+}
+
+interface EstimateSupplier {
+  company?: string
+  bizno?: string
+  ceo?: string
+  bizType?: string
+  bizItem?: string
+  address?: string
+  phone?: string
+  logoHtml: string
+  stampHtml: string
+  bankInfo?: string
+  subtitle?: string
+  noteText?: string
+}
+
 const COMPANY_INFO_KEY = 'pressco21-crm-v2'
 // Settings.tsx가 저장하는 키 (우선 참조)
 const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
+const COMPARISON_QUOTE_SETTINGS_KEY = 'pressco21-crm-comparison-quote-settings'
 
 // 정적 이미지 fallback data URL (앱 시작 시 preloadPrintImages()로 채워짐)
 let _logoFallback = ''
@@ -229,6 +256,26 @@ const PRINT_DOCUMENT_DEFINITIONS: Record<PrintDocumentType, PrintDocumentDefinit
     metaValue: () => '청구용',
     signatureText: () => '상기 금액을 정히 청구합니다.',
   },
+  packing: {
+    value: 'packing',
+    label: '포장지시서',
+    title: '포 장 지 시 서',
+    compactTitle: '포장지시서',
+    dateLabel: '출고일자',
+    metaLabel: '문서',
+    metaValue: () => '내부 작업용',
+    signatureText: () => '포장 및 출고 내용을 확인합니다.',
+  },
+  comparison: {
+    value: 'comparison',
+    label: '비교견적',
+    title: '비 교 견 적',
+    compactTitle: '비교견적',
+    dateLabel: '견적일자',
+    metaLabel: '구성',
+    metaValue: () => '자사견적+협력업체견적',
+    signatureText: () => '상기와 같이 비교견적을 제출합니다.',
+  },
 }
 
 export const PRINT_DOCUMENT_OPTIONS = Object.values(PRINT_DOCUMENT_DEFINITIONS).map((definition) => ({
@@ -248,6 +295,34 @@ function formatBankInfo(company: CompanyInfo): string {
   const bank = [company.bank_name, company.bank_account].filter(Boolean).join(' ')
   const holder = company.bank_holder ? `예금주 ${company.bank_holder}` : ''
   return [bank, holder].filter(Boolean).join(' / ')
+}
+
+function loadComparisonQuoteSettings(): ComparisonQuoteSettings {
+  const defaults: ComparisonQuoteSettings = {
+    partnerCompany: '꽃다미',
+    partnerCeo: '임순옥',
+    partnerBizno: '215-92-55266',
+    partnerBizType: '소매,생화',
+    partnerBizItem: '꽃,관엽',
+    partnerAddress: '서울시 송파구 방이동439-16',
+    partnerPhone: '',
+    markupRate: 15,
+  }
+
+  try {
+    const raw = localStorage.getItem(COMPARISON_QUOTE_SETTINGS_KEY)
+    if (!raw) return defaults
+    const parsed = JSON.parse(raw) as Partial<ComparisonQuoteSettings>
+    const markupRate = Number(parsed.markupRate)
+    return {
+      ...defaults,
+      ...parsed,
+      partnerCompany: parsed.partnerCompany?.trim() || defaults.partnerCompany,
+      markupRate: Number.isFinite(markupRate) ? Math.max(0, Math.min(100, markupRate)) : defaults.markupRate,
+    }
+  } catch {
+    return defaults
+  }
 }
 
 interface PageOptions {
@@ -442,6 +517,12 @@ export function getPreviewPageCount(itemCount: number, documentType: PrintDocume
   if (documentType === 'estimate') {
     return getEstimatePageItemCounts(itemCount).length
   }
+  if (documentType === 'comparison') {
+    return Math.max(1, Math.ceil(Math.max(1, itemCount) / COMPARISON_TEMPLATE_ROWS_PER_PAGE))
+  }
+  if (documentType === 'packing') {
+    return Math.max(1, Math.ceil(Math.max(1, itemCount) / 12))
+  }
   if (itemCount <= ITEMS_FIRST_PAGE) return 1
   return 1 + Math.ceil((itemCount - ITEMS_FIRST_PAGE) / ITEMS_CONT_PAGE)
 }
@@ -539,25 +620,38 @@ function buildEstimatePageHtml(
   pageItems: PrintItem[],
   opts: PageOptions,
   startIndex: number,
+  supplierOverride?: EstimateSupplier,
 ): string {
   const c = loadCompanyInfo()
   const document = getPrintDocumentDefinition('estimate')
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
-  const companyBizno = formatBusinessNumber(c.bizno)
-  const customerBizno = formatBusinessNumber(inv.customer_bizno)
-  const companyPhone = formatPhoneNumber(c.phone)
-  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const effectiveLogo = sanitizePrintImageSrc(c.logo_url || _logoFallback)
   const effectiveStamp = sanitizePrintImageSrc(c.stamp_url || _stampFallback)
-  const logoHtml = effectiveLogo
-    ? `<img src="${escAttr(effectiveLogo)}" alt="로고" class="est-logo-img" />`
-    : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`
-  const stampHtml = effectiveStamp
-    ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="est-stamp-img" />`
-    : ''
+  const defaultSupplier: EstimateSupplier = {
+    company: c.company,
+    bizno: c.bizno,
+    ceo: c.ceo,
+    bizType: c.bizType,
+    bizItem: c.bizItem,
+    address: c.address,
+    phone: c.phone,
+    logoHtml: effectiveLogo
+      ? `<img src="${escAttr(effectiveLogo)}" alt="로고" class="est-logo-img" />`
+      : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`,
+    stampHtml: effectiveStamp
+      ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="est-stamp-img" />`
+      : '',
+    bankInfo: formatBankInfo(c),
+  }
+  const supplier = supplierOverride ?? defaultSupplier
+  const supplierBizno = formatBusinessNumber(supplier.bizno)
+  const customerBizno = formatBusinessNumber(inv.customer_bizno)
+  const supplierPhone = formatPhoneNumber(supplier.phone)
+  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const pageLabel = opts.totalPages > 1 ? ` / ${opts.pageNum}p` : ''
-  const noteText = inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.'
+  const noteText = supplier.noteText ?? (inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.')
+  const subtitle = supplier.subtitle ? `${esc(supplier.subtitle)}${pageLabel}` : `${esc(inv.invoice_no ?? '')}${pageLabel}`
 
   const itemRowsHtml =
     pageItems
@@ -579,8 +673,8 @@ function buildEstimatePageHtml(
     '<section class="est-page">' +
     '<div class="est-shell">' +
     '<div class="est-top">' +
-    `<div class="est-logo">${logoHtml}</div>` +
-    `<div class="est-title-wrap"><div class="est-title">${document.title}</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
+    `<div class="est-logo">${supplier.logoHtml}</div>` +
+    `<div class="est-title-wrap"><div class="est-title">${document.title}</div><div class="est-sub">${subtitle}</div></div>` +
     '<div class="est-meta">' +
     `<div><span>${esc(document.dateLabel)}</span><strong>${esc(invoiceDate)}</strong></div>` +
     `<div><span>${esc(document.metaLabel)}</span><strong>${esc(validUntil)}</strong></div>` +
@@ -589,10 +683,10 @@ function buildEstimatePageHtml(
     '<table class="est-party-table">' +
     '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
     '<tbody>' +
-    `<tr><td class="est-label">상호</td><td>${esc(c.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(c.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="est-label">사업자번호</td><td>${esc(companyBizno)}</td><td class="est-label">전화</td><td>${esc(companyPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
-    `<tr><td class="est-label">주소</td><td colspan="3">${esc(c.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
-    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(c.bizType, c.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
+    `<tr><td class="est-label">상호</td><td>${esc(supplier.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(supplier.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
+    `<tr><td class="est-label">사업자번호</td><td>${esc(supplierBizno)}</td><td class="est-label">전화</td><td>${esc(supplierPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
+    `<tr><td class="est-label">주소</td><td colspan="3">${esc(supplier.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(supplier.bizType, supplier.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
     '</tbody>' +
     '</table>' +
     '<table class="est-items-table">' +
@@ -612,15 +706,15 @@ function buildEstimatePageHtml(
         `<tr><th>세액</th><td>${(inv.tax_amount ?? 0).toLocaleString()}원</td></tr>` +
         `<tr class="est-grand-row"><th>총 견적금액</th><td>${(inv.total_amount ?? 0).toLocaleString()}원</td></tr>` +
         '</table>' +
-        (formatBankInfo(c) ? `<div class="est-bank">입금계좌 ${esc(formatBankInfo(c))}</div>` : '') +
+        (supplier.bankInfo ? `<div class="est-bank">입금계좌 ${esc(supplier.bankInfo)}</div>` : '') +
         '</div>' +
         '</div>' +
         '<div class="est-signature">' +
         `<div class="est-signature-text">${esc(document.signatureText(inv))}</div>` +
         '<div class="est-signature-right">' +
         '<span class="est-signature-label">대표자</span>' +
-        `<span class="est-signature-name">${esc(c.ceo ?? '')}</span>` +
-        `<span class="est-stamp-wrap">${stampHtml}</span>` +
+        `<span class="est-signature-name">${esc(supplier.ceo ?? '')}</span>` +
+        `<span class="est-stamp-wrap">${supplier.stampHtml}</span>` +
         '</div>' +
         '</div>'
       : '<div class="est-continue">다음 페이지에 품목이 계속됩니다.</div>') +
@@ -630,7 +724,7 @@ function buildEstimatePageHtml(
   )
 }
 
-function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
+function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[], supplier?: EstimateSupplier): string {
   const pages = splitEstimateItemsToPages(items)
   const totalPages = pages.length
 
@@ -642,8 +736,220 @@ function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
       isLast: index === totalPages - 1,
     }
     const startIndex = pages.slice(0, index).reduce((sum, pageItems) => sum + pageItems.length, 0)
-    return buildEstimatePageHtml(inv, pageItems, opts, startIndex)
+    return buildEstimatePageHtml(inv, pageItems, opts, startIndex, supplier)
   }).join('')
+}
+
+function formatLineTotal(item: PrintItem): number {
+  return Math.max(0, (item.supply_amount ?? 0) + (item.tax_amount ?? 0))
+}
+
+function formatPrintNumber(value?: number | null): string {
+  const numeric = Number(value ?? 0)
+  if (!Number.isFinite(numeric) || numeric === 0) return ''
+  return Math.round(numeric).toLocaleString()
+}
+
+function buildPackingHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  const invoiceDate = formatDisplayDate(inv.invoice_date)
+  const totalAmt = inv.total_amount ?? 0
+  const blankCount = Math.max(0, Math.min(8, 12 - items.length))
+  const rowsHtml = items.map((item, index) => (
+    '<tr>' +
+    '<td class="pack-check">□</td>' +
+    `<td class="pack-no">${index + 1}</td>` +
+    `<td class="pack-name">${esc(item.product_name ?? '')}</td>` +
+    `<td class="pack-unit">${esc(item.unit ?? '')}</td>` +
+    `<td class="pack-qty">${(item.quantity ?? 0).toLocaleString()}</td>` +
+    `<td class="pack-money">${(item.unit_price ?? 0).toLocaleString()}</td>` +
+    `<td class="pack-money">${formatLineTotal(item).toLocaleString()}</td>` +
+    '<td class="pack-note"></td>' +
+    '</tr>'
+  )).join('') + Array(blankCount).fill(
+    '<tr class="pack-blank"><td>□</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>',
+  ).join('')
+
+  return (
+    '<main class="pack-page">' +
+    '<section class="pack-shell">' +
+    '<div class="pack-top">' +
+    '<div>' +
+    '<div class="pack-kicker">내부 작업용</div>' +
+    '<h1>포 장 지 시 서</h1>' +
+    '</div>' +
+    '<div class="pack-stamp-box">포장완료<br />확인</div>' +
+    '</div>' +
+    '<table class="pack-meta">' +
+    '<tbody>' +
+    `<tr><th>주문번호</th><td>${esc(inv.invoice_no ?? '')}</td><th>출고일</th><td>${esc(invoiceDate)}</td></tr>` +
+    `<tr><th>거래처</th><td>${esc(inv.customer_name ?? '')}</td><th>연락처</th><td>${esc(formatPhoneNumber(inv.customer_phone))}</td></tr>` +
+    `<tr><th>수령/배송지</th><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    '</tbody>' +
+    '</table>' +
+    (inv.memo ? `<div class="pack-request"><strong>요청사항</strong><span>${esc(inv.memo)}</span></div>` : '') +
+    '<table class="pack-items">' +
+    '<thead><tr><th>확인</th><th>No</th><th>품목명</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th><th>포장 메모</th></tr></thead>' +
+    `<tbody>${rowsHtml}</tbody>` +
+    '</table>' +
+    '<div class="pack-total-grid">' +
+    `<div><span>공급가액</span><strong>${(inv.supply_amount ?? 0).toLocaleString()}원</strong></div>` +
+    `<div><span>세액</span><strong>${(inv.tax_amount ?? 0).toLocaleString()}원</strong></div>` +
+    `<div class="pack-grand"><span>총 금액</span><strong>${totalAmt.toLocaleString()}원</strong></div>` +
+    '</div>' +
+    '<div class="pack-check-grid">' +
+    '<div><span>포장자</span></div>' +
+    '<div><span>검수자</span></div>' +
+    '<div><span>출고시간</span></div>' +
+    '</div>' +
+    '<div class="pack-help">품목명·수량·금액을 확인한 뒤 포장하고, 출고 후 CRM에서 포장·출고확정을 눌러주세요.</div>' +
+    '</section>' +
+    '</main>'
+  )
+}
+
+function roundToHundred(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.ceil(value / 100) * 100
+}
+
+function buildPartnerItems(items: PrintItem[], markupRate: number): PrintItem[] {
+  const ratio = 1 + Math.max(0, markupRate) / 100
+  return items.map((item) => {
+    const quantity = Math.max(0, item.quantity ?? 0)
+    const unitPrice = roundToHundred((item.unit_price ?? 0) * ratio)
+    const lineTotal = unitPrice * quantity
+    const taxable = (item.tax_amount ?? 0) > 0
+    const supplyAmount = taxable ? Math.floor(lineTotal / 1.1) : lineTotal
+    const taxAmount = taxable ? lineTotal - supplyAmount : 0
+    return {
+      ...item,
+      unit_price: unitPrice,
+      supply_amount: supplyAmount,
+      tax_amount: taxAmount,
+    }
+  })
+}
+
+function sumPrintItems(items: PrintItem[]): Pick<PrintInvoice, 'supply_amount' | 'tax_amount' | 'total_amount'> {
+  const supplyAmount = items.reduce((sum, item) => sum + (item.supply_amount ?? 0), 0)
+  const taxAmount = items.reduce((sum, item) => sum + (item.tax_amount ?? 0), 0)
+  return {
+    supply_amount: supplyAmount,
+    tax_amount: taxAmount,
+    total_amount: supplyAmount + taxAmount,
+  }
+}
+
+const COMPARISON_TEMPLATE_ROWS_PER_PAGE = 20
+
+function splitComparisonItemsToPages(items: PrintItem[]): PrintItem[][] {
+  if (items.length === 0) return [[]]
+  const pages: PrintItem[][] = []
+  for (let index = 0; index < items.length; index += COMPARISON_TEMPLATE_ROWS_PER_PAGE) {
+    pages.push(items.slice(index, index + COMPARISON_TEMPLATE_ROWS_PER_PAGE))
+  }
+  return pages
+}
+
+function buildComparisonItemRows(items: PrintItem[]): string {
+  const rows: string[] = []
+  for (let index = 0; index < COMPARISON_TEMPLATE_ROWS_PER_PAGE; index += 1) {
+    const item = items[index]
+    rows.push(
+      `<tr class="cq-row-item">` +
+      `<td class="cq-product" colspan="4">${esc(item?.product_name ?? '')}</td>` +
+      `<td class="cq-number">${formatPrintNumber(item?.quantity)}</td>` +
+      `<td class="cq-number">${formatPrintNumber(item?.unit_price)}</td>` +
+      `<td class="cq-number cq-amount" colspan="2">${formatPrintNumber(formatLineTotal(item ?? {}))}</td>` +
+      `</tr>`,
+    )
+  }
+  return rows.join('')
+}
+
+function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], pageIndex: number, pageCount: number): string {
+  const settings = loadComparisonQuoteSettings()
+  const totals = sumPrintItems(items)
+  const pageLabel = pageCount > 1 ? ` ${pageIndex + 1}/${pageCount}` : ''
+
+  return (
+    '<section class="cq-page">' +
+    '<table class="cq-sheet" aria-label="협력업체 비교견적서">' +
+    '<colgroup>' +
+    '<col class="cq-col-b" />' +
+    '<col class="cq-col-c" />' +
+    '<col class="cq-col-d" />' +
+    '<col class="cq-col-e" />' +
+    '<col class="cq-col-f" />' +
+    '<col class="cq-col-g" />' +
+    '<col class="cq-col-h" />' +
+    '<col class="cq-col-i" />' +
+    '</colgroup>' +
+    '<tbody>' +
+    `<tr class="cq-row-title"><td class="cq-title" colspan="8">&lt; 견 적 서 &gt;${esc(pageLabel)}</td></tr>` +
+    '<tr class="cq-row-gap"><td colspan="8"></td></tr>' +
+    '<tr class="cq-row-gap-small"><td></td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td></tr>' +
+    '<tr class="cq-row-party">' +
+    '<td class="cq-side-label" rowspan="4">공급받는자</td>' +
+    `<td class="cq-customer" colspan="2">${esc(inv.customer_name ?? '')}</td>` +
+    '<td></td><td></td>' +
+    '<td class="cq-side-label" rowspan="4">공급자</td>' +
+    `<td class="cq-supplier-name" colspan="2">${esc(settings.partnerCompany)}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-supplier-address" colspan="2">${esc(settings.partnerAddress ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-supplier-ceo" colspan="2">대 표 : ${esc(settings.partnerCeo ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party">' +
+    '<td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-biz-type">${esc(settings.partnerBizType ?? '')}</td>` +
+    `<td class="cq-biz-item">${esc(settings.partnerBizItem ?? '')}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-party cq-business-row">' +
+    '<td></td><td colspan="2"></td><td></td><td></td>' +
+    `<td class="cq-business-number" colspan="3">사업자번호 : ${esc(formatBusinessNumber(settings.partnerBizno))}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-message">' +
+    '<td class="cq-message" colspan="5">아래와 같이 견적하오니, 긍정적인 검토 부탁드립니다.</td>' +
+    '<td></td><td></td><td></td>' +
+    '</tr>' +
+    '<tr class="cq-row-total-top">' +
+    '<td></td><td></td><td></td><td></td><td></td>' +
+    '<td class="cq-total-label">합계금액&nbsp;</td>' +
+    `<td class="cq-total-value" colspan="2">: \\ ${formatPrintNumber(totals.total_amount)}</td>` +
+    '</tr>' +
+    '<tr class="cq-row-header">' +
+    '<td class="cq-header cq-product-header" colspan="4">품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명</td>' +
+    '<td class="cq-header">수&nbsp;&nbsp;량</td>' +
+    '<td class="cq-header">단&nbsp;&nbsp;가</td>' +
+    '<td class="cq-header" colspan="2">금&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td>' +
+    '</tr>' +
+    buildComparisonItemRows(items) +
+    '<tr class="cq-row-sum">' +
+    '<td colspan="4"></td>' +
+    '<td class="cq-sum-label" colspan="2">합&nbsp;&nbsp;계</td>' +
+    `<td class="cq-number cq-sum-amount" colspan="2">${formatPrintNumber(totals.total_amount)}</td>` +
+    '</tr>' +
+    '</tbody>' +
+    '</table>' +
+    '<img class="cq-stamp" src="/images/flowerdami-stamp.jpeg" alt="꽃다미 직인" />' +
+    '</section>'
+  )
+}
+
+function buildPartnerEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  const settings = loadComparisonQuoteSettings()
+  const partnerItems = buildPartnerItems(items, settings.markupRate)
+  const pages = splitComparisonItemsToPages(partnerItems)
+  return pages.map((pageItems, pageIndex) => buildComparisonTemplatePage(inv, pageItems, pageIndex, pages.length)).join('')
+}
+
+function buildComparisonQuoteHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  return buildPartnerEstimateHtml(inv, items)
 }
 
 function buildDuplexFitScript(): string {
@@ -802,6 +1108,96 @@ const ESTIMATE_CSS = [
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
+const COMPARISON_QUOTE_CSS = [
+  '@page { size: A4 portrait; margin: 18mm 12mm; }',
+  "body { margin:0; font-family:'GulimChe','굴림체','Gulim','굴림','Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
+  '* { box-sizing:border-box; }',
+  '.cq-page { position:relative; width:186mm; margin:0 auto; page-break-after:always; break-after:page; }',
+  '.cq-page:last-child { page-break-after:auto; break-after:auto; }',
+  '.cq-sheet { width:100%; border-collapse:collapse; table-layout:fixed; font-family:inherit; }',
+  '.cq-sheet td { padding:0 3px; height:6.88mm; font-size:10pt; font-weight:400; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; }',
+  '.cq-col-b { width:10mm; }',
+  '.cq-col-c { width:7mm; }',
+  '.cq-col-d { width:43mm; }',
+  '.cq-col-e { width:18mm; }',
+  '.cq-col-f { width:28mm; }',
+  '.cq-col-g { width:28mm; }',
+  '.cq-col-h { width:31mm; }',
+  '.cq-col-i { width:21mm; }',
+  '.cq-row-title td { height:16.93mm; }',
+  '.cq-row-gap td { height:6.88mm; }',
+  '.cq-row-gap-small td { height:6.35mm; }',
+  '.cq-row-party td { height:6.88mm; font-size:12pt; }',
+  '.cq-row-message td, .cq-row-total-top td { height:6.88mm; }',
+  '.cq-row-header td { height:9.53mm; font-size:10pt; }',
+  '.cq-row-item td { height:7.41mm; }',
+  '.cq-row-sum td { height:7.06mm; }',
+  '.cq-title { border-left:2px solid #000; border-right:2px solid #000; border-top:2px solid #000; border-bottom:1px solid #000; font-size:16pt !important; font-weight:700 !important; letter-spacing:0.5px; }',
+  '.cq-side-label { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; }',
+  '.cq-customer { border:1px solid #000; }',
+  '.cq-supplier-name { border-top:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; }',
+  '.cq-supplier-address { border-right:2px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
+  '.cq-supplier-ceo { border-left:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:7px !important; }',
+  '.cq-biz-type { border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
+  '.cq-biz-item { border-right:2px solid #000; border-left:1px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
+  '.cq-business-number { border-top:1px solid #000; border-right:2px solid #000; font-size:10pt !important; }',
+  '.cq-message { border-left:2px solid #000; text-align:center !important; font-size:10pt !important; }',
+  '.cq-total-label { border-bottom:2px solid #000; text-align:left !important; font-size:10pt !important; }',
+  '.cq-total-value { border-right:2px solid #000; border-bottom:2px solid #000; text-align:left !important; padding-left:8px !important; font-size:11pt !important; }',
+  '.cq-header { border:1px solid #000; border-top:2px solid #000; font-size:10pt !important; }',
+  '.cq-product-header { border-left:2px solid #000; }',
+  '.cq-row-header .cq-header:last-child { border-right:2px solid #000; }',
+  '.cq-product { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
+  '.cq-number { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-amount, .cq-sum-amount { border-right:2px solid #000; }',
+  '.cq-sum-label { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-row-sum td:first-child { border-left:2px solid #000; border-bottom:1px solid #000; }',
+  '.cq-stamp { position:absolute; width:28mm; height:28mm; object-fit:contain; right:15mm; top:33.2mm; opacity:0.96; mix-blend-mode:multiply; }',
+  '@media print { .cq-page, .cq-sheet, .cq-sheet tr, .cq-sheet td { break-inside:avoid; page-break-inside:avoid; } }',
+  '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
+].join('\n')
+
+const PACKING_CSS = [
+  '@page { size: A4 portrait; margin: 8mm; }',
+  "body { margin:0; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
+  '* { box-sizing:border-box; }',
+  '.pack-page { width:194mm; min-height:281mm; page-break-after:always; }',
+  '.pack-page:last-child { page-break-after:auto; }',
+  '.pack-shell { border:2px solid #111; padding:7mm; min-height:281mm; }',
+  '.pack-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid #111; padding-bottom:10px; }',
+  '.pack-kicker { display:inline-block; border:1px solid #111; padding:3px 8px; font-size:11pt; font-weight:800; margin-bottom:8px; }',
+  '.pack-top h1 { margin:0; font-size:25pt; letter-spacing:7px; font-weight:900; }',
+  '.pack-stamp-box { width:34mm; height:22mm; border:2px solid #111; display:flex; align-items:center; justify-content:center; text-align:center; font-size:13pt; font-weight:900; line-height:1.35; }',
+  '.pack-meta, .pack-items { width:100%; border-collapse:collapse; }',
+  '.pack-meta { margin-top:8px; border:2px solid #111; }',
+  '.pack-meta th, .pack-meta td { border:1.5px solid #111; padding:7px 8px; font-size:12.5pt; }',
+  '.pack-meta th { width:24mm; background:#f1f5f9; text-align:center; font-weight:900; }',
+  '.pack-request { margin-top:8px; border:2px solid #111; display:grid; grid-template-columns:28mm 1fr; min-height:18mm; }',
+  '.pack-request strong { display:flex; align-items:center; justify-content:center; background:#fff7ed; border-right:1.5px solid #111; font-size:13pt; }',
+  '.pack-request span { padding:9px; font-size:13pt; font-weight:700; white-space:pre-wrap; }',
+  '.pack-items { margin-top:8px; border:2px solid #111; }',
+  '.pack-items th { border:1.5px solid #111; background:#e5e7eb; padding:7px 4px; font-size:12pt; font-weight:900; text-align:center; }',
+  '.pack-items td { border:1.5px solid #111; padding:8px 5px; font-size:12.5pt; min-height:13mm; }',
+  '.pack-check { width:13mm; text-align:center; font-size:18pt !important; font-weight:900; }',
+  '.pack-no { width:10mm; text-align:center; }',
+  '.pack-name { font-size:14.2pt !important; font-weight:900; line-height:1.25; }',
+  '.pack-unit { width:13mm; text-align:center; }',
+  '.pack-qty { width:16mm; text-align:right; font-size:16pt !important; font-weight:900; }',
+  '.pack-money { width:24mm; text-align:right; font-weight:800; }',
+  '.pack-note { width:28mm; }',
+  '.pack-blank td { height:13mm; }',
+  '.pack-total-grid { margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1.2fr; border:2px solid #111; }',
+  '.pack-total-grid div { display:flex; align-items:center; justify-content:space-between; gap:8px; border-right:1.5px solid #111; padding:8px 10px; font-size:13pt; }',
+  '.pack-total-grid div:last-child { border-right:none; }',
+  '.pack-total-grid span { font-weight:900; }',
+  '.pack-total-grid strong { font-size:14pt; }',
+  '.pack-grand { background:#fef3c7; }',
+  '.pack-check-grid { margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; border:2px solid #111; }',
+  '.pack-check-grid div { height:20mm; border-right:1.5px solid #111; padding:7px; font-size:13pt; font-weight:900; }',
+  '.pack-check-grid div:last-child { border-right:none; }',
+  '.pack-help { margin-top:8px; border:1.5px solid #111; padding:7px; font-size:10.5pt; font-weight:700; background:#f8fafc; }',
+].join('\n')
+
 // 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
 export function buildDuplexBlobUrl(
   inv: PrintInvoice,
@@ -809,12 +1205,17 @@ export function buildDuplexBlobUrl(
   options: PrintDocumentOptions = {},
 ): string {
   const documentType = options.documentType ?? 'invoice'
-  const isEstimate = documentType === 'estimate'
-  const duplexHtml = isEstimate
+  const isEstimateLike = documentType === 'estimate' || documentType === 'comparison'
+  const isPacking = documentType === 'packing'
+  const duplexHtml = documentType === 'estimate'
     ? buildEstimateHtml(inv, items)
-    : buildDuplexInvoiceHtml(inv, items, documentType)
-  const fitScript = isEstimate ? '' : buildDuplexFitScript()
-  const css = isEstimate ? ESTIMATE_CSS : DUPLEX_CSS
+    : documentType === 'comparison'
+      ? buildComparisonQuoteHtml(inv, items)
+      : documentType === 'packing'
+        ? buildPackingHtml(inv, items)
+        : buildDuplexInvoiceHtml(inv, items, documentType)
+  const fitScript = isEstimateLike || isPacking ? '' : buildDuplexFitScript()
+  const css = isPacking ? PACKING_CSS : documentType === 'comparison' ? COMPARISON_QUOTE_CSS : isEstimateLike ? ESTIMATE_CSS : DUPLEX_CSS
   const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     '<style>' + css + '</style>' +

@@ -220,7 +220,52 @@ test('T7-09: 저장 후 고객 잔액 자동 재계산 확인', async ({ page, r
   await dialog.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 40_000 })
 
-  const afterCustomer = await getTestCustomer(request, customerId)
-  const afterBalance = afterCustomer.outstanding_balance ?? 0
-  expect(afterBalance).toBeGreaterThanOrEqual(beforeBalance + 10_000)
+  const afterSaveCustomer = await getTestCustomer(request, customerId)
+  const afterSaveBalance = afterSaveCustomer.outstanding_balance ?? 0
+  expect(afterSaveBalance).toBe(beforeBalance)
+
+  await waitForTableLoaded(page)
+  const createdRow = invoiceRows(page).filter({ hasText: invoiceNo }).first()
+  await expect(createdRow).toBeVisible({ timeout: API_TIMEOUT })
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('포장·출고확정')
+    await dialog.accept()
+  })
+  await createdRow.getByRole('button', { name: /포장·출고확정/ }).click()
+  await expect(page.getByText('포장·출고확정 처리되었습니다')).toBeVisible({ timeout: API_TIMEOUT })
+
+  const afterConfirmCustomer = await getTestCustomer(request, customerId)
+  const afterConfirmBalance = afterConfirmCustomer.outstanding_balance ?? 0
+  expect(afterConfirmBalance).toBeGreaterThanOrEqual(beforeBalance + 10_000)
+})
+
+test('T7-10: 선택한 명세표 일괄 포장·출고확정 처리', async ({ page }) => {
+  const invoiceNos = [`${ADV_PREFIX}${Date.now()}-B1`, `${ADV_PREFIX}${Date.now()}-B2`]
+
+  for (const invoiceNo of invoiceNos) {
+    const dialog = await openNewInvoice(page)
+    await fillInvoiceBasics(dialog, page, invoiceNo)
+    await dialog.getByRole('button', { name: '저장', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: API_TIMEOUT })
+    await waitForTableLoaded(page)
+  }
+
+  for (const invoiceNo of invoiceNos) {
+    const row = invoiceRows(page).filter({ hasText: invoiceNo }).first()
+    await expect(row).toBeVisible({ timeout: API_TIMEOUT })
+    await row.getByRole('checkbox', { name: /출고확정 선택/ }).check()
+  }
+
+  await expect(page.getByText(/선택 2건 · 합계/)).toBeVisible()
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('선택한 2건')
+    await dialog.accept()
+  })
+  await page.getByRole('button', { name: /선택 출고확정/ }).click()
+  await expect(page.getByText('선택 2건 출고확정 처리되었습니다')).toBeVisible({ timeout: API_TIMEOUT })
+
+  for (const invoiceNo of invoiceNos) {
+    const row = invoiceRows(page).filter({ hasText: invoiceNo }).first()
+    await expect(row.getByRole('button', { name: '출고확정됨' })).toBeVisible({ timeout: API_TIMEOUT })
+  }
 })

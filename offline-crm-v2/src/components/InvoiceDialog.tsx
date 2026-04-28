@@ -1045,10 +1045,23 @@ export function InvoiceDialog({
       const reminderEnabled = Boolean(paymentDueDate && paymentReminderEnabled)
       const currentInvoiceMeta = parseInvoiceAccountingMeta(form.memo as string | undefined)
       const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
+        ...currentInvoiceMeta,
         depositUsedAmount: appliedDeposit,
         discountAmount,
         customerAddressKey: selectedAddrKey,
         internalMemo,
+        fulfillmentStatus: invoiceId && !isCopy
+          ? currentInvoiceMeta.fulfillmentStatus
+          : 'preparing',
+        shipmentConfirmedAt: invoiceId && !isCopy ? currentInvoiceMeta.shipmentConfirmedAt : undefined,
+        revenueRecognizedDate: invoiceId && !isCopy ? currentInvoiceMeta.revenueRecognizedDate : undefined,
+        revenuePostedAt: invoiceId && !isCopy ? currentInvoiceMeta.revenuePostedAt : undefined,
+        revenuePostingStatus: invoiceId && !isCopy
+          ? currentInvoiceMeta.revenuePostingStatus
+          : 'pending',
+        salesLedgerId: invoiceId && !isCopy ? currentInvoiceMeta.salesLedgerId : undefined,
+        salesLedgerIdempotencyKey: invoiceId && !isCopy ? currentInvoiceMeta.salesLedgerIdempotencyKey : undefined,
+        taxInvoiceStatus: invoiceId && !isCopy ? currentInvoiceMeta.taxInvoiceStatus : 'not_requested',
         paymentHistory: currentInvoiceMeta.paymentHistory,
         paymentReminder: hasPaymentPromise
           ? {

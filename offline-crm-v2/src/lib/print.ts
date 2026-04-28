@@ -108,6 +108,7 @@ const COMPARISON_QUOTE_SETTINGS_KEY = 'pressco21-crm-comparison-quote-settings'
 // 정적 이미지 fallback data URL (앱 시작 시 preloadPrintImages()로 채워짐)
 let _logoFallback = ''
 let _stampFallback = ''
+let _comparisonStampFallback = ''
 
 /** public/images/ 정적 파일을 data URL로 변환해 캐시 (구 offline-crm 방식) */
 export async function preloadPrintImages(): Promise<void> {
@@ -126,12 +127,14 @@ export async function preloadPrintImages(): Promise<void> {
       return ''
     }
   }
-  const [logo, stamp] = await Promise.all([
+  const [logo, stamp, comparisonStamp] = await Promise.all([
     toDataUrl('/images/company-logo.png'),
     toDataUrl('/images/company-stamp.png'),
+    toDataUrl('/images/flowerdami-stamp.jpeg'),
   ])
   if (logo) _logoFallback = logo
   if (stamp) _stampFallback = stamp
+  if (comparisonStamp) _comparisonStampFallback = comparisonStamp
 }
 
 export function loadCompanyInfo(): CompanyInfo {
@@ -750,6 +753,10 @@ function formatPrintNumber(value?: number | null): string {
   return Math.round(numeric).toLocaleString()
 }
 
+function getComparisonStampSrc(): string {
+  return sanitizePrintImageSrc(_comparisonStampFallback || '/images/flowerdami-stamp.jpeg')
+}
+
 function buildPackingHtml(inv: PrintInvoice, items: PrintItem[]): string {
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const totalAmt = inv.total_amount ?? 0
@@ -871,9 +878,11 @@ function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], page
   const settings = loadComparisonQuoteSettings()
   const totals = sumPrintItems(items)
   const pageLabel = pageCount > 1 ? ` ${pageIndex + 1}/${pageCount}` : ''
+  const stampSrc = getComparisonStampSrc()
 
   return (
     '<section class="cq-page">' +
+    '<div class="cq-sheet-wrap">' +
     '<table class="cq-sheet" aria-label="협력업체 비교견적서">' +
     '<colgroup>' +
     '<col class="cq-col-b" />' +
@@ -890,10 +899,10 @@ function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], page
     '<tr class="cq-row-gap"><td colspan="8"></td></tr>' +
     '<tr class="cq-row-gap-small"><td></td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td></tr>' +
     '<tr class="cq-row-party">' +
-    '<td class="cq-side-label" rowspan="4">공급받는자</td>' +
+    '<td class="cq-side-label" rowspan="4"><span class="cq-vertical-label">공급받는자</span></td>' +
     `<td class="cq-customer" colspan="2">${esc(inv.customer_name ?? '')}</td>` +
     '<td></td><td></td>' +
-    '<td class="cq-side-label" rowspan="4">공급자</td>' +
+    '<td class="cq-side-label" rowspan="4"><span class="cq-vertical-label">공급자</span></td>' +
     `<td class="cq-supplier-name" colspan="2">${esc(settings.partnerCompany)}</td>` +
     '</tr>' +
     '<tr class="cq-row-party">' +
@@ -936,7 +945,8 @@ function buildComparisonTemplatePage(inv: PrintInvoice, items: PrintItem[], page
     '</tr>' +
     '</tbody>' +
     '</table>' +
-    '<img class="cq-stamp" src="/images/flowerdami-stamp.jpeg" alt="꽃다미 직인" />' +
+    (stampSrc ? `<img class="cq-stamp" src="${escAttr(stampSrc)}" alt="꽃다미 직인" />` : '') +
+    '</div>' +
     '</section>'
   )
 }
@@ -1109,50 +1119,52 @@ const ESTIMATE_CSS = [
 ].join('\n')
 
 const COMPARISON_QUOTE_CSS = [
-  '@page { size: A4 portrait; margin: 18mm 12mm; }',
-  "body { margin:0; font-family:'GulimChe','굴림체','Gulim','굴림','Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
+  '@page { size: A4 portrait; margin: 0; }',
+  "html, body { margin:0; padding:0; width:210mm; min-height:297mm; font-family:'GulimChe','굴림체','Gulim','굴림','Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
   '* { box-sizing:border-box; }',
-  '.cq-page { position:relative; width:186mm; margin:0 auto; page-break-after:always; break-after:page; }',
+  '.cq-page { position:relative; width:210mm; min-height:297mm; padding:27mm 0 14mm; display:flex; justify-content:center; page-break-after:always; break-after:page; overflow:hidden; }',
   '.cq-page:last-child { page-break-after:auto; break-after:auto; }',
-  '.cq-sheet { width:100%; border-collapse:collapse; table-layout:fixed; font-family:inherit; }',
-  '.cq-sheet td { padding:0 3px; height:6.88mm; font-size:10pt; font-weight:400; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; }',
-  '.cq-col-b { width:10mm; }',
-  '.cq-col-c { width:7mm; }',
-  '.cq-col-d { width:43mm; }',
-  '.cq-col-e { width:18mm; }',
-  '.cq-col-f { width:28mm; }',
-  '.cq-col-g { width:28mm; }',
-  '.cq-col-h { width:31mm; }',
-  '.cq-col-i { width:21mm; }',
+  '.cq-sheet-wrap { position:relative; width:146.5mm; flex:0 0 146.5mm; isolation:isolate; }',
+  '.cq-sheet { position:relative; z-index:1; width:146.5mm; border-collapse:collapse; table-layout:fixed; font-family:inherit; }',
+  '.cq-sheet td { padding:0 2px; height:6.88mm; font-size:10.2pt; font-weight:400; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; line-height:1.15; }',
+  '.cq-col-b { width:6.9mm; }',
+  '.cq-col-c { width:5.1mm; }',
+  '.cq-col-d { width:33.1mm; }',
+  '.cq-col-e { width:14mm; }',
+  '.cq-col-f { width:23.3mm; }',
+  '.cq-col-g { width:23.3mm; }',
+  '.cq-col-h { width:24.8mm; }',
+  '.cq-col-i { width:16mm; }',
   '.cq-row-title td { height:16.93mm; }',
   '.cq-row-gap td { height:6.88mm; }',
   '.cq-row-gap-small td { height:6.35mm; }',
-  '.cq-row-party td { height:6.88mm; font-size:12pt; }',
+  '.cq-row-party td { height:6.88mm; font-size:11.2pt; }',
   '.cq-row-message td, .cq-row-total-top td { height:6.88mm; }',
-  '.cq-row-header td { height:9.53mm; font-size:10pt; }',
+  '.cq-row-header td { height:9.53mm; font-size:10.2pt; }',
   '.cq-row-item td { height:7.41mm; }',
   '.cq-row-sum td { height:7.06mm; }',
-  '.cq-title { border-left:2px solid #000; border-right:2px solid #000; border-top:2px solid #000; border-bottom:1px solid #000; font-size:16pt !important; font-weight:700 !important; letter-spacing:0.5px; }',
-  '.cq-side-label { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; }',
-  '.cq-customer { border:1px solid #000; }',
-  '.cq-supplier-name { border-top:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; }',
-  '.cq-supplier-address { border-right:2px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
-  '.cq-supplier-ceo { border-left:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:7px !important; }',
-  '.cq-biz-type { border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
-  '.cq-biz-item { border-right:2px solid #000; border-left:1px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:8px !important; }',
-  '.cq-business-number { border-top:1px solid #000; border-right:2px solid #000; font-size:10pt !important; }',
+  '.cq-title { border-left:2px solid #000; border-right:2px solid #000; border-top:2px solid #000; border-bottom:1px solid #000; font-size:17pt !important; font-weight:700 !important; letter-spacing:0.4px; }',
+  '.cq-side-label { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; padding:0 !important; }',
+  '.cq-vertical-label { display:inline-block; writing-mode:vertical-rl; text-orientation:upright; letter-spacing:0.05em; line-height:1; font-size:10.4pt; }',
+  '.cq-customer { border:1px solid #000; font-size:11.5pt !important; }',
+  '.cq-supplier-name { border-top:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:right !important; padding-right:4px !important; }',
+  '.cq-supplier-address { border-right:2px solid #000; border-bottom:1px solid #000; font-size:9.2pt !important; text-align:left !important; padding-left:4px !important; }',
+  '.cq-supplier-ceo { border-left:1px solid #000; border-right:2px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
+  '.cq-biz-type { border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
+  '.cq-biz-item { border-right:2px solid #000; border-left:1px solid #000; border-bottom:1px solid #000; text-align:left !important; padding-left:4px !important; }',
+  '.cq-business-number { border-top:1px solid #000; border-right:2px solid #000; font-size:9.8pt !important; text-align:left !important; padding-left:6px !important; }',
   '.cq-message { border-left:2px solid #000; text-align:center !important; font-size:10pt !important; }',
   '.cq-total-label { border-bottom:2px solid #000; text-align:left !important; font-size:10pt !important; }',
-  '.cq-total-value { border-right:2px solid #000; border-bottom:2px solid #000; text-align:left !important; padding-left:8px !important; font-size:11pt !important; }',
+  '.cq-total-value { border-right:2px solid #000; border-bottom:2px solid #000; text-align:left !important; padding-left:4px !important; font-size:10.5pt !important; }',
   '.cq-header { border:1px solid #000; border-top:2px solid #000; font-size:10pt !important; }',
   '.cq-product-header { border-left:2px solid #000; }',
   '.cq-row-header .cq-header:last-child { border-right:2px solid #000; }',
-  '.cq-product { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; font-size:10pt !important; }',
-  '.cq-number { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-product { border-left:2px solid #000; border-right:1px solid #000; border-top:1px solid #000; border-bottom:1px solid #000; font-size:9.6pt !important; }',
+  '.cq-number { border:1px solid #000; font-size:9.8pt !important; text-align:right !important; padding-right:3px !important; }',
   '.cq-amount, .cq-sum-amount { border-right:2px solid #000; }',
-  '.cq-sum-label { border:1px solid #000; font-size:10pt !important; }',
+  '.cq-sum-label { border:1px solid #000; font-size:10pt !important; text-align:center !important; }',
   '.cq-row-sum td:first-child { border-left:2px solid #000; border-bottom:1px solid #000; }',
-  '.cq-stamp { position:absolute; width:28mm; height:28mm; object-fit:contain; right:15mm; top:33.2mm; opacity:0.96; mix-blend-mode:multiply; }',
+  '.cq-stamp { position:absolute; width:20mm; height:20mm; object-fit:contain; left:124mm; top:31.8mm; opacity:0.78; mix-blend-mode:multiply; z-index:0; pointer-events:none; }',
   '@media print { .cq-page, .cq-sheet, .cq-sheet tr, .cq-sheet td { break-inside:avoid; page-break-inside:avoid; } }',
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
@@ -1226,6 +1238,40 @@ export function buildDuplexBlobUrl(
   return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
 }
 
+async function waitForPrintImages(targetWindow: Window | null, timeoutMs = 1600): Promise<void> {
+  const doc = targetWindow?.document
+  if (!doc) return
+
+  const pendingImages = Array.from(doc.images).filter((image) => !image.complete)
+  if (pendingImages.length === 0) return
+
+  await new Promise<void>((resolve) => {
+    let remaining = pendingImages.length
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      window.clearTimeout(timer)
+      resolve()
+    }
+    const settleOne = () => {
+      remaining -= 1
+      if (remaining <= 0) finish()
+    }
+    const timer = window.setTimeout(finish, timeoutMs)
+
+    pendingImages.forEach((image) => {
+      image.addEventListener('load', settleOne, { once: true })
+      image.addEventListener('error', settleOne, { once: true })
+    })
+  })
+}
+
+export async function printWindowWhenReady(targetWindow: Window | null, timeoutMs = 1600): Promise<void> {
+  await waitForPrintImages(targetWindow, timeoutMs)
+  targetWindow?.print()
+}
+
 export function printDuplexViaIframe(
   inv: PrintInvoice,
   items: PrintItem[],
@@ -1242,16 +1288,19 @@ export function printDuplexViaIframe(
   iframe.src = blobUrl
 
   iframe.addEventListener('load', () => {
-    setTimeout(() => {
-      if (documentType !== 'estimate') {
-        const fitFn = (iframe.contentWindow as (Window & { __fitDuplexPrint?: () => void }) | null)?.__fitDuplexPrint
-        fitFn?.()
-      }
-      iframe.contentWindow?.print()
-      URL.revokeObjectURL(blobUrl)
-      setTimeout(() => {
-        if (iframe.parentNode) document.body.removeChild(iframe)
-      }, 3000)
+    window.setTimeout(() => {
+      const frameWindow = iframe.contentWindow as (Window & { __fitDuplexPrint?: () => void }) | null
+      void waitForPrintImages(frameWindow).then(() => {
+        if (!['estimate', 'comparison', 'packing'].includes(documentType)) {
+          frameWindow?.__fitDuplexPrint?.()
+        }
+        frameWindow?.print()
+      }).finally(() => {
+        URL.revokeObjectURL(blobUrl)
+        window.setTimeout(() => {
+          if (iframe.parentNode) document.body.removeChild(iframe)
+        }, 3000)
+      })
     }, 450)
   })
 }

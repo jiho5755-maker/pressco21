@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText, PackageCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink, updateInvoice } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
-import { getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount } from '@/lib/accountingMeta'
+import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
 const PAGE_SIZE = 25
@@ -65,6 +65,23 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   paid:    { label: '완납', cls: 'text-green-600' },
   partial: { label: '부분수금', cls: 'text-amber-600' },
   unpaid:  { label: '미수금', cls: 'text-red-600' },
+}
+
+function getFulfillmentBadge(invoice: Invoice): { label: string; cls: string } {
+  const status = getInvoiceFulfillmentStatus(invoice.memo as string | undefined)
+  if (status === 'shipment_confirmed') {
+    return { label: '출고확정', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+  }
+  if (status === 'preparing') {
+    return { label: '출고준비', cls: 'border-amber-200 bg-amber-50 text-amber-700' }
+  }
+  if (status === 'ordered') {
+    return { label: '주문접수', cls: 'border-blue-200 bg-blue-50 text-blue-700' }
+  }
+  if (status === 'voided') {
+    return { label: '취소', cls: 'border-slate-200 bg-slate-50 text-slate-500' }
+  }
+  return { label: '기존매출', cls: 'border-gray-200 bg-gray-50 text-gray-600' }
 }
 
 function formatAmount(value?: number | null) {
@@ -197,6 +214,9 @@ export function Invoices() {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
   const [isCourierExporting, setIsCourierExporting] = useState(false)
   const [showCourierConfirm, setShowCourierConfirm] = useState(false)
+  const [printDialogInvoice, setPrintDialogInvoice] = useState<Invoice | null>(null)
+  const [printDocumentType, setPrintDocumentType] = useState<PrintDocumentType>('invoice')
+  const [confirmingShipmentId, setConfirmingShipmentId] = useState<number | null>(null)
   const didInitDateSyncRef = useRef(false)
 
   const debouncedSearch = useDebounce(search, 400)
@@ -295,12 +315,18 @@ export function Invoices() {
     [data, dateFrom, dateTo],
   )
   const periodSalesAmount = useMemo(
-    () => filteredInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount ?? 0), 0),
+    () => filteredInvoices
+      .filter(isInvoiceRevenueRecognized)
+      .reduce((sum, invoice) => sum + Number(invoice.total_amount ?? 0), 0),
+    [filteredInvoices],
+  )
+  const recognizedInvoiceCount = useMemo(
+    () => filteredInvoices.filter(isInvoiceRevenueRecognized).length,
     [filteredInvoices],
   )
   const periodAverageAmount = useMemo(
-    () => (filteredInvoices.length > 0 ? Math.round(periodSalesAmount / filteredInvoices.length) : 0),
-    [filteredInvoices.length, periodSalesAmount],
+    () => (recognizedInvoiceCount > 0 ? Math.round(periodSalesAmount / recognizedInvoiceCount) : 0),
+    [recognizedInvoiceCount, periodSalesAmount],
   )
   const courierWarning = useMemo(() => {
     let missingAddress = 0
@@ -391,6 +417,11 @@ export function Invoices() {
     setInitialCustomerId(undefined)
     setInitialCustomerName(undefined)
     setDialogOpen(true)
+  }
+
+  function openPrintDialog(inv: Invoice, initialType: PrintDocumentType = 'invoice') {
+    setPrintDialogInvoice(inv)
+    setPrintDocumentType(initialType)
   }
 
   async function handleDelete(inv: Invoice) {
@@ -556,6 +587,57 @@ export function Invoices() {
       )
     } catch {
       toast.error('인쇄 데이터를 불러오지 못했습니다')
+    }
+  }
+
+  async function handleShipmentConfirm(inv: Invoice) {
+    const currentStatus = getInvoiceFulfillmentStatus(inv.memo as string | undefined)
+    if (currentStatus === 'shipment_confirmed') {
+      toast.info('이미 출고확정된 명세표입니다')
+      return
+    }
+    const ok = window.confirm(
+      `포장·출고확정 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n금액: ${formatAmount(inv.total_amount)}\n\n확정 후 이 건은 매출 자동화 대상이 됩니다.`,
+    )
+    if (!ok) return
+
+    setConfirmingShipmentId(inv.Id)
+    try {
+      const latestInvoice = await getInvoice(inv.Id)
+      const confirmedMemo = buildShipmentConfirmedInvoiceMemo(
+        latestInvoice.memo as string | undefined,
+        {
+          invoiceId: inv.Id,
+          invoiceNo: latestInvoice.invoice_no,
+          confirmedAt: new Date().toISOString(),
+          revenueDate: getTodayDateString(),
+          taxInvoiceStatus: 'not_requested',
+        },
+      )
+      await updateInvoice(inv.Id, { memo: confirmedMemo })
+      if (latestInvoice.customer_id) {
+        try {
+          await recalcCustomerStats(latestInvoice.customer_id as number)
+        } catch {
+          // 출고확정 자체는 완료됐으므로 통계 재계산 실패는 새로고침에서 복구한다.
+        }
+      }
+      toast.success('포장·출고확정 처리되었습니다')
+      void refetch()
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey[0]
+          return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+        },
+      })
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      toast.error(`출고확정 실패: ${msg.slice(0, 80)}`)
+    } finally {
+      setConfirmingShipmentId(null)
     }
   }
 
@@ -795,6 +877,9 @@ export function Invoices() {
           const invoiceName = inv.customer_name?.trim()
           const masterName = linkedCustomer?.name?.trim()
           const masterBookName = linkedCustomer?.book_name?.trim()
+          const fulfillment = getFulfillmentBadge(inv)
+          const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
+          const isConfirmingShipment = confirmingShipmentId === inv.Id
 
           return (
             <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
@@ -831,6 +916,9 @@ export function Invoices() {
                   ) : (
                     <div className="mt-1 text-[11px] text-muted-foreground">수금 상태 없음</div>
                   )}
+                  <div className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${fulfillment.cls}`}>
+                    {fulfillment.label}
+                  </div>
                 </div>
               </div>
 
@@ -863,23 +951,26 @@ export function Invoices() {
 
               <div className="mt-3 grid gap-2">
                 <div className="grid grid-cols-2 gap-2">
-                  {PRINT_DOCUMENT_OPTIONS.map((option) => {
-                    const isEstimate = option.value === 'estimate'
-                    const Icon = isEstimate ? FileText : Printer
-                    return (
-                      <Button
-                        key={option.value}
-                        variant="outline"
-                        size="sm"
-                        className={`h-8 border-[#d8e4d6] text-xs ${isEstimate ? 'text-[#3d6b4a] hover:bg-[#f5faf4]' : 'text-gray-700 hover:bg-gray-50'}`}
-                        title={`${option.label} 인쇄`}
-                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, option.value) }}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        <span className="ml-1">{option.label}</span>
-                      </Button>
-                    )
-                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-[#d8e4d6] text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
+                    onClick={(e) => { e.stopPropagation(); openPrintDialog(inv) }}
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span className="ml-1">문서 출력</span>
+                    <span className="sr-only">명세표 견적서 납품서 청구서 포장지시서 비교견적</span>
+                  </Button>
+                  <Button
+                    variant={isShipmentConfirmed ? 'outline' : 'default'}
+                    size="sm"
+                    className={`h-9 text-xs ${isShipmentConfirmed ? 'border-emerald-200 text-emerald-700' : 'bg-[#7d9675] text-white hover:bg-[#6a8462]'}`}
+                    disabled={isShipmentConfirmed || isConfirmingShipment}
+                    onClick={(e) => { e.stopPropagation(); void handleShipmentConfirm(inv) }}
+                  >
+                    <PackageCheck className="h-3.5 w-3.5" />
+                    <span className="ml-1">{isShipmentConfirmed ? '출고확정됨' : isConfirmingShipment ? '처리 중...' : '포장·출고확정'}</span>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -959,6 +1050,9 @@ export function Invoices() {
               const st = STATUS_LABEL[inv.payment_status ?? '']
               const isDeleting = deletingId === inv.Id
               const outstandingAmount = getOutstandingAmount(inv)
+              const fulfillment = getFulfillmentBadge(inv)
+              const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
+              const isConfirmingShipment = confirmingShipmentId === inv.Id
               return (
                 <tr
                   key={inv.Id}
@@ -1024,30 +1118,38 @@ export function Invoices() {
                     <div className="mt-2 text-xs text-muted-foreground">
                       입금 {formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}
                     </div>
+                    <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${fulfillment.cls}`}>
+                      {fulfillment.label}
+                    </div>
                   </td>
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3 align-top">
                     <div className="flex flex-wrap items-start justify-end gap-2">
                       <div className="rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
-                        <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-[#5a7353]">출력</div>
-                        <div className="grid grid-cols-2 gap-1">
-                          {PRINT_DOCUMENT_OPTIONS.map((option) => {
-                            const isEstimate = option.value === 'estimate'
-                            const Icon = isEstimate ? FileText : Printer
-                            return (
-                              <Button
-                                key={option.value}
-                                variant="outline"
-                                size="sm"
-                                className={`h-7 border-[#d8e4d6] px-2 text-xs ${isEstimate ? 'text-[#3d6b4a] hover:bg-[#f5faf4]' : 'text-gray-700 hover:bg-gray-50'}`}
-                                title={`${option.label} 인쇄`}
-                                onClick={(e) => { e.stopPropagation(); void handlePrint(inv, option.value) }}
-                              >
-                                <Icon className="h-3.5 w-3.5" />
-                                <span className="ml-1">{option.label}</span>
-                              </Button>
-                            )
-                          })}
+                        <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-[#5a7353]">문서</div>
+                        <div className="grid gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-[#d8e4d6] px-3 text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
+                            title="문서 출력"
+                            onClick={(e) => { e.stopPropagation(); openPrintDialog(inv) }}
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            <span className="ml-1">문서 출력</span>
+                            <span className="sr-only">명세표 견적서 납품서 청구서 포장지시서 비교견적</span>
+                          </Button>
+                          <Button
+                            variant={isShipmentConfirmed ? 'outline' : 'default'}
+                            size="sm"
+                            className={`h-8 px-3 text-xs ${isShipmentConfirmed ? 'border-emerald-200 text-emerald-700' : 'bg-[#7d9675] text-white hover:bg-[#6a8462]'}`}
+                            title="포장·출고확정"
+                            disabled={isShipmentConfirmed || isConfirmingShipment}
+                            onClick={(e) => { e.stopPropagation(); void handleShipmentConfirm(inv) }}
+                          >
+                            <PackageCheck className="h-3.5 w-3.5" />
+                            <span className="ml-1">{isShipmentConfirmed ? '출고확정됨' : isConfirmingShipment ? '처리 중...' : '포장·출고확정'}</span>
+                          </Button>
                         </div>
                       </div>
                       <div className="rounded-xl bg-gray-50 px-1 py-1">
@@ -1122,6 +1224,68 @@ export function Invoices() {
           </div>
         </div>
       )}
+
+      <Dialog open={!!printDialogInvoice} onOpenChange={(open) => {
+        if (!open) setPrintDialogInvoice(null)
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>문서 출력</DialogTitle>
+            <DialogDescription>
+              견적서, 거래명세서, 포장지시서, 협력업체 비교견적을 한 곳에서 선택합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border bg-[#f8faf7] p-3 text-sm">
+              <div className="font-semibold text-foreground">{printDialogInvoice?.customer_name ?? '-'}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {printDialogInvoice?.invoice_no ?? '-'} · {formatAmount(printDialogInvoice?.total_amount)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">출력 문서</label>
+              <Select value={printDocumentType} onValueChange={(value) => setPrintDocumentType(value as PrintDocumentType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="문서 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRINT_DOCUMENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {printDocumentType === 'packing' && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                포장지시서는 출고팀 확인용입니다. 품목, 수량, 단가, 금액이 모두 표시됩니다.
+              </div>
+            )}
+            {printDocumentType === 'comparison' && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                현재 명세표 기준으로 자사 견적서와 협력업체 비교견적서를 함께 출력합니다.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintDialogInvoice(null)}>취소</Button>
+            <Button
+              className="bg-[#7d9675] text-white hover:bg-[#6a8462]"
+              onClick={() => {
+                if (!printDialogInvoice) return
+                const target = printDialogInvoice
+                const documentType = printDocumentType
+                setPrintDialogInvoice(null)
+                void handlePrint(target, documentType)
+              }}
+            >
+              <FileText className="h-4 w-4" />
+              출력
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 명세표 다이얼로그 */}
       {dialogOpen && (

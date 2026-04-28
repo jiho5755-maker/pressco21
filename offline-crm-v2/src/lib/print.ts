@@ -57,7 +57,7 @@ export interface PrintItem {
   tax_amount?: number
 }
 
-export type PrintDocumentType = 'invoice' | 'estimate' | 'delivery' | 'bill'
+export type PrintDocumentType = 'invoice' | 'estimate' | 'delivery' | 'bill' | 'packing' | 'comparison'
 
 interface PrintDocumentDefinition {
   value: PrintDocumentType
@@ -74,9 +74,21 @@ interface PrintDocumentOptions {
   documentType?: PrintDocumentType
 }
 
+interface ComparisonQuoteSettings {
+  partnerCompany: string
+  partnerBizno?: string
+  partnerCeo?: string
+  partnerBizType?: string
+  partnerBizItem?: string
+  partnerAddress?: string
+  partnerPhone?: string
+  markupRate: number
+}
+
 const COMPANY_INFO_KEY = 'pressco21-crm-v2'
 // Settings.tsx가 저장하는 키 (우선 참조)
 const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
+const COMPARISON_QUOTE_SETTINGS_KEY = 'pressco21-crm-comparison-quote-settings'
 
 // 정적 이미지 fallback data URL (앱 시작 시 preloadPrintImages()로 채워짐)
 let _logoFallback = ''
@@ -229,6 +241,26 @@ const PRINT_DOCUMENT_DEFINITIONS: Record<PrintDocumentType, PrintDocumentDefinit
     metaValue: () => '청구용',
     signatureText: () => '상기 금액을 정히 청구합니다.',
   },
+  packing: {
+    value: 'packing',
+    label: '포장지시서',
+    title: '포 장 지 시 서',
+    compactTitle: '포장지시서',
+    dateLabel: '출고일자',
+    metaLabel: '문서',
+    metaValue: () => '내부 작업용',
+    signatureText: () => '포장 및 출고 내용을 확인합니다.',
+  },
+  comparison: {
+    value: 'comparison',
+    label: '비교견적',
+    title: '비 교 견 적',
+    compactTitle: '비교견적',
+    dateLabel: '견적일자',
+    metaLabel: '구성',
+    metaValue: () => '자사견적+협력업체견적',
+    signatureText: () => '상기와 같이 비교견적을 제출합니다.',
+  },
 }
 
 export const PRINT_DOCUMENT_OPTIONS = Object.values(PRINT_DOCUMENT_DEFINITIONS).map((definition) => ({
@@ -248,6 +280,34 @@ function formatBankInfo(company: CompanyInfo): string {
   const bank = [company.bank_name, company.bank_account].filter(Boolean).join(' ')
   const holder = company.bank_holder ? `예금주 ${company.bank_holder}` : ''
   return [bank, holder].filter(Boolean).join(' / ')
+}
+
+function loadComparisonQuoteSettings(): ComparisonQuoteSettings {
+  const defaults: ComparisonQuoteSettings = {
+    partnerCompany: '꽃다미',
+    partnerCeo: '',
+    partnerBizno: '',
+    partnerBizType: '',
+    partnerBizItem: '',
+    partnerAddress: '',
+    partnerPhone: '',
+    markupRate: 15,
+  }
+
+  try {
+    const raw = localStorage.getItem(COMPARISON_QUOTE_SETTINGS_KEY)
+    if (!raw) return defaults
+    const parsed = JSON.parse(raw) as Partial<ComparisonQuoteSettings>
+    const markupRate = Number(parsed.markupRate)
+    return {
+      ...defaults,
+      ...parsed,
+      partnerCompany: parsed.partnerCompany?.trim() || defaults.partnerCompany,
+      markupRate: Number.isFinite(markupRate) ? Math.max(0, Math.min(100, markupRate)) : defaults.markupRate,
+    }
+  } catch {
+    return defaults
+  }
 }
 
 interface PageOptions {
@@ -441,6 +501,12 @@ function buildInvoicePageHtml(
 export function getPreviewPageCount(itemCount: number, documentType: PrintDocumentType = 'invoice'): number {
   if (documentType === 'estimate') {
     return getEstimatePageItemCounts(itemCount).length
+  }
+  if (documentType === 'comparison') {
+    return getEstimatePageItemCounts(itemCount).length + 1
+  }
+  if (documentType === 'packing') {
+    return Math.max(1, Math.ceil(Math.max(1, itemCount) / 12))
   }
   if (itemCount <= ITEMS_FIRST_PAGE) return 1
   return 1 + Math.ceil((itemCount - ITEMS_FIRST_PAGE) / ITEMS_CONT_PAGE)
@@ -646,6 +712,179 @@ function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
   }).join('')
 }
 
+function formatLineTotal(item: PrintItem): number {
+  return Math.max(0, (item.supply_amount ?? 0) + (item.tax_amount ?? 0))
+}
+
+function buildPackingHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  const invoiceDate = formatDisplayDate(inv.invoice_date)
+  const totalAmt = inv.total_amount ?? 0
+  const blankCount = Math.max(0, Math.min(8, 12 - items.length))
+  const rowsHtml = items.map((item, index) => (
+    '<tr>' +
+    '<td class="pack-check">□</td>' +
+    `<td class="pack-no">${index + 1}</td>` +
+    `<td class="pack-name">${esc(item.product_name ?? '')}</td>` +
+    `<td class="pack-unit">${esc(item.unit ?? '')}</td>` +
+    `<td class="pack-qty">${(item.quantity ?? 0).toLocaleString()}</td>` +
+    `<td class="pack-money">${(item.unit_price ?? 0).toLocaleString()}</td>` +
+    `<td class="pack-money">${formatLineTotal(item).toLocaleString()}</td>` +
+    '<td class="pack-note"></td>' +
+    '</tr>'
+  )).join('') + Array(blankCount).fill(
+    '<tr class="pack-blank"><td>□</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>',
+  ).join('')
+
+  return (
+    '<main class="pack-page">' +
+    '<section class="pack-shell">' +
+    '<div class="pack-top">' +
+    '<div>' +
+    '<div class="pack-kicker">내부 작업용</div>' +
+    '<h1>포 장 지 시 서</h1>' +
+    '</div>' +
+    '<div class="pack-stamp-box">포장완료<br />확인</div>' +
+    '</div>' +
+    '<table class="pack-meta">' +
+    '<tbody>' +
+    `<tr><th>주문번호</th><td>${esc(inv.invoice_no ?? '')}</td><th>출고일</th><td>${esc(invoiceDate)}</td></tr>` +
+    `<tr><th>거래처</th><td>${esc(inv.customer_name ?? '')}</td><th>연락처</th><td>${esc(formatPhoneNumber(inv.customer_phone))}</td></tr>` +
+    `<tr><th>수령/배송지</th><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    '</tbody>' +
+    '</table>' +
+    (inv.memo ? `<div class="pack-request"><strong>요청사항</strong><span>${esc(inv.memo)}</span></div>` : '') +
+    '<table class="pack-items">' +
+    '<thead><tr><th>확인</th><th>No</th><th>품목명</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th><th>포장 메모</th></tr></thead>' +
+    `<tbody>${rowsHtml}</tbody>` +
+    '</table>' +
+    '<div class="pack-total-grid">' +
+    `<div><span>공급가액</span><strong>${(inv.supply_amount ?? 0).toLocaleString()}원</strong></div>` +
+    `<div><span>세액</span><strong>${(inv.tax_amount ?? 0).toLocaleString()}원</strong></div>` +
+    `<div class="pack-grand"><span>총 금액</span><strong>${totalAmt.toLocaleString()}원</strong></div>` +
+    '</div>' +
+    '<div class="pack-check-grid">' +
+    '<div><span>포장자</span></div>' +
+    '<div><span>검수자</span></div>' +
+    '<div><span>출고시간</span></div>' +
+    '</div>' +
+    '<div class="pack-help">품목명·수량·금액을 확인한 뒤 포장하고, 출고 후 CRM에서 포장·출고확정을 눌러주세요.</div>' +
+    '</section>' +
+    '</main>'
+  )
+}
+
+function roundToHundred(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.ceil(value / 100) * 100
+}
+
+function buildPartnerItems(items: PrintItem[], markupRate: number): PrintItem[] {
+  const ratio = 1 + Math.max(0, markupRate) / 100
+  return items.map((item) => {
+    const quantity = Math.max(0, item.quantity ?? 0)
+    const unitPrice = roundToHundred((item.unit_price ?? 0) * ratio)
+    const lineTotal = unitPrice * quantity
+    const taxable = (item.tax_amount ?? 0) > 0
+    const supplyAmount = taxable ? Math.floor(lineTotal / 1.1) : lineTotal
+    const taxAmount = taxable ? lineTotal - supplyAmount : 0
+    return {
+      ...item,
+      unit_price: unitPrice,
+      supply_amount: supplyAmount,
+      tax_amount: taxAmount,
+    }
+  })
+}
+
+function sumPrintItems(items: PrintItem[]): Pick<PrintInvoice, 'supply_amount' | 'tax_amount' | 'total_amount'> {
+  const supplyAmount = items.reduce((sum, item) => sum + (item.supply_amount ?? 0), 0)
+  const taxAmount = items.reduce((sum, item) => sum + (item.tax_amount ?? 0), 0)
+  return {
+    supply_amount: supplyAmount,
+    tax_amount: taxAmount,
+    total_amount: supplyAmount + taxAmount,
+  }
+}
+
+function buildPartnerEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  const settings = loadComparisonQuoteSettings()
+  const partnerItems = buildPartnerItems(items, settings.markupRate)
+  const totals = sumPrintItems(partnerItems)
+  const invoiceDate = formatDisplayDate(inv.invoice_date)
+  const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
+  const customerBizno = formatBusinessNumber(inv.customer_bizno)
+  const partnerBizno = formatBusinessNumber(settings.partnerBizno)
+  const partnerPhone = formatPhoneNumber(settings.partnerPhone)
+  const customerPhone = formatPhoneNumber(inv.customer_phone)
+  const rowsHtml = partnerItems.map((item, index) => (
+    '<tr>' +
+    `<td class="t-center">${index + 1}</td>` +
+    `<td>${esc(item.product_name ?? '')}</td>` +
+    `<td class="t-center">${esc(item.unit ?? '')}</td>` +
+    `<td class="t-right">${(item.quantity ?? 0).toLocaleString()}</td>` +
+    `<td class="t-right">${(item.unit_price ?? 0).toLocaleString()}</td>` +
+    `<td class="t-right">${(item.supply_amount ?? 0).toLocaleString()}</td>` +
+    `<td class="t-right">${(item.tax_amount ?? 0).toLocaleString()}</td>` +
+    `<td class="t-right">${formatLineTotal(item).toLocaleString()}</td>` +
+    '</tr>'
+  )).join('')
+
+  return (
+    '<section class="est-page">' +
+    '<div class="est-shell">' +
+    '<div class="est-top">' +
+    `<div class="est-logo"><div class="est-logo-text">${esc(settings.partnerCompany)}</div></div>` +
+    '<div class="est-title-wrap"><div class="est-title">견 적 서</div><div class="est-sub">협력업체 비교견적</div></div>' +
+    '<div class="est-meta">' +
+    `<div><span>견적일자</span><strong>${esc(invoiceDate)}</strong></div>` +
+    `<div><span>유효기간</span><strong>${esc(validUntil)}</strong></div>` +
+    '</div>' +
+    '</div>' +
+    '<table class="est-party-table">' +
+    '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
+    '<tbody>' +
+    `<tr><td class="est-label">상호</td><td>${esc(settings.partnerCompany)}</td><td class="est-label">대표자</td><td>${esc(settings.partnerCeo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
+    `<tr><td class="est-label">사업자번호</td><td>${esc(partnerBizno)}</td><td class="est-label">전화</td><td>${esc(partnerPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
+    `<tr><td class="est-label">주소</td><td colspan="3">${esc(settings.partnerAddress ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(settings.partnerBizType, settings.partnerBizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
+    '</tbody>' +
+    '</table>' +
+    '<table class="est-items-table">' +
+    '<thead><tr><th style="width:6%">No</th><th style="width:34%">품명</th><th style="width:8%">단위</th><th style="width:8%">수량</th><th style="width:12%">단가</th><th style="width:12%">공급가액</th><th style="width:8%">세액</th><th style="width:12%">합계</th></tr></thead>' +
+    `<tbody>${rowsHtml}</tbody>` +
+    '</table>' +
+    '<div class="est-footer">' +
+    '<div class="est-bottom">' +
+    '<div class="est-note-block">' +
+    '<div class="est-note-title">비고</div>' +
+    '<div class="est-note-text">동일 품목 기준 협력업체 비교견적입니다.</div>' +
+    '</div>' +
+    '<div class="est-summary-block">' +
+    '<table class="est-summary-table">' +
+    `<tr><th>공급가액</th><td>${(totals.supply_amount ?? 0).toLocaleString()}원</td></tr>` +
+    `<tr><th>세액</th><td>${(totals.tax_amount ?? 0).toLocaleString()}원</td></tr>` +
+    `<tr class="est-grand-row"><th>총 견적금액</th><td>${(totals.total_amount ?? 0).toLocaleString()}원</td></tr>` +
+    '</table>' +
+    '</div>' +
+    '</div>' +
+    '<div class="est-signature">' +
+    '<div class="est-signature-text">상기와 같이 견적드립니다.</div>' +
+    '<div class="est-signature-right">' +
+    '<span class="est-signature-label">대표자</span>' +
+    `<span class="est-signature-name">${esc(settings.partnerCeo ?? '')}</span>` +
+    '<span class="est-stamp-wrap">(인)</span>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '</section>'
+  )
+}
+
+function buildComparisonQuoteHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  return buildEstimateHtml(inv, items) + buildPartnerEstimateHtml(inv, items)
+}
+
 function buildDuplexFitScript(): string {
   return [
     '(function() {',
@@ -802,6 +1041,47 @@ const ESTIMATE_CSS = [
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
+const PACKING_CSS = [
+  '@page { size: A4 portrait; margin: 8mm; }',
+  "body { margin:0; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; background:#fff; }",
+  '* { box-sizing:border-box; }',
+  '.pack-page { width:194mm; min-height:281mm; page-break-after:always; }',
+  '.pack-page:last-child { page-break-after:auto; }',
+  '.pack-shell { border:2px solid #111; padding:7mm; min-height:281mm; }',
+  '.pack-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid #111; padding-bottom:10px; }',
+  '.pack-kicker { display:inline-block; border:1px solid #111; padding:3px 8px; font-size:11pt; font-weight:800; margin-bottom:8px; }',
+  '.pack-top h1 { margin:0; font-size:25pt; letter-spacing:7px; font-weight:900; }',
+  '.pack-stamp-box { width:34mm; height:22mm; border:2px solid #111; display:flex; align-items:center; justify-content:center; text-align:center; font-size:13pt; font-weight:900; line-height:1.35; }',
+  '.pack-meta, .pack-items { width:100%; border-collapse:collapse; }',
+  '.pack-meta { margin-top:8px; border:2px solid #111; }',
+  '.pack-meta th, .pack-meta td { border:1.5px solid #111; padding:7px 8px; font-size:12.5pt; }',
+  '.pack-meta th { width:24mm; background:#f1f5f9; text-align:center; font-weight:900; }',
+  '.pack-request { margin-top:8px; border:2px solid #111; display:grid; grid-template-columns:28mm 1fr; min-height:18mm; }',
+  '.pack-request strong { display:flex; align-items:center; justify-content:center; background:#fff7ed; border-right:1.5px solid #111; font-size:13pt; }',
+  '.pack-request span { padding:9px; font-size:13pt; font-weight:700; white-space:pre-wrap; }',
+  '.pack-items { margin-top:8px; border:2px solid #111; }',
+  '.pack-items th { border:1.5px solid #111; background:#e5e7eb; padding:7px 4px; font-size:12pt; font-weight:900; text-align:center; }',
+  '.pack-items td { border:1.5px solid #111; padding:8px 5px; font-size:12.5pt; min-height:13mm; }',
+  '.pack-check { width:13mm; text-align:center; font-size:18pt !important; font-weight:900; }',
+  '.pack-no { width:10mm; text-align:center; }',
+  '.pack-name { font-size:14.2pt !important; font-weight:900; line-height:1.25; }',
+  '.pack-unit { width:13mm; text-align:center; }',
+  '.pack-qty { width:16mm; text-align:right; font-size:16pt !important; font-weight:900; }',
+  '.pack-money { width:24mm; text-align:right; font-weight:800; }',
+  '.pack-note { width:28mm; }',
+  '.pack-blank td { height:13mm; }',
+  '.pack-total-grid { margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1.2fr; border:2px solid #111; }',
+  '.pack-total-grid div { display:flex; align-items:center; justify-content:space-between; gap:8px; border-right:1.5px solid #111; padding:8px 10px; font-size:13pt; }',
+  '.pack-total-grid div:last-child { border-right:none; }',
+  '.pack-total-grid span { font-weight:900; }',
+  '.pack-total-grid strong { font-size:14pt; }',
+  '.pack-grand { background:#fef3c7; }',
+  '.pack-check-grid { margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; border:2px solid #111; }',
+  '.pack-check-grid div { height:20mm; border-right:1.5px solid #111; padding:7px; font-size:13pt; font-weight:900; }',
+  '.pack-check-grid div:last-child { border-right:none; }',
+  '.pack-help { margin-top:8px; border:1.5px solid #111; padding:7px; font-size:10.5pt; font-weight:700; background:#f8fafc; }',
+].join('\n')
+
 // 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
 export function buildDuplexBlobUrl(
   inv: PrintInvoice,
@@ -809,12 +1089,17 @@ export function buildDuplexBlobUrl(
   options: PrintDocumentOptions = {},
 ): string {
   const documentType = options.documentType ?? 'invoice'
-  const isEstimate = documentType === 'estimate'
-  const duplexHtml = isEstimate
+  const isEstimateLike = documentType === 'estimate' || documentType === 'comparison'
+  const isPacking = documentType === 'packing'
+  const duplexHtml = documentType === 'estimate'
     ? buildEstimateHtml(inv, items)
-    : buildDuplexInvoiceHtml(inv, items, documentType)
-  const fitScript = isEstimate ? '' : buildDuplexFitScript()
-  const css = isEstimate ? ESTIMATE_CSS : DUPLEX_CSS
+    : documentType === 'comparison'
+      ? buildComparisonQuoteHtml(inv, items)
+      : documentType === 'packing'
+        ? buildPackingHtml(inv, items)
+        : buildDuplexInvoiceHtml(inv, items, documentType)
+  const fitScript = isEstimateLike || isPacking ? '' : buildDuplexFitScript()
+  const css = isPacking ? PACKING_CSS : isEstimateLike ? ESTIMATE_CSS : DUPLEX_CSS
   const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     '<style>' + css + '</style>' +

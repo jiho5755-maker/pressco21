@@ -1,5 +1,5 @@
 import type { Invoice, TxHistory } from '@/lib/api'
-import { getInvoiceDepositUsedAmount, getInvoicePaymentHistory } from '@/lib/accountingMeta'
+import { getInvoiceDepositUsedAmount, getInvoicePaymentHistory, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 
 export type PresetKey = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear'
 
@@ -137,6 +137,7 @@ export function buildInvoiceDateSummary(invoices: Invoice[]) {
   const map: Record<string, InvoiceDateSummary> = {}
 
   invoices.forEach((invoice) => {
+    if (!isInvoiceRevenueRecognized(invoice)) return
     const date = invoice.invoice_date?.slice(0, 10)
     if (!date) return
     if (!map[date]) {
@@ -214,7 +215,7 @@ export function buildPeriodReport({
 }): PeriodReport {
   const periodInvoiceList = invoices.filter((invoice) => {
     const date = (invoice.invoice_date ?? '').slice(0, 10)
-    return date >= dateRange.startDate && date <= dateRange.endDate
+    return date >= dateRange.startDate && date <= dateRange.endDate && isInvoiceRevenueRecognized(invoice)
   })
 
   const periodTotalAmt = periodInvoiceList.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0)

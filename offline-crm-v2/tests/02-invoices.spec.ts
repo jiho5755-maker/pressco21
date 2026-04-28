@@ -297,7 +297,7 @@ test('T2-10: 저장된 명세표 클릭 → 수정 Dialog 열림', async ({ page
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 5_000 })
 })
 
-test('T2-11: 목록 우측 실행 버튼에 명세표/견적서/납품서/청구서 표시', async ({ page }) => {
+test('T2-11: 목록 우측 문서 출력 메뉴에 주요 문서 표시', async ({ page }) => {
   const dateInputs = page.locator('main input[type="date"]')
   await dateInputs.nth(0).fill('2026-03-13')
   await dateInputs.nth(1).fill('2026-03-13')
@@ -308,10 +308,18 @@ test('T2-11: 목록 우측 실행 버튼에 명세표/견적서/납품서/청구
     hasNot: page.locator('td[colspan]'),
   }).first()
 
-  await expect(firstRow.getByRole('button', { name: '명세표' })).toBeVisible()
-  await expect(firstRow.getByRole('button', { name: '견적서' })).toBeVisible()
-  await expect(firstRow.getByRole('button', { name: '납품서' })).toBeVisible()
-  await expect(firstRow.getByRole('button', { name: '청구서' })).toBeVisible()
+  await firstRow.getByRole('button', { name: /문서 출력/ }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('문서 출력')).toBeVisible()
+  await dialog.getByRole('combobox').click()
+  await expect(page.getByRole('option', { name: '명세표' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '견적서' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '납품서' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '청구서' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '포장지시서' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '비교견적' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await dialog.getByRole('button', { name: '취소' }).click()
 })
 
 test('T2-12: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지', async ({ page }) => {

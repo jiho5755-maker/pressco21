@@ -11,7 +11,7 @@ import type { TxHistory, Invoice, Customer } from '@/lib/api'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { parseLegacyPayableMemo, parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
-import { getDisplayMemo, getInvoicePaymentHistory, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
+import { getDisplayMemo, getInvoicePaymentHistory, isInvoiceRevenueRecognized, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 
 const PAGE_SIZE = 50
 
@@ -115,8 +115,9 @@ function buildInvoicePaymentRows(inv: Invoice): UnifiedRow[] {
 }
 
 function invoiceToRows(inv: Invoice): UnifiedRow[] {
-  return [
-    {
+  const rows: UnifiedRow[] = []
+  if (isInvoiceRevenueRecognized(inv)) {
+    rows.push({
       id: `crm-${inv.Id}`,
       recordId: inv.Id,
       customer_id: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
@@ -128,9 +129,10 @@ function invoiceToRows(inv: Invoice): UnifiedRow[] {
       slip_no: inv.invoice_no ?? '',
       memo: getDisplayMemo(inv.memo as string | undefined),
       source: 'crm',
-    },
-    ...buildInvoicePaymentRows(inv),
-  ]
+    })
+  }
+  rows.push(...buildInvoicePaymentRows(inv))
+  return rows
 }
 
 function txToRow(

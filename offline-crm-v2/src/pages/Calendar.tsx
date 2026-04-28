@@ -13,7 +13,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllCustomers, getAllInvoices, getTxHistory, type Customer, type Invoice } from '@/lib/api'
-import { getDisplayMemo, parseInvoiceAccountingMeta } from '@/lib/accountingMeta'
+import { getDisplayMemo, isInvoiceRevenueRecognized, parseInvoiceAccountingMeta } from '@/lib/accountingMeta'
 import {
   COLLECTION_RATE_THRESHOLDS,
   PRESET_LABELS,
@@ -177,9 +177,10 @@ export function Calendar() {
   }, [paymentReminders])
   const isMonthLoading = isInvoiceLoading
 
-  const monthTotal = invoices.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0)
-  const monthCount = invoices.length
-  const monthUnpaidCount = invoices.filter((invoice) => (invoice.payment_status ?? '') !== 'paid').length
+  const recognizedInvoices = useMemo(() => invoices.filter(isInvoiceRevenueRecognized), [invoices])
+  const monthTotal = recognizedInvoices.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0)
+  const monthCount = recognizedInvoices.length
+  const monthUnpaidCount = recognizedInvoices.filter((invoice) => (invoice.payment_status ?? '') !== 'paid').length
   const monthReminderCount = paymentReminders.filter((entry) => entry.dueDate >= monthStartDate && entry.dueDate <= monthEndDate).length
   const monthTradingDays = Object.keys(byDate).length
 
@@ -243,7 +244,7 @@ export function Calendar() {
     () => allInvoices
       .filter((invoice) => {
         const date = invoice.invoice_date?.slice(0, 10) ?? ''
-        return date >= prevYearMonthRange.startDate && date <= prevYearMonthRange.endDate
+        return date >= prevYearMonthRange.startDate && date <= prevYearMonthRange.endDate && isInvoiceRevenueRecognized(invoice)
       })
       .reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0),
     [allInvoices, prevYearMonthRange.endDate, prevYearMonthRange.startDate],

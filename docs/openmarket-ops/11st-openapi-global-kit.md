@@ -122,11 +122,13 @@ MCP는 “AI가 자연어로 11번가 API를 호출”하는 단계에서 감싸
 - 카테고리 수: 26개
 - API 탭 수: 150개
 - Method 분포:
-  - GET: 103개
+  - GET: 108개
   - POST: 28개
   - PUT: 12개
   - DELETE: 2개
-  - Method 미표기/본문 없음: 5개, 주로 물류 API 일부
+- 활성 API 기준 URL/Method 미확인: 0개
+- 공식 문서상 본문 없음/API TEST URL 빈 값: 5개 (`1316`, `1318`, `1319`, `6705`, `6706`)
+- 6732는 재검증으로 URL 확정: `https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt}`
 - 카탈로그:
   - `docs/openmarket-ops/11st-openapi-url-catalog.json`
   - `docs/openmarket-ops/11st-openapi-url-catalog.md`
@@ -195,10 +197,18 @@ python3 "$PRESSCO21_ROOT/_tools/openmarket/11st/11st_api.py" catalog-show 1855 -
 2026-04-28 로그인된 11번가 공식 개발가이드 화면을 브라우저로 순회해 생성했다.
 
 - 총 API: 150개
-- Method 미표기: 5개
-- URL 미확인: 6개
-- URL 미확인 apiSeq: `1316`, `1318`, `1319`, `6705`, `6706`, `6732`
-- 카탈로그는 `schema_version=1.1`부터 `coverage_summary`, `known_gaps`, `risk_level`, `mutation_reason`, `verify_strategy`를 포함한다.
+- 활성 API 기준 Method 미표기: 0개
+- 활성 API 기준 URL 미확인: 0개
+- 공식 문서상 `Content does not exist` + API TEST URL 빈 값: `1316`, `1318`, `1319`, `6705`, `6706`
+- 대체 API 연결:
+  - `1316` → `1746` 전세계배송 주문리스트
+  - `1318` → `1748` 전세계배송 발송처리리스트
+  - `1319` → `1749` 전세계배송 수취인주소조회
+  - `6705`, `6706`은 공식 문서/API TEST 모두 URL이 없어 자동화 대상에서 제외
+- `6732` 실재고체크 옵션품절 리스트 조회는 공식 가이드/API TEST 재확인으로 URL을 확정했다.
+  - read-only CLI 명령 `realtime-soldout-options`를 추가했다.
+  - 현재 로컬 실사용 호출은 11번가에서 `인증된 IP가 아닙니다`로 차단되어, 운영 사용 전 실행 IP 등록이 필요하다.
+- 카탈로그는 `schema_version=1.1`부터 `coverage_summary`, `known_gaps`, `risk_level`, `mutation_reason`, `verify_strategy`, `availability`, `usable`, `deprecated`, `verification_status`를 포함한다.
 
 주의할 점:
 

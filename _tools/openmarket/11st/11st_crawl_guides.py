@@ -163,15 +163,36 @@ READ_ONLY_WORDS = r"조회|목록|리스트|검색|내역|대기"
 HIGH_RISK_WORDS = r"가격|즉시할인|재고|판매중지|발송|취소|반품|교환|클레임|승인|거부|송장|주문"
 CRITICAL_RISK_WORDS = r"가격|즉시할인|판매중지|취소승인|반품승인|교환승인|발송처리|판매불가"
 
+VERIFIED_ENDPOINT_OVERRIDES = {
+    "6732": {
+        "method": "GET",
+        "url": "https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt}",
+        "urls": ["https://api.11st.co.kr/rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt}"],
+        "payload_type": "",
+        "return_type": "XML",
+        "verification_status": "verified_from_official_guide_and_tester",
+        "verification_note": "2026-04-28 공식 개발가이드/API TEST DOM 재확인. 상대 URL /rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt} 확인.",
+    }
+}
+
+NO_CONTENT_OVERRIDES = {
+    "1316": {"replacement_api_seq": "1746", "replacement_reason": "동일 라벨의 활성 전세계배송 주문리스트 API"},
+    "1318": {"replacement_api_seq": "1748", "replacement_reason": "동일 라벨의 활성 전세계배송 발송처리리스트 API"},
+    "1319": {"replacement_api_seq": "1749", "replacement_reason": "동일 라벨의 활성 전세계배송 수취인주소조회 API"},
+    "6705": {"replacement_api_seq": "", "replacement_reason": "공식 가이드/API TEST 모두 URL 미제공"},
+    "6706": {"replacement_api_seq": "", "replacement_reason": "공식 가이드/API TEST 모두 URL 미제공"},
+}
+
 
 def infer_mutation_detail(method: str, label: str) -> tuple[bool, str, str]:
     method = (method or "").upper()
     label = label or ""
     has_write_word = bool(re.search(WRITE_KEYWORDS, label))
     read_only_label = bool(re.search(READ_ONLY_WORDS, label))
+    hard_write_label = bool(re.search(r"승인|거부|등록|수정|변경|입력|해제|삭제|업데이트|판매불가|처리\(|처리$", label))
     if method in {"PUT", "DELETE"}:
         return True, "high", f"{method} method"
-    if read_only_label and not has_write_word:
+    if read_only_label and not hard_write_label:
         return False, "high" if method else "low", "read-only label heuristic"
     if has_write_word:
         return True, "high" if method else "medium", "label contains write/status-change keyword"
@@ -186,13 +207,13 @@ def infer_mutation(method: str, label: str) -> bool:
 
 def infer_risk_level(label: str, mutation: bool) -> str:
     label = label or ""
+    if not mutation:
+        return "medium" if re.search(r"주문|배송|수취인|주소|정산|클레임", label) else "low"
     if re.search(CRITICAL_RISK_WORDS, label):
         return "critical"
-    if mutation and re.search(HIGH_RISK_WORDS, label):
+    if re.search(HIGH_RISK_WORDS, label):
         return "high"
-    if mutation:
-        return "medium"
-    return "low"
+    return "medium"
 
 
 def infer_verify_strategy(label: str) -> str:
@@ -266,13 +287,45 @@ def unique_values(values: list[str]) -> list[str]:
     return out
 
 
+def apply_entry_overrides(entry: dict) -> None:
+    api_seq = str(entry.get("api_seq") or "")
+    if api_seq in VERIFIED_ENDPOINT_OVERRIDES:
+        override = VERIFIED_ENDPOINT_OVERRIDES[api_seq]
+        for key in ["method", "url", "urls", "payload_type", "return_type"]:
+            entry[key] = override[key]
+        entry["verification_status"] = override["verification_status"]
+        entry["verification_note"] = override["verification_note"]
+        entry.setdefault("notes", []).append(override["verification_note"])
+    if api_seq in NO_CONTENT_OVERRIDES:
+        override = NO_CONTENT_OVERRIDES[api_seq]
+        entry["method"] = entry.get("method") or "GET"
+        entry["url"] = ""
+        entry["urls"] = []
+        entry["availability"] = "official_no_content"
+        entry["deprecated"] = True
+        entry["usable"] = False
+        entry["mutation"] = False
+        entry["mutation_confidence"] = "high"
+        entry["mutation_reason"] = "official guide content does not exist and API TEST URL is blank"
+        entry["risk_level"] = "low"
+        entry["dry_run_required"] = False
+        entry["verify_strategy"] = "사용 금지. 공식 가이드/API TEST 모두 URL 미제공."
+        entry["replacement_api_seq"] = override["replacement_api_seq"]
+        entry["replacement_reason"] = override["replacement_reason"]
+        entry["verification_status"] = "verified_official_no_content"
+        note = "2026-04-28 공식 개발가이드 재확인: Content does not exist, API TEST URL 빈 값. 자동화 대상에서 제외."
+        entry["verification_note"] = note
+        entry.setdefault("notes", []).append(note)
+
+
 def summarize_catalog(entries: list[dict]) -> tuple[dict, dict]:
     method_counts: dict[str, int] = {}
     for entry in entries:
         method = entry.get("method") or "미표기"
         method_counts[method] = method_counts.get(method, 0) + 1
-    missing_url = unique_values([entry["api_seq"] for entry in entries if not entry.get("url")])
-    missing_method = unique_values([entry["api_seq"] for entry in entries if not entry.get("method")])
+    missing_url = unique_values([entry["api_seq"] for entry in entries if entry.get("usable", True) and not entry.get("url")])
+    missing_method = unique_values([entry["api_seq"] for entry in entries if entry.get("usable", True) and not entry.get("method")])
+    official_no_content = unique_values([entry["api_seq"] for entry in entries if entry.get("availability") == "official_no_content"])
     manual_review = unique_values([
         entry["api_seq"]
         for entry in entries
@@ -287,10 +340,12 @@ def summarize_catalog(entries: list[dict]) -> tuple[dict, dict]:
         "payload_type_blank_count": payload_blank,
         "missing_url_count": len(missing_url),
         "missing_method_count": len(missing_method),
+        "official_no_content_count": len(official_no_content),
     }
     gaps = {
         "missing_url_api_seq": missing_url,
         "missing_method_api_seq": missing_method,
+        "official_no_content_api_seq": official_no_content,
         "manual_review_required": manual_review,
     }
     return coverage, gaps
@@ -314,7 +369,7 @@ def build_outputs(data: dict, output_dir: Path, date_label: str) -> None:
         risk_level = infer_risk_level(label, mutation)
         api_seq = str(compact["apiSeq"] or "")
         category_no = str(compact["categoryNo"] or "")
-        entries.append({
+        catalog_entry = {
             "label": label,
             "operation_id": operation_id(compact.get("categoryLabel", ""), label, api_seq),
             "canonical_key": f"{category_no}:{api_seq}:{compact.get('apiSpecType') or '1'}",
@@ -329,6 +384,9 @@ def build_outputs(data: dict, output_dir: Path, date_label: str) -> None:
             "return_type": compact["returnType"],
             "guide_url": compact["guideUrl"],
             "tester_url": compact["testerUrl"],
+            "availability": "active",
+            "deprecated": False,
+            "usable": True,
             "mutation": mutation,
             "mutation_confidence": mutation_confidence,
             "mutation_reason": mutation_reason,
@@ -344,7 +402,9 @@ def build_outputs(data: dict, output_dir: Path, date_label: str) -> None:
                 if re.match(r"^[A-Za-z][A-Za-z0-9_:.-]{1,}$", cell or "")
             })[:120],
             "notes": [],
-        })
+        }
+        apply_entry_overrides(catalog_entry)
+        entries.append(catalog_entry)
 
     coverage, known_gaps = summarize_catalog(entries)
     crawl = {
@@ -393,8 +453,9 @@ def build_outputs(data: dict, output_dir: Path, date_label: str) -> None:
         "## 카탈로그 품질 요약",
         "",
         f"- Method 분포: {coverage['method_counts']}",
-        f"- URL 미확인: {coverage['missing_url_count']}개 ({', '.join(known_gaps['missing_url_api_seq']) or '없음'})",
-        f"- Method 미표기: {coverage['missing_method_count']}개 ({', '.join(known_gaps['missing_method_api_seq']) or '없음'})",
+        f"- 활성 API URL 미확인: {coverage['missing_url_count']}개 ({', '.join(known_gaps['missing_url_api_seq']) or '없음'})",
+        f"- 활성 API Method 미표기: {coverage['missing_method_count']}개 ({', '.join(known_gaps['missing_method_api_seq']) or '없음'})",
+        f"- 공식 문서상 Content does not exist/API TEST URL 빈 값: {coverage['official_no_content_count']}개 ({', '.join(known_gaps['official_no_content_api_seq']) or '없음'})",
         f"- payload_type 빈 값: {coverage['payload_type_blank_count']}개",
         f"- 쓰기성/상태변경 추정 API: {coverage['mutation_count']}개",
         f"- GET이지만 쓰기성으로 취급해 수동 검수할 API: {len(known_gaps['manual_review_required'])}개",
@@ -422,11 +483,11 @@ def build_outputs(data: dict, output_dir: Path, date_label: str) -> None:
         lines.extend([
             f"## {category_map[category_no]} (`categoryNo={category_no}`)",
             "",
-            "| API | Method | URL | Write | Risk | apiSeq |",
-            "|---|---:|---|---:|---:|---:|",
+            "| API | Method | URL | Write | Risk | Availability | apiSeq |",
+            "|---|---:|---|---:|---:|---:|---:|",
         ])
         for entry in rows:
-            lines.append(f"| {entry['label']} | {entry['method'] or '?'} | `{entry['url'] or '(문서 URL 미확인)'}` | {'Y' if entry['mutation'] else 'N'} | {entry['risk_level']} | {entry['api_seq']} |")
+            lines.append(f"| {entry['label']} | {entry['method'] or '?'} | `{entry['url'] or '(공식 문서 URL 없음)'}` | {'Y' if entry['mutation'] else 'N'} | {entry['risk_level']} | {entry.get('availability', 'active')} | {entry['api_seq']} |")
         lines.append("")
     (output_dir / "11st-openapi-url-catalog.md").write_text("\n".join(lines), encoding="utf-8")
 

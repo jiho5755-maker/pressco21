@@ -45,6 +45,7 @@ python3 _tools/openmarket/11st/11st_api.py price-coupon-disable 123456 --sel-prc
 ```bash
 python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env auth-check
 python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env product-search --limit 1
+python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env realtime-soldout-options 202604010000 202604282359
 ```
 
 ## 4. 인증/IP 체크

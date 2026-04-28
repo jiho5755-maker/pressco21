@@ -13,14 +13,16 @@
  *   T2-09  완전한 데이터로 명세표 저장 → 목록에 반영
  *   T2-10  저장된 명세표 클릭 → 수정 Dialog 열림
  *   T2-11  목록 우측 실행 버튼에 명세표/견적서/납품서/청구서 표시
- *   T2-12  품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
- *   T2-13  빠른 기간 버튼 선택 시 날짜 입력값 동기화
+ *   T2-12  비교견적 출력은 협력업체 견적서 단독 생성
+ *   T2-13  품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
+ *   T2-14  빠른 기간 버튼 선택 시 날짜 입력값 동기화
  *
  * 주의: T2-09는 실제 NocoDB에 데이터를 생성합니다.
  *       afterEach 훅에서 TEST-E2E-PLAYWRIGHT- prefix 데이터를 자동 정리합니다.
  */
 import { test, expect } from '@playwright/test'
 import ExcelJS from 'exceljs'
+import { buildDuplexBlobUrl } from '../src/lib/print'
 import {
   cleanupTestInvoices,
   cleanupTestCustomers,
@@ -77,9 +79,9 @@ test('T2-02: 기존 명세표 목록 로드 확인', async ({ page }) => {
   await waitForTableLoaded(page)
   await assertNoApiError(page)
 
-  // 테이블 헤더 5개 확인 (액션 컬럼 포함)
+  // 선택 체크박스 + 테이블 헤더 5개 확인 (액션 컬럼 포함)
   const headers = page.locator('thead th')
-  await expect(headers).toHaveCount(5)
+  await expect(headers).toHaveCount(6)
 
   // 주요 헤더 텍스트 확인
   await expect(page.getByRole('columnheader', { name: '발행정보' })).toBeVisible()
@@ -270,7 +272,7 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
 test('T2-10: 저장된 명세표 클릭 → 수정 Dialog 열림', async ({ page }) => {
   await waitForTableLoaded(page)
 
-  // 목록에서 첫 번째 행 클릭 (기존 데이터 수정 Dialog)
+  // 목록에서 첫 번째 행의 발행정보 칸 클릭 (선택 체크박스 칸 제외)
   const firstRow = page.locator('tbody tr').filter({
     hasNot: page.locator('td[colspan]'),
   }).first()
@@ -282,7 +284,7 @@ test('T2-10: 저장된 명세표 클릭 → 수정 Dialog 열림', async ({ page
     return
   }
 
-  await firstRow.locator('td').first().click()
+  await firstRow.locator('td').nth(1).click()
 
   // 거래 상세 모달을 거쳐 수정 Dialog로 진입
   await waitForDialog(page, '거래 상세')
@@ -322,7 +324,47 @@ test('T2-11: 목록 우측 문서 출력 메뉴에 주요 문서 표시', async 
   await dialog.getByRole('button', { name: '취소' }).click()
 })
 
-test('T2-12: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지', async ({ page }) => {
+test('T2-12: 비교견적 출력은 협력업체 견적서 단독 생성', async () => {
+  const blobUrl = buildDuplexBlobUrl(
+    {
+      invoice_no: 'TEST-COMPARISON',
+      invoice_date: '2026-04-28',
+      customer_name: '기관 담당자',
+      customer_phone: '010-0000-0000',
+      customer_address: '서울시 테스트구',
+      supply_amount: 20_000,
+      tax_amount: 0,
+      total_amount: 20_000,
+      memo: '비교견적 검증',
+    },
+    [
+      {
+        product_name: '천스탠드/사각',
+        unit: '개',
+        quantity: 2,
+        unit_price: 10_000,
+        supply_amount: 20_000,
+        tax_amount: 0,
+      },
+    ],
+    { documentType: 'comparison' },
+  )
+  const html = await fetch(blobUrl).then((response) => response.text())
+  URL.revokeObjectURL(blobUrl)
+  const result = {
+    html,
+    pageCount: (html.match(/class="est-page"/g) ?? []).length,
+  }
+
+  expect(result.pageCount).toBe(1)
+  expect(result.html).toContain('꽃다미')
+  expect(result.html).toContain('협력업체 비교견적')
+  expect(result.html).toContain('천스탠드/사각')
+  expect(result.html).toContain('11,500')
+  expect(result.html).toContain('23,000')
+})
+
+test('T2-13: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지', async ({ page }) => {
   await page.goto('/customers/86')
   await expect(page.getByRole('heading', { name: '송윤경 회장님' })).toBeVisible({ timeout: API_TIMEOUT })
 
@@ -345,7 +387,7 @@ test('T2-12: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
   await expect(taxableCheckbox).not.toBeChecked()
 })
 
-test('T2-13: 빠른 기간 버튼 선택 시 날짜 입력값 동기화', async ({ page }) => {
+test('T2-14: 빠른 기간 버튼 선택 시 날짜 입력값 동기화', async ({ page }) => {
   const today = getTodayDateString()
   const dateInputs = page.locator('main input[type="date"]')
 
@@ -358,7 +400,7 @@ test('T2-13: 빠른 기간 버튼 선택 시 날짜 입력값 동기화', async 
   await expect(dateInputs.nth(1)).toHaveValue(today)
 })
 
-test('T2-14: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async ({ page, request }) => {
+test('T2-15: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async ({ page, request }) => {
   const uniqueId = Date.now()
   const customerName = `${DISCOUNT_CUSTOMER_PREFIX}${uniqueId}`
 
@@ -398,7 +440,7 @@ test('T2-14: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async 
 })
 
 
-test('T2-15: 송장 엑셀은 선택한 배송지를 기본주소보다 우선 출력', async ({ page, request }) => {
+test('T2-16: 송장 엑셀은 선택한 배송지를 기본주소보다 우선 출력', async ({ page, request }) => {
   const uniqueId = Date.now()
   const customerName = `${COURIER_ADDRESS_CUSTOMER_PREFIX}${uniqueId}`
   const invoiceNo = `${TEST_INVOICE_PREFIX}COURIER-${uniqueId}`

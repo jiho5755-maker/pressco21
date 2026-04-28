@@ -85,6 +85,21 @@ interface ComparisonQuoteSettings {
   markupRate: number
 }
 
+interface EstimateSupplier {
+  company?: string
+  bizno?: string
+  ceo?: string
+  bizType?: string
+  bizItem?: string
+  address?: string
+  phone?: string
+  logoHtml: string
+  stampHtml: string
+  bankInfo?: string
+  subtitle?: string
+  noteText?: string
+}
+
 const COMPANY_INFO_KEY = 'pressco21-crm-v2'
 // Settings.tsx가 저장하는 키 (우선 참조)
 const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
@@ -285,11 +300,11 @@ function formatBankInfo(company: CompanyInfo): string {
 function loadComparisonQuoteSettings(): ComparisonQuoteSettings {
   const defaults: ComparisonQuoteSettings = {
     partnerCompany: '꽃다미',
-    partnerCeo: '',
-    partnerBizno: '',
-    partnerBizType: '',
-    partnerBizItem: '',
-    partnerAddress: '',
+    partnerCeo: '임순옥',
+    partnerBizno: '215-92-55266',
+    partnerBizType: '소매,생화',
+    partnerBizItem: '꽃,관엽',
+    partnerAddress: '서울시 송파구 방이동439-16',
     partnerPhone: '',
     markupRate: 15,
   }
@@ -503,7 +518,7 @@ export function getPreviewPageCount(itemCount: number, documentType: PrintDocume
     return getEstimatePageItemCounts(itemCount).length
   }
   if (documentType === 'comparison') {
-    return getEstimatePageItemCounts(itemCount).length + 1
+    return getEstimatePageItemCounts(itemCount).length
   }
   if (documentType === 'packing') {
     return Math.max(1, Math.ceil(Math.max(1, itemCount) / 12))
@@ -605,25 +620,38 @@ function buildEstimatePageHtml(
   pageItems: PrintItem[],
   opts: PageOptions,
   startIndex: number,
+  supplierOverride?: EstimateSupplier,
 ): string {
   const c = loadCompanyInfo()
   const document = getPrintDocumentDefinition('estimate')
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
-  const companyBizno = formatBusinessNumber(c.bizno)
-  const customerBizno = formatBusinessNumber(inv.customer_bizno)
-  const companyPhone = formatPhoneNumber(c.phone)
-  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const effectiveLogo = sanitizePrintImageSrc(c.logo_url || _logoFallback)
   const effectiveStamp = sanitizePrintImageSrc(c.stamp_url || _stampFallback)
-  const logoHtml = effectiveLogo
-    ? `<img src="${escAttr(effectiveLogo)}" alt="로고" class="est-logo-img" />`
-    : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`
-  const stampHtml = effectiveStamp
-    ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="est-stamp-img" />`
-    : ''
+  const defaultSupplier: EstimateSupplier = {
+    company: c.company,
+    bizno: c.bizno,
+    ceo: c.ceo,
+    bizType: c.bizType,
+    bizItem: c.bizItem,
+    address: c.address,
+    phone: c.phone,
+    logoHtml: effectiveLogo
+      ? `<img src="${escAttr(effectiveLogo)}" alt="로고" class="est-logo-img" />`
+      : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`,
+    stampHtml: effectiveStamp
+      ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="est-stamp-img" />`
+      : '',
+    bankInfo: formatBankInfo(c),
+  }
+  const supplier = supplierOverride ?? defaultSupplier
+  const supplierBizno = formatBusinessNumber(supplier.bizno)
+  const customerBizno = formatBusinessNumber(inv.customer_bizno)
+  const supplierPhone = formatPhoneNumber(supplier.phone)
+  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const pageLabel = opts.totalPages > 1 ? ` / ${opts.pageNum}p` : ''
-  const noteText = inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.'
+  const noteText = supplier.noteText ?? (inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.')
+  const subtitle = supplier.subtitle ? `${esc(supplier.subtitle)}${pageLabel}` : `${esc(inv.invoice_no ?? '')}${pageLabel}`
 
   const itemRowsHtml =
     pageItems
@@ -645,8 +673,8 @@ function buildEstimatePageHtml(
     '<section class="est-page">' +
     '<div class="est-shell">' +
     '<div class="est-top">' +
-    `<div class="est-logo">${logoHtml}</div>` +
-    `<div class="est-title-wrap"><div class="est-title">${document.title}</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
+    `<div class="est-logo">${supplier.logoHtml}</div>` +
+    `<div class="est-title-wrap"><div class="est-title">${document.title}</div><div class="est-sub">${subtitle}</div></div>` +
     '<div class="est-meta">' +
     `<div><span>${esc(document.dateLabel)}</span><strong>${esc(invoiceDate)}</strong></div>` +
     `<div><span>${esc(document.metaLabel)}</span><strong>${esc(validUntil)}</strong></div>` +
@@ -655,10 +683,10 @@ function buildEstimatePageHtml(
     '<table class="est-party-table">' +
     '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
     '<tbody>' +
-    `<tr><td class="est-label">상호</td><td>${esc(c.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(c.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="est-label">사업자번호</td><td>${esc(companyBizno)}</td><td class="est-label">전화</td><td>${esc(companyPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
-    `<tr><td class="est-label">주소</td><td colspan="3">${esc(c.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
-    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(c.bizType, c.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
+    `<tr><td class="est-label">상호</td><td>${esc(supplier.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(supplier.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
+    `<tr><td class="est-label">사업자번호</td><td>${esc(supplierBizno)}</td><td class="est-label">전화</td><td>${esc(supplierPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
+    `<tr><td class="est-label">주소</td><td colspan="3">${esc(supplier.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(supplier.bizType, supplier.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
     '</tbody>' +
     '</table>' +
     '<table class="est-items-table">' +
@@ -678,15 +706,15 @@ function buildEstimatePageHtml(
         `<tr><th>세액</th><td>${(inv.tax_amount ?? 0).toLocaleString()}원</td></tr>` +
         `<tr class="est-grand-row"><th>총 견적금액</th><td>${(inv.total_amount ?? 0).toLocaleString()}원</td></tr>` +
         '</table>' +
-        (formatBankInfo(c) ? `<div class="est-bank">입금계좌 ${esc(formatBankInfo(c))}</div>` : '') +
+        (supplier.bankInfo ? `<div class="est-bank">입금계좌 ${esc(supplier.bankInfo)}</div>` : '') +
         '</div>' +
         '</div>' +
         '<div class="est-signature">' +
         `<div class="est-signature-text">${esc(document.signatureText(inv))}</div>` +
         '<div class="est-signature-right">' +
         '<span class="est-signature-label">대표자</span>' +
-        `<span class="est-signature-name">${esc(c.ceo ?? '')}</span>` +
-        `<span class="est-stamp-wrap">${stampHtml}</span>` +
+        `<span class="est-signature-name">${esc(supplier.ceo ?? '')}</span>` +
+        `<span class="est-stamp-wrap">${supplier.stampHtml}</span>` +
         '</div>' +
         '</div>'
       : '<div class="est-continue">다음 페이지에 품목이 계속됩니다.</div>') +
@@ -696,7 +724,7 @@ function buildEstimatePageHtml(
   )
 }
 
-function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
+function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[], supplier?: EstimateSupplier): string {
   const pages = splitEstimateItemsToPages(items)
   const totalPages = pages.length
 
@@ -708,7 +736,7 @@ function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
       isLast: index === totalPages - 1,
     }
     const startIndex = pages.slice(0, index).reduce((sum, pageItems) => sum + pageItems.length, 0)
-    return buildEstimatePageHtml(inv, pageItems, opts, startIndex)
+    return buildEstimatePageHtml(inv, pageItems, opts, startIndex, supplier)
   }).join('')
 }
 
@@ -810,79 +838,34 @@ function buildPartnerEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string
   const settings = loadComparisonQuoteSettings()
   const partnerItems = buildPartnerItems(items, settings.markupRate)
   const totals = sumPrintItems(partnerItems)
-  const invoiceDate = formatDisplayDate(inv.invoice_date)
-  const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
-  const customerBizno = formatBusinessNumber(inv.customer_bizno)
-  const partnerBizno = formatBusinessNumber(settings.partnerBizno)
-  const partnerPhone = formatPhoneNumber(settings.partnerPhone)
-  const customerPhone = formatPhoneNumber(inv.customer_phone)
-  const rowsHtml = partnerItems.map((item, index) => (
-    '<tr>' +
-    `<td class="t-center">${index + 1}</td>` +
-    `<td>${esc(item.product_name ?? '')}</td>` +
-    `<td class="t-center">${esc(item.unit ?? '')}</td>` +
-    `<td class="t-right">${(item.quantity ?? 0).toLocaleString()}</td>` +
-    `<td class="t-right">${(item.unit_price ?? 0).toLocaleString()}</td>` +
-    `<td class="t-right">${(item.supply_amount ?? 0).toLocaleString()}</td>` +
-    `<td class="t-right">${(item.tax_amount ?? 0).toLocaleString()}</td>` +
-    `<td class="t-right">${formatLineTotal(item).toLocaleString()}</td>` +
-    '</tr>'
-  )).join('')
-
-  return (
-    '<section class="est-page">' +
-    '<div class="est-shell">' +
-    '<div class="est-top">' +
-    `<div class="est-logo"><div class="est-logo-text">${esc(settings.partnerCompany)}</div></div>` +
-    '<div class="est-title-wrap"><div class="est-title">견 적 서</div><div class="est-sub">협력업체 비교견적</div></div>' +
-    '<div class="est-meta">' +
-    `<div><span>견적일자</span><strong>${esc(invoiceDate)}</strong></div>` +
-    `<div><span>유효기간</span><strong>${esc(validUntil)}</strong></div>` +
-    '</div>' +
-    '</div>' +
-    '<table class="est-party-table">' +
-    '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
-    '<tbody>' +
-    `<tr><td class="est-label">상호</td><td>${esc(settings.partnerCompany)}</td><td class="est-label">대표자</td><td>${esc(settings.partnerCeo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="est-label">사업자번호</td><td>${esc(partnerBizno)}</td><td class="est-label">전화</td><td>${esc(partnerPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
-    `<tr><td class="est-label">주소</td><td colspan="3">${esc(settings.partnerAddress ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
-    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(settings.partnerBizType, settings.partnerBizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
-    '</tbody>' +
-    '</table>' +
-    '<table class="est-items-table">' +
-    '<thead><tr><th style="width:6%">No</th><th style="width:34%">품명</th><th style="width:8%">단위</th><th style="width:8%">수량</th><th style="width:12%">단가</th><th style="width:12%">공급가액</th><th style="width:8%">세액</th><th style="width:12%">합계</th></tr></thead>' +
-    `<tbody>${rowsHtml}</tbody>` +
-    '</table>' +
-    '<div class="est-footer">' +
-    '<div class="est-bottom">' +
-    '<div class="est-note-block">' +
-    '<div class="est-note-title">비고</div>' +
-    '<div class="est-note-text">동일 품목 기준 협력업체 비교견적입니다.</div>' +
-    '</div>' +
-    '<div class="est-summary-block">' +
-    '<table class="est-summary-table">' +
-    `<tr><th>공급가액</th><td>${(totals.supply_amount ?? 0).toLocaleString()}원</td></tr>` +
-    `<tr><th>세액</th><td>${(totals.tax_amount ?? 0).toLocaleString()}원</td></tr>` +
-    `<tr class="est-grand-row"><th>총 견적금액</th><td>${(totals.total_amount ?? 0).toLocaleString()}원</td></tr>` +
-    '</table>' +
-    '</div>' +
-    '</div>' +
-    '<div class="est-signature">' +
-    '<div class="est-signature-text">상기와 같이 견적드립니다.</div>' +
-    '<div class="est-signature-right">' +
-    '<span class="est-signature-label">대표자</span>' +
-    `<span class="est-signature-name">${esc(settings.partnerCeo ?? '')}</span>` +
-    '<span class="est-stamp-wrap">(인)</span>' +
-    '</div>' +
-    '</div>' +
-    '</div>' +
-    '</div>' +
-    '</section>'
+  const supplier: EstimateSupplier = {
+    company: settings.partnerCompany,
+    bizno: settings.partnerBizno,
+    ceo: settings.partnerCeo,
+    bizType: settings.partnerBizType,
+    bizItem: settings.partnerBizItem,
+    address: settings.partnerAddress,
+    phone: settings.partnerPhone,
+    logoHtml: `<div class="est-logo-text">${esc(settings.partnerCompany)}</div>`,
+    stampHtml: '(인)',
+    bankInfo: '',
+    subtitle: '협력업체 비교견적',
+    noteText: '동일 품목 기준 협력업체 비교견적입니다.',
+  }
+  return buildEstimateHtml(
+    {
+      ...inv,
+      supply_amount: totals.supply_amount,
+      tax_amount: totals.tax_amount,
+      total_amount: totals.total_amount,
+    },
+    partnerItems,
+    supplier,
   )
 }
 
 function buildComparisonQuoteHtml(inv: PrintInvoice, items: PrintItem[]): string {
-  return buildEstimateHtml(inv, items) + buildPartnerEstimateHtml(inv, items)
+  return buildPartnerEstimateHtml(inv, items)
 }
 
 function buildDuplexFitScript(): string {

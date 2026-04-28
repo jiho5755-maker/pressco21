@@ -21,6 +21,7 @@ import {
 import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots, getLegacyPayableBaselineFromSnapshots } from '@/lib/legacySnapshots'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 import { exportMonthlyAccountingSummary } from '@/lib/excel'
+import { isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 
 // accounting-specialist 정의 임계값
 const RECEIVABLE_THRESHOLDS = {
@@ -255,7 +256,7 @@ export function Dashboard() {
   // 이번 달 명세표 건수 — periodInvoicesRaw에서 클라이언트 필터링
   const thisMonthInvoices = useMemo(
     () => (periodInvoicesRaw?.list ?? []).filter((i) =>
-      (i.invoice_date ?? '').startsWith(CUR_YM)
+      (i.invoice_date ?? '').startsWith(CUR_YM) && isInvoiceRevenueRecognized(i)
     ).length,
     [periodInvoicesRaw]
   )
@@ -265,13 +266,13 @@ export function Dashboard() {
   // tx_history = 얼마에요 레거시, invoices = CRM 신규 → 데이터 소스 완전 분리
   const thisMonthCrmSales = useMemo(
     () => (periodInvoicesRaw?.list ?? [])
-      .filter((i) => (i.invoice_date ?? '').startsWith(CUR_YM))
+      .filter((i) => (i.invoice_date ?? '').startsWith(CUR_YM) && isInvoiceRevenueRecognized(i))
       .reduce((s, i) => s + (i.total_amount ?? 0), 0),
     [periodInvoicesRaw]
   )
   const prevMonthCrmSales = useMemo(
     () => (periodInvoicesRaw?.list ?? [])
-      .filter((i) => (i.invoice_date ?? '').startsWith(PREV_YM))
+      .filter((i) => (i.invoice_date ?? '').startsWith(PREV_YM) && isInvoiceRevenueRecognized(i))
       .reduce((s, i) => s + (i.total_amount ?? 0), 0),
     [periodInvoicesRaw]
   )
@@ -303,6 +304,7 @@ export function Dashboard() {
     })
     // CRM invoices (이중계산 없음: 레거시와 데이터 소스 분리)
     ;(periodInvoicesRaw?.list ?? []).forEach((inv) => {
+      if (!isInvoiceRevenueRecognized(inv)) return
       const ym = getYearMonth(inv.invoice_date ?? '')
       if (byYM[ym]) byYM[ym].thisYear += inv.total_amount ?? 0
       // CRM 전년 데이터도 반영 (있는 경우)
@@ -349,6 +351,7 @@ export function Dashboard() {
       if (target) target.legacySales += tx.amount ?? 0
     })
     ;(periodInvoicesRaw?.list ?? []).forEach((invoice) => {
+      if (!isInvoiceRevenueRecognized(invoice)) return
       const month = getYearMonth(invoice.invoice_date ?? '')
       const target = byMonth.get(month)
       if (target) target.crmSales += invoice.total_amount ?? 0

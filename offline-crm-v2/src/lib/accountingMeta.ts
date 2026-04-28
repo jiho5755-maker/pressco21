@@ -26,9 +26,21 @@ export interface InvoiceAccountingMetaState {
   discountAmount?: number
   customerAddressKey?: string
   internalMemo?: string
+  fulfillmentStatus?: InvoiceFulfillmentStatus
+  shipmentConfirmedAt?: string
+  revenueRecognizedDate?: string
+  revenuePostedAt?: string
+  revenuePostingStatus?: InvoiceRevenuePostingStatus
+  salesLedgerId?: string
+  salesLedgerIdempotencyKey?: string
+  taxInvoiceStatus?: InvoiceTaxInvoiceStatus
   paymentReminder?: InvoicePaymentReminderState
   paymentHistory: InvoicePaymentHistoryEntry[]
 }
+
+export type InvoiceFulfillmentStatus = 'ordered' | 'preparing' | 'shipment_confirmed' | 'voided' | 'adjusted'
+export type InvoiceRevenuePostingStatus = 'pending' | 'posted' | 'reversed' | 'adjusted'
+export type InvoiceTaxInvoiceStatus = 'not_requested' | 'requested' | 'issued' | 'failed'
 
 export interface InvoicePaymentReminderState {
   dueDate?: string
@@ -132,6 +144,43 @@ function sanitizeDate(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : undefined
+}
+
+function sanitizeIsoLike(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  return /^[0-9]{4}-[0-9]{2}-[0-9]{2}(?:T[0-9:.+-Z]+)?$/.test(trimmed)
+    ? trimmed.slice(0, 40)
+    : undefined
+}
+
+function sanitizeShortKey(value: unknown, maxLength = 120): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, maxLength) : undefined
+}
+
+function sanitizeFulfillmentStatus(value: unknown): InvoiceFulfillmentStatus | undefined {
+  return value === 'ordered' ||
+    value === 'preparing' ||
+    value === 'shipment_confirmed' ||
+    value === 'voided' ||
+    value === 'adjusted'
+    ? value
+    : undefined
+}
+
+function sanitizeRevenuePostingStatus(value: unknown): InvoiceRevenuePostingStatus | undefined {
+  return value === 'pending' || value === 'posted' || value === 'reversed' || value === 'adjusted'
+    ? value
+    : undefined
+}
+
+function sanitizeTaxInvoiceStatus(value: unknown): InvoiceTaxInvoiceStatus | undefined {
+  return value === 'not_requested' || value === 'requested' || value === 'issued' || value === 'failed'
+    ? value
+    : undefined
 }
 
 function sanitizeMultilineText(value: unknown, maxLength = 2000): string | undefined {
@@ -370,6 +419,14 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       discountAmount?: number
       customerAddressKey?: string
       internalMemo?: string
+      fulfillmentStatus?: string
+      shipmentConfirmedAt?: string
+      revenueRecognizedDate?: string
+      revenuePostedAt?: string
+      revenuePostingStatus?: string
+      salesLedgerId?: string
+      salesLedgerIdempotencyKey?: string
+      taxInvoiceStatus?: string
       paymentReminder?: Partial<InvoicePaymentReminderState>
       paymentHistory?: Partial<InvoicePaymentHistoryEntry>[]
     }
@@ -388,6 +445,14 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       discountAmount: Math.max(0, parseInteger(parsed.discountAmount)),
       customerAddressKey,
       internalMemo,
+      fulfillmentStatus: sanitizeFulfillmentStatus(parsed.fulfillmentStatus),
+      shipmentConfirmedAt: sanitizeIsoLike(parsed.shipmentConfirmedAt),
+      revenueRecognizedDate: sanitizeDate(parsed.revenueRecognizedDate),
+      revenuePostedAt: sanitizeIsoLike(parsed.revenuePostedAt),
+      revenuePostingStatus: sanitizeRevenuePostingStatus(parsed.revenuePostingStatus),
+      salesLedgerId: sanitizeShortKey(parsed.salesLedgerId),
+      salesLedgerIdempotencyKey: sanitizeShortKey(parsed.salesLedgerIdempotencyKey),
+      taxInvoiceStatus: sanitizeTaxInvoiceStatus(parsed.taxInvoiceStatus),
       paymentReminder,
       paymentHistory,
     }
@@ -406,6 +471,14 @@ export function serializeInvoiceAccountingMeta(
     ? nextState.customerAddressKey.trim()
     : undefined
   const internalMemo = sanitizeMultilineText(nextState.internalMemo)
+  const fulfillmentStatus = sanitizeFulfillmentStatus(nextState.fulfillmentStatus)
+  const shipmentConfirmedAt = sanitizeIsoLike(nextState.shipmentConfirmedAt)
+  const revenueRecognizedDate = sanitizeDate(nextState.revenueRecognizedDate)
+  const revenuePostedAt = sanitizeIsoLike(nextState.revenuePostedAt)
+  const revenuePostingStatus = sanitizeRevenuePostingStatus(nextState.revenuePostingStatus)
+  const salesLedgerId = sanitizeShortKey(nextState.salesLedgerId)
+  const salesLedgerIdempotencyKey = sanitizeShortKey(nextState.salesLedgerIdempotencyKey)
+  const taxInvoiceStatus = sanitizeTaxInvoiceStatus(nextState.taxInvoiceStatus)
   const paymentReminder = sanitizeInvoicePaymentReminder(nextState.paymentReminder)
   const paymentHistory = Array.isArray(nextState.paymentHistory)
     ? nextState.paymentHistory
@@ -413,7 +486,19 @@ export function serializeInvoiceAccountingMeta(
       .filter((entry): entry is InvoicePaymentHistoryEntry => entry !== null)
     : []
   const discountAmount = Math.max(0, parseInteger(nextState.discountAmount))
-  if (nextState.depositUsedAmount <= 0 && discountAmount <= 0 && !customerAddressKey) {
+  if (
+    nextState.depositUsedAmount <= 0 &&
+    discountAmount <= 0 &&
+    !customerAddressKey &&
+    !fulfillmentStatus &&
+    !shipmentConfirmedAt &&
+    !revenueRecognizedDate &&
+    !revenuePostedAt &&
+    !revenuePostingStatus &&
+    !salesLedgerId &&
+    !salesLedgerIdempotencyKey &&
+    !taxInvoiceStatus
+  ) {
     if (!internalMemo && !paymentReminder && paymentHistory.length === 0) {
       return lines.join('\n').trim()
     }
@@ -424,6 +509,14 @@ export function serializeInvoiceAccountingMeta(
     discountAmount,
     customerAddressKey,
   }
+  if (fulfillmentStatus) payload.fulfillmentStatus = fulfillmentStatus
+  if (shipmentConfirmedAt) payload.shipmentConfirmedAt = shipmentConfirmedAt
+  if (revenueRecognizedDate) payload.revenueRecognizedDate = revenueRecognizedDate
+  if (revenuePostedAt) payload.revenuePostedAt = revenuePostedAt
+  if (revenuePostingStatus) payload.revenuePostingStatus = revenuePostingStatus
+  if (salesLedgerId) payload.salesLedgerId = salesLedgerId
+  if (salesLedgerIdempotencyKey) payload.salesLedgerIdempotencyKey = salesLedgerIdempotencyKey
+  if (taxInvoiceStatus) payload.taxInvoiceStatus = taxInvoiceStatus
   if (internalMemo) payload.internalMemo = internalMemo
   if (paymentReminder) payload.paymentReminder = paymentReminder
   if (paymentHistory.length > 0) payload.paymentHistory = paymentHistory
@@ -470,4 +563,48 @@ export function getInvoiceCustomerAddressKey(memo?: string): string | undefined 
 
 export function getInvoicePaymentHistory(memo?: string): InvoicePaymentHistoryEntry[] {
   return parseInvoiceAccountingMeta(memo).paymentHistory
+}
+
+export function getInvoiceFulfillmentStatus(memo?: string): InvoiceFulfillmentStatus | undefined {
+  return parseInvoiceAccountingMeta(memo).fulfillmentStatus
+}
+
+export function getInvoiceRevenuePostingStatus(memo?: string): InvoiceRevenuePostingStatus | undefined {
+  return parseInvoiceAccountingMeta(memo).revenuePostingStatus
+}
+
+export function isInvoiceRevenueRecognized(invoice: { memo?: unknown }): boolean {
+  const meta = parseInvoiceAccountingMeta(typeof invoice.memo === 'string' ? invoice.memo : undefined)
+  // 과거 거래명세표는 출고 상태 메타가 없으므로 기존 매출 집계를 유지한다.
+  if (!meta.fulfillmentStatus && !meta.revenuePostingStatus) return true
+  return meta.fulfillmentStatus === 'shipment_confirmed' && meta.revenuePostingStatus === 'posted'
+}
+
+export function buildShipmentConfirmedInvoiceMemo(
+  memo: string | undefined,
+  params: {
+    invoiceId: number
+    invoiceNo?: string
+    confirmedAt?: string
+    revenueDate?: string
+    taxInvoiceStatus?: InvoiceTaxInvoiceStatus
+  },
+): string {
+  const confirmedAt = sanitizeIsoLike(params.confirmedAt) ?? new Date().toISOString()
+  const revenueDate = sanitizeDate(params.revenueDate) ?? confirmedAt.slice(0, 10)
+  const prev = parseInvoiceAccountingMeta(memo)
+  const idempotencyKey = sanitizeShortKey(prev.salesLedgerIdempotencyKey)
+    ?? `crm-invoice-${Math.trunc(params.invoiceId)}-shipment-confirmed`
+
+  return serializeInvoiceAccountingMeta(memo, {
+    ...prev,
+    fulfillmentStatus: 'shipment_confirmed',
+    shipmentConfirmedAt: confirmedAt,
+    revenueRecognizedDate: revenueDate,
+    revenuePostedAt: confirmedAt,
+    revenuePostingStatus: 'posted',
+    salesLedgerId: prev.salesLedgerId ?? `sales-ledger-${idempotencyKey}`,
+    salesLedgerIdempotencyKey: idempotencyKey,
+    taxInvoiceStatus: prev.taxInvoiceStatus ?? params.taxInvoiceStatus ?? 'not_requested',
+  })
 }

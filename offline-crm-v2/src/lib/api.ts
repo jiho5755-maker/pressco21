@@ -10,7 +10,7 @@
  */
 
 import { getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
-import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
+import { getInvoiceDepositUsedAmount, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 
 // n8n Webhook 프록시 URL
@@ -807,6 +807,7 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
 
   let crmTotal = 0, crmCount = 0, crmLastDate = '', outstanding = 0
   for (const inv of crmResult.list) {
+    if (!isInvoiceRevenueRecognized(inv)) continue
     crmTotal += inv.total_amount ?? 0
     crmCount++
     const d = inv.invoice_date?.slice(0, 10) ?? ''

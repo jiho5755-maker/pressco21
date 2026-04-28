@@ -51,8 +51,7 @@ async function fillInvoiceBasics(dialog: Locator, page: Page, invoiceNo: string)
   const productInput = firstRow.getByPlaceholder('품목명 검색 (자동완성)')
   await productInput.fill('꽃')
 
-  const dropdown = page.locator('body > div').filter({ has: page.locator('button') }).last()
-  const firstProduct = page.locator('body button').filter({ hasText: /원/ }).first()
+  const firstProduct = page.locator('body button:visible').filter({ hasText: /원/ }).first()
   await expect(firstProduct).toBeVisible({ timeout: API_TIMEOUT })
   await firstProduct.click()
 
@@ -88,7 +87,7 @@ test('T7-02: 상품 자동완성 선택 시 단가 자동 세팅', async ({ page
   const productInput = firstRow.getByPlaceholder('품목명 검색 (자동완성)')
   await productInput.fill('꽃')
 
-  const productOption = page.locator('body button').filter({ hasText: /원/ }).first()
+  const productOption = page.locator('body button:visible').filter({ hasText: /원/ }).first()
   const optionText = (await productOption.textContent()) ?? ''
   await expect(productOption).toBeVisible({ timeout: API_TIMEOUT })
   await productOption.click()

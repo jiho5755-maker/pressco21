@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, ChevronLeft, ChevronRight, AlertTriangle, Plus } from 'lucide-react'
@@ -437,7 +437,7 @@ export function Transactions() {
       p.where = conds.length === 1 ? conds[0] : conds.join('~and')
     }
     return p
-  }, [isServerPaginated, activeTab, page, debouncedSearch, dateFrom, dateTo])
+  }, [isServerPaginated, activeTab, page, debouncedSearch])
 
   const { data: crmData, isLoading: crmLoading, isError: crmError } = useQuery({
     queryKey: ['transactions-crm', crmParams],
@@ -453,7 +453,7 @@ export function Transactions() {
 
   // ── 행 데이터 + 페이지네이션 계산 ──
   // CRM 데이터 클라이언트 날짜 필터 (NocoDB Date 타입은 gte/lte 미지원)
-  const filterByDate = (rows: UnifiedRow[]) => {
+  const filterByDate = useCallback((rows: UnifiedRow[]) => {
     if (!dateFrom && !dateTo) return rows
     return rows.filter((r) => {
       const d = r.tx_date.slice(0, 10)
@@ -461,12 +461,12 @@ export function Transactions() {
       if (dateTo && d > dateTo) return false
       return true
     })
-  }
+  }, [dateFrom, dateTo])
 
-  const filterCrmRows = (rows: UnifiedRow[]) => filterByDate(rows).filter((row) => {
+  const filterCrmRows = useCallback((rows: UnifiedRow[]) => filterByDate(rows).filter((row) => {
     if (typeFilter === 'ALL') return true
     return row.tx_type === typeFilter
-  })
+  }), [filterByDate, typeFilter])
 
   const { rows, totalPages, totalDisplay, isTruncated } = useMemo(() => {
     if (isServerPaginated) {
@@ -530,7 +530,7 @@ export function Transactions() {
       totalDisplay: loadedCount,
       isTruncated: truncated,
     }
-  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerIdByLegacyId, customerIdByName, customerSearchTextByLegacyId, legacySettlementRows, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo, typeFilter, useLegacyClientSearch])
+  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerIdByLegacyId, customerIdByName, customerSearchTextByLegacyId, legacySettlementRows, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo, filterCrmRows, useLegacyClientSearch])
 
   const isLoading = (legacyLoading && !skipLegacy) || (crmLoading && !skipCrm)
   // 양쪽 모두 실패한 경우만 전체 에러 (부분 실패는 경고로 처리)

@@ -42,6 +42,21 @@ cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix
 
 문서가 충돌하면 `shared-service-identity.md`와 `enterprise-elevation-strategy-2026-03-10.md`를 예전 구현 문서보다 우선합니다.
 
+
+## 11번가 Open API 공용 키트 라우팅
+
+11번가, 11st, 11번가 Open API, 오픈마켓 11번가 API 관련 기획/개발/운영 요청이 나오면 작업 전에 반드시 아래 공용 키트부터 확인하세요.
+
+- 전체 지침: `docs/openmarket-ops/11st-openapi-global-kit.md`
+- 빠른 시작: `docs/openmarket-ops/11st-openapi-global-quickstart.md`
+- URL/Method 카탈로그 JSON: `docs/openmarket-ops/11st-openapi-url-catalog.json`
+- 사람이 보는 카탈로그: `docs/openmarket-ops/11st-openapi-url-catalog.md`
+- 미확인 항목 정리: `docs/openmarket-ops/11st-openapi-missing-url-resolution-2026-04-28.md`
+- 공용 CLI: `_tools/openmarket/11st/11st_api.py`
+- CLI README: `_tools/openmarket/11st/README.md`
+
+원칙: 카탈로그 검색 → Method/URL/Payload/위험도 확인 → CLI 우선 사용 → write API는 `fresh read → dry-run → 승인 → execute → verify`. API KEY, 쿠키, 추가인증 결과, 실제 IP는 출력/문서/커밋/handoff에 남기지 마세요. `official_no_content` 또는 `usable=false` 항목은 자동화 대상으로 쓰지 않고 `replacement_api_seq`를 우선 확인하세요.
+
 ## Shared Agent Ecosystem Canonical Source
 
 Founder-facing canonical roster와 shared agent contract의 기준은 아래 문서를 우선합니다.

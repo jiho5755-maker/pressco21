@@ -86,6 +86,13 @@ def numeric_id(value: str) -> str:
     return text
 
 
+def yyyymmddhhmi(value: str) -> str:
+    text = str(value).strip()
+    if not re.fullmatch(r"\d{12}", text):
+        raise argparse.ArgumentTypeError("YYYYMMDDHHMI 12자리 형식이어야 합니다.")
+    return text
+
+
 def xml_value(value: Any) -> str:
     return xml_escape(str(value), {"'": "&apos;", '"': "&quot;"})
 
@@ -102,6 +109,7 @@ def mask_sensitive_text(text: str) -> str:
     text = re.sub(r"(?i)(openapikey\s*[:=]\s*)[^\s&<]+", r"\1***REDACTED***", text)
     text = re.sub(r"(?i)(ST11_API_KEY\s*[:=]\s*)[^\s&<]+", r"\1***REDACTED***", text)
     text = re.sub(r"(?i)(JSESSIONID=)[^;\s]+", r"\1***REDACTED***", text)
+    text = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "[IP_REDACTED]", text)
     return text
 
 
@@ -160,7 +168,7 @@ def parse_xml(content: bytes) -> ET.Element:
 def node_text(root: ET.Element, name: str) -> str:
     for node in root.iter():
         if strip_ns(node.tag) == name:
-            return node.text or ""
+            return mask_sensitive_text(node.text or "")
     return ""
 
 
@@ -170,7 +178,7 @@ def direct_children(node: ET.Element) -> dict[str, Any]:
         if len(list(child)) != 0:
             continue
         key = strip_ns(child.tag)
-        value = child.text or ""
+        value = mask_sensitive_text(child.text or "")
         if key in out:
             existing = out[key]
             if isinstance(existing, list):
@@ -193,6 +201,7 @@ def xml_response_to_json(response: dict[str, Any]) -> dict[str, Any]:
                 info[key] = value
         products = []
         stocks = []
+        soldout_items = []
         for node in root.iter():
             tag = strip_ns(node.tag)
             if tag in {"product", "Product"}:
@@ -203,11 +212,17 @@ def xml_response_to_json(response: dict[str, Any]) -> dict[str, Any]:
                 row = direct_children(node)
                 if row:
                     stocks.append(row)
+            if tag in {"solditem", "SoldItem"}:
+                row = direct_children(node)
+                if row:
+                    soldout_items.append(row)
         if products:
             info["products"] = products
         if stocks:
             info["stocks"] = stocks
-        if not products and not stocks and direct_children(root):
+        if soldout_items:
+            info["soldout_items"] = soldout_items
+        if not products and not stocks and not soldout_items and direct_children(root):
             info["data"] = direct_children(root)
     except Exception as exc:  # noqa: BLE001 - 운영 도구이므로 짧은 preview 제공
         info["parse_error"] = str(exc)
@@ -387,6 +402,11 @@ def command_stock_detail(args: argparse.Namespace) -> None:
     print_json(request_xml(args, "GET", path))
 
 
+def command_realtime_soldout_options(args: argparse.Namespace) -> None:
+    path = f"/rest/prodservices/getRealTimeCheckSoldOutOpt/{path_quote(args.start_dt)}/{path_quote(args.end_dt)}"
+    print_json(request_xml(args, "GET", path))
+
+
 def command_stock_update(args: argparse.Namespace) -> None:
     path = f"/rest/prodservices/stockqty/{path_quote(args.prd_stck_no)}"
     body = "\n".join([
@@ -523,6 +543,11 @@ def parse_args() -> argparse.Namespace:
     p = sub.add_parser("stock-detail", parents=[sub_common], help="신규상품재고정보조회")
     p.add_argument("prd_no", type=numeric_id)
     p.set_defaults(func=command_stock_detail)
+
+    p = sub.add_parser("realtime-soldout-options", parents=[sub_common], help="실재고체크 옵션품절 리스트 조회(apiSeq 6732)")
+    p.add_argument("start_dt", type=yyyymmddhhmi, help="조회 시작일 YYYYMMDDHHMI")
+    p.add_argument("end_dt", type=yyyymmddhhmi, help="조회 종료일 YYYYMMDDHHMI")
+    p.set_defaults(func=command_realtime_soldout_options)
 
     p = sub.add_parser("stock-update", parents=[sub_common], help="상품재고수량변경처리")
     p.add_argument("prd_stck_no", type=numeric_id)

@@ -40,6 +40,15 @@ _tools/openmarket/11st/11st_api.py catalog-show 1855 --limit 1
 
 인증값 파일은 수정하지 말고 읽기만 한다. API 키, 세션 쿠키, 추가인증 결과는 로그·커밋·handoff에 남기지 않는다.
 
+
+## 카탈로그 상태 기준
+
+2026-04-28 재검증 기준으로 활성 API의 URL/Method 미확인은 0개다.
+
+- `6732` 실재고체크 옵션품절 리스트 조회: `GET /rest/prodservices/getRealTimeCheckSoldOutOpt/{startDt}/{endDt}` 확인
+- `1316`, `1318`, `1319`, `6705`, `6706`: 공식 개발가이드가 `Content does not exist`이고 API TEST URL도 빈 값이므로 `availability=official_no_content`, `usable=false`로 분류
+- `1316`, `1318`, `1319`는 각각 `1746`, `1748`, `1749`를 대체 API로 사용한다.
+
 ## 빠른 예시
 
 ```bash
@@ -60,6 +69,9 @@ python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env product-searc
 
 # 상품 상세조회
 python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env product-detail 8236629275
+
+# 실재고체크 옵션품절 리스트 조회(apiSeq 6732)
+python3 _tools/openmarket/11st/11st_api.py --env-file .secrets.env realtime-soldout-options 202604010000 202604282359
 
 # 기본즉시할인 제거 dry-run: 실제 변경 없음
 python3 _tools/openmarket/11st/11st_api.py price-coupon-disable 8236629275 --sel-prc 1000

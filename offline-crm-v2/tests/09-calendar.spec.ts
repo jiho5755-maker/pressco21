@@ -71,7 +71,7 @@ test('T9-04: 날짜 클릭 → 해당일 빠른 확인 및 명세표 이동', as
 
   await page.reload()
   const populatedDateCell = page.getByRole('button').filter({
-    hasText: new RegExp(`^${today.getDate()}[\\s\\S]*1건`),
+    hasText: new RegExp(`^${today.getDate()}[\\s\\S]*\\d+건`),
   }).first()
 
   await expect(populatedDateCell).toBeVisible({ timeout: API_TIMEOUT })

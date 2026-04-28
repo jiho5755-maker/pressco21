@@ -31,7 +31,7 @@ import {
   upsertPaymentReminder,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
-import { buildDuplexBlobUrl, getPreviewPageCount, PRINT_DOCUMENT_OPTIONS } from '@/lib/print'
+import { buildDuplexBlobUrl, getPreviewPageCount, PRINT_DOCUMENT_OPTIONS, printWindowWhenReady } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { DEFAULT_RECEIPT_TYPE, normalizeReceiptTypeValue, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
@@ -1286,7 +1286,7 @@ export function InvoiceDialog({
 
   // 미리보기에서 실제 인쇄
   function handlePrintFromPreview() {
-    previewIframeRef.current?.contentWindow?.print()
+    void printWindowWhenReady(previewIframeRef.current?.contentWindow ?? null)
   }
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 명세표'

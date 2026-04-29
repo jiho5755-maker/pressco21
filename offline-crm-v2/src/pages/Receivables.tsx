@@ -58,6 +58,7 @@ type AgeFilterOption = 'all' | '30' | '60' | '90'
 type ReceivableSourceFilter = 'all' | 'legacyOnly' | 'crmOnly' | 'both'
 type PayableKindFilter = 'all' | 'payable' | 'refund'
 type HistoryViewMode = 'cumulative' | 'itemized'
+type OverpaymentAction = 'deposit' | 'refundPending' | 'refundPaid'
 
 function isValidCalendarDate(value: string | null): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -114,6 +115,17 @@ function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): numb
 
 function calcRemaining(inv: Invoice): number {
   return getInvoiceRemainingAmount(inv)
+}
+
+function getOverpaymentActionLabel(action: OverpaymentAction): string {
+  switch (action) {
+    case 'deposit':
+      return '예치금 보관'
+    case 'refundPending':
+      return '환불대기'
+    case 'refundPaid':
+      return '환불 완료'
+  }
 }
 
 interface ReceivableSnapshot extends Invoice {
@@ -173,7 +185,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
   const qc = useQueryClient()
   const [amount, setAmount] = useState(0)
   const [method, setMethod] = useState('계좌이체')
-  const [overpaymentAction, setOverpaymentAction] = useState<'deposit' | 'refund'>('deposit')
+  const [overpaymentAction, setOverpaymentAction] = useState<OverpaymentAction>('deposit')
   const [isSaving, setIsSaving] = useState(false)
   const invoiceId = invoice?.Id ?? 0
   const remaining = invoice ? calcRemaining(invoice) : 0
@@ -255,24 +267,76 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
       })
 
       if (overflowAmount > 0 && linkedCustomer) {
-        const nextMemo = appendCustomerAccountingEvent(
-          linkedCustomer.memo as string | undefined,
-          {
-            type: overpaymentAction === 'deposit' ? 'deposit_added' : 'refund_pending_added',
-            amount: overflowAmount,
-            date: todayDate(),
-            method,
-            operator: activeOperator?.operatorName,
-            accountId: activeOperator?.id,
-            accountLabel: activeOperator?.label,
-            createdAt: currentTimestamp(),
-            relatedInvoiceId: invoiceId,
-            note: `초과 입금 ${overflowAmount.toLocaleString()}원`,
-          },
-          overpaymentAction === 'deposit'
-            ? { depositBalance: customerMeta.depositBalance + overflowAmount }
-            : { refundPendingBalance: customerMeta.refundPendingBalance + overflowAmount },
-        )
+        let nextMemo = linkedCustomer.memo as string | undefined
+        if (overpaymentAction === 'deposit') {
+          nextMemo = appendCustomerAccountingEvent(
+            nextMemo,
+            {
+              type: 'deposit_added',
+              amount: overflowAmount,
+              date: todayDate(),
+              method,
+              operator: activeOperator?.operatorName,
+              accountId: activeOperator?.id,
+              accountLabel: activeOperator?.label,
+              createdAt: currentTimestamp(),
+              relatedInvoiceId: invoiceId,
+              note: `초과 입금 ${overflowAmount.toLocaleString()}원`,
+            },
+            { depositBalance: customerMeta.depositBalance + overflowAmount },
+          )
+        } else if (overpaymentAction === 'refundPending') {
+          nextMemo = appendCustomerAccountingEvent(
+            nextMemo,
+            {
+              type: 'refund_pending_added',
+              amount: overflowAmount,
+              date: todayDate(),
+              method,
+              operator: activeOperator?.operatorName,
+              accountId: activeOperator?.id,
+              accountLabel: activeOperator?.label,
+              createdAt: currentTimestamp(),
+              relatedInvoiceId: invoiceId,
+              note: `초과 입금 ${overflowAmount.toLocaleString()}원`,
+            },
+            { refundPendingBalance: customerMeta.refundPendingBalance + overflowAmount },
+          )
+        } else {
+          // 이미 실제 환불까지 끝난 경우도 환불대기 생성 → 환불 완료 순서로 이력을 남긴다.
+          nextMemo = appendCustomerAccountingEvent(
+            nextMemo,
+            {
+              type: 'refund_pending_added',
+              amount: overflowAmount,
+              date: todayDate(),
+              method,
+              operator: activeOperator?.operatorName,
+              accountId: activeOperator?.id,
+              accountLabel: activeOperator?.label,
+              createdAt: currentTimestamp(),
+              relatedInvoiceId: invoiceId,
+              note: `초과 입금 ${overflowAmount.toLocaleString()}원 환불대기 자동 생성`,
+            },
+            { refundPendingBalance: customerMeta.refundPendingBalance + overflowAmount },
+          )
+          nextMemo = appendCustomerAccountingEvent(
+            nextMemo,
+            {
+              type: 'refund_paid',
+              amount: overflowAmount,
+              date: todayDate(),
+              method,
+              operator: activeOperator?.operatorName,
+              accountId: activeOperator?.id,
+              accountLabel: activeOperator?.label,
+              createdAt: currentTimestamp(),
+              relatedInvoiceId: invoiceId,
+              note: `초과 입금 ${overflowAmount.toLocaleString()}원 즉시 환불 완료`,
+            },
+            { refundPendingBalance: customerMeta.refundPendingBalance },
+          )
+        }
         await updateCustomer(linkedCustomer.Id, { memo: nextMemo })
       }
 
@@ -289,7 +353,9 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
         overflowAmount > 0
           ? overpaymentAction === 'deposit'
             ? '초과 입금을 예치금으로 보관했습니다.'
-            : '초과 입금을 환불대기로 등록했습니다.'
+            : overpaymentAction === 'refundPending'
+              ? '초과 입금을 환불대기로 등록했습니다.'
+              : '초과 입금을 환불 완료로 기록했습니다.'
           : '입금 처리가 반영되었습니다.',
       )
     } catch (e) {
@@ -341,13 +407,14 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
               </div>
               <div>
                 <Label className="text-xs">초과 입금 처리 방식</Label>
-                <Select value={overpaymentAction} onValueChange={(value: 'deposit' | 'refund') => setOverpaymentAction(value)}>
+                <Select value={overpaymentAction} onValueChange={(value: OverpaymentAction) => setOverpaymentAction(value)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="deposit">예치금으로 보관</SelectItem>
-                    <SelectItem value="refund">환불대기로 등록</SelectItem>
+                    <SelectItem value="refundPending">환불대기로 등록</SelectItem>
+                    <SelectItem value="refundPaid">이미 환불 완료</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -381,7 +448,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
               {newPaymentStatus === 'paid' && ' → 완납 처리'}
               {overflowAmount > 0 && (
                 <span className="ml-2 text-amber-700">
-                  · 초과 {overflowAmount.toLocaleString()}원 {overpaymentAction === 'deposit' ? '예치금 보관' : '환불대기'}
+                  · 초과 {overflowAmount.toLocaleString()}원 {getOverpaymentActionLabel(overpaymentAction)}
                 </span>
               )}
             </div>

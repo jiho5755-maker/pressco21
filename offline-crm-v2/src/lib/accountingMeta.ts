@@ -839,6 +839,9 @@ export function buildShipmentConfirmedInvoiceMemo(
     confirmedAt?: string
     revenueDate?: string
     taxInvoiceStatus?: InvoiceTaxInvoiceStatus
+    actor?: string
+    action?: Extract<GovernanceEventAction, 'shipment_confirm' | 'bulk_shipment_confirm'>
+    reason?: string
   },
 ): string {
   const confirmedAt = sanitizeIsoLike(params.confirmedAt) ?? new Date().toISOString()
@@ -846,6 +849,15 @@ export function buildShipmentConfirmedInvoiceMemo(
   const prev = parseInvoiceAccountingMeta(memo)
   const idempotencyKey = sanitizeShortKey(prev.salesLedgerIdempotencyKey)
     ?? `crm-invoice-${Math.trunc(params.invoiceId)}-shipment-confirmed`
+  const governanceEvent: GovernanceEvent = {
+    opId: `${idempotencyKey}:${confirmedAt}`,
+    action: params.action ?? 'shipment_confirm',
+    actor: params.actor,
+    at: confirmedAt,
+    source: 'crm-ui',
+    relatedInvoiceId: Math.trunc(params.invoiceId),
+    reason: params.reason ?? 'CRM 출고완료 처리',
+  }
 
   return serializeInvoiceAccountingMeta(memo, {
     ...prev,
@@ -857,5 +869,6 @@ export function buildShipmentConfirmedInvoiceMemo(
     salesLedgerId: prev.salesLedgerId ?? `sales-ledger-${idempotencyKey}`,
     salesLedgerIdempotencyKey: idempotencyKey,
     taxInvoiceStatus: prev.taxInvoiceStatus ?? params.taxInvoiceStatus ?? 'not_requested',
+    governanceEvents: [...(prev.governanceEvents ?? []), governanceEvent],
   })
 }

@@ -40,6 +40,7 @@ import {
   type CustomerReceivableLedger,
   type ResolvedReceivableInvoice,
 } from '@/lib/receivables'
+import { buildStatusBadgeRows, getTradeGovernanceState } from '@/lib/tradeGovernance'
 
 // ─── 에이징 구간 ────────────────────────────────
 const AGING_BUCKETS = [
@@ -2569,6 +2570,8 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                     const invoiceMeta = parseInvoiceAccountingMeta(inv.memo as string | undefined)
                     const paymentReminder = invoiceMeta.paymentReminder
                     const dueDate = paymentReminder?.dueDate
+                    const governanceState = getTradeGovernanceState(inv, { today: asOfDate })
+                    const governanceRows = buildStatusBadgeRows(governanceState)
                     const isPromiseOverdue = Boolean(dueDate && dueDate < asOfDate)
                     const ageColor =
                       days > 180
@@ -2633,14 +2636,24 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                           <span className={`text-xs font-medium ${inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'}`}>
                             {inv.asOfStatus === 'partial' ? '부분수금' : '미수금'}
                           </span>
-                          {dueDate ? (
-                            <div className={`mt-1 text-[11px] font-medium ${isPromiseOverdue ? 'text-red-600' : 'text-[#4f6748]'}`}>
-                              납부 예정 {dueDate}
-                              {paymentReminder?.enabled ? ' · 알림' : ''}
-                            </div>
-                          ) : (
-                            <div className="mt-1 text-[11px] text-muted-foreground">납부 약속 없음</div>
-                          )}
+                          <div className="mt-1 text-[11px] text-muted-foreground">출고: {governanceState.fulfillmentLabel}</div>
+                          <div className={`mt-1 text-[11px] font-medium ${
+                            governanceState.followUpStatus === 'overdue'
+                              ? 'text-red-600'
+                              : governanceState.followUpStatus === 'due_today' || governanceState.followUpStatus === 'needs_plan'
+                                ? 'text-amber-600'
+                                : 'text-[#4f6748]'
+                          }`}>
+                            후속입금: {governanceState.followUpLabel}
+                            {dueDate ? ` · ${dueDate}` : ''}
+                            {paymentReminder?.enabled ? ' · 알림' : ''}
+                          </div>
+                          <div className="mt-1 max-w-44 truncate text-[11px] text-muted-foreground" title={governanceRows.join(' / ')}>
+                            {governanceRows[2]}
+                          </div>
+                          {dueDate && isPromiseOverdue ? (
+                            <div className="mt-1 text-[11px] font-medium text-red-600">약속한 입금일이 지났습니다.</div>
+                          ) : null}
                           {invoiceMeta.internalMemo ? (
                             <div className="mt-1 max-w-44 truncate text-[11px] text-muted-foreground" title={invoiceMeta.internalMemo}>
                               내부: {invoiceMeta.internalMemo}

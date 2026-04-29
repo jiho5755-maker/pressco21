@@ -17,6 +17,9 @@ export const ROUTES = {
   suppliers:   '/suppliers',
   transactions:'/transactions',
   calendar:    '/calendar',
+  depositInbox:'/deposit-inbox',
+  tradeWorkQueue: '/trade-work-queue',
+  monthEndReview: '/month-end-review',
 } as const
 
 /** NocoDB API가 실제 데이터를 반환할 때까지 최대 대기 시간 (ms) */

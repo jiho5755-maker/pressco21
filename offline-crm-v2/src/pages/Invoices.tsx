@@ -1038,7 +1038,12 @@ export function Invoices() {
     })
   }
 
-  async function confirmShipmentInvoice(inv: Invoice, confirmedAt: string, revenueDate: string) {
+  async function confirmShipmentInvoice(
+    inv: Invoice,
+    confirmedAt: string,
+    revenueDate: string,
+    action: 'shipment_confirm' | 'bulk_shipment_confirm' = 'shipment_confirm',
+  ) {
     const latestInvoice = await getInvoice(inv.Id)
     const latestStatus = getInvoiceFulfillmentStatus(latestInvoice.memo as string | undefined)
     const customerId = typeof latestInvoice.customer_id === 'number' && Number.isFinite(latestInvoice.customer_id)
@@ -1056,6 +1061,9 @@ export function Invoices() {
         confirmedAt,
         revenueDate,
         taxInvoiceStatus: 'not_requested',
+        actor: 'crm-admin',
+        action,
+        reason: action === 'bulk_shipment_confirm' ? 'CRM 일괄 출고완료 처리' : 'CRM 단건 출고완료 처리',
       },
     )
     await updateInvoice(inv.Id, { memo: confirmedMemo })
@@ -1069,7 +1077,7 @@ export function Invoices() {
       return
     }
     const ok = window.confirm(
-      `포장·출고확정 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n금액: ${formatAmount(inv.total_amount)}\n\n확정 후 이 건은 매출 자동화 대상이 됩니다.`,
+      `포장·출고완료 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n명세표: ${inv.invoice_no ?? inv.Id}\n명세표 합계: ${formatAmount(inv.total_amount)}\n\n처리 후 이 건은 “출고완료 매출”과 “월말점검”에 포함됩니다.\n아직 입금되지 않았다면 “출고완료 미수” 업무함에 표시됩니다.`,
     )
     if (!ok) return
 
@@ -1108,7 +1116,7 @@ export function Invoices() {
     }
 
     const ok = window.confirm(
-      `선택한 ${targets.length.toLocaleString()}건을 포장·출고확정 처리할까요?\n\n합계: ${formatAmount(selectedShipmentAmount)}\n\n확정 후 선택 건은 매출 자동화 대상이 됩니다.`,
+      `선택한 ${targets.length.toLocaleString()}건을 출고완료 처리할까요?\n\n합계: ${formatAmount(selectedShipmentAmount)}\n이미 출고완료된 건은 자동 제외됩니다.\n\n처리 후 선택 건은 월말 매출 점검 대상이 됩니다.\n입금이 안 된 건은 “출고완료 미수”로 남습니다.`,
     )
     if (!ok) return
 
@@ -1124,7 +1132,7 @@ export function Invoices() {
       for (const target of targets) {
         setConfirmingShipmentId(target.Id)
         try {
-          const result = await confirmShipmentInvoice(target, confirmedAt, revenueDate)
+          const result = await confirmShipmentInvoice(target, confirmedAt, revenueDate, 'bulk_shipment_confirm')
           if (result.status === 'confirmed') confirmedCount += 1
           else skippedCount += 1
           if (typeof result.customerId === 'number' && Number.isFinite(result.customerId)) {

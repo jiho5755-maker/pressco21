@@ -10,9 +10,12 @@ export interface AutoDepositInboxEntry {
   amount: number
   note: string
   sourceFile: string
-  status: 'pending' | 'applied'
+  status: 'pending' | 'applied' | 'manual_completed' | 'dismissed' | 'held'
   appliedAt?: string
   appliedTargetKey?: string
+  resolvedAt?: string
+  resolvedBy?: string
+  resolvedReason?: string
 }
 
 export interface AutoDepositCandidate {
@@ -35,7 +38,7 @@ export interface AutoDepositCandidate {
 export interface AutoDepositMatchedEntry {
   entry: AutoDepositInboxEntry
   candidates: AutoDepositCandidate[]
-  status: 'applied' | 'exact' | 'review' | 'unmatched'
+  status: 'applied' | 'exact' | 'review' | 'unmatched' | 'manual_completed' | 'dismissed' | 'held'
 }
 
 export interface AutoDepositReviewQueueItem {
@@ -281,7 +284,16 @@ export function loadAutoDepositInbox(): AutoDepositInboxEntry[] {
     const raw = localStorage.getItem(AUTO_DEPOSIT_INBOX_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as AutoDepositInboxEntry[]
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((entry) => ({
+      ...entry,
+      status: entry.status === 'applied' ||
+        entry.status === 'manual_completed' ||
+        entry.status === 'dismissed' ||
+        entry.status === 'held'
+        ? entry.status
+        : 'pending',
+    }))
   } catch {
     return []
   }
@@ -406,6 +418,16 @@ export function buildAutoDepositMatchResults(
   const customerById = new Map(customers.map((customer) => [customer.Id, customer]))
   const senderMatchedEntries = entries.map((entry) => {
     const senderKey = normalizeName(entry.sender)
+    const ambiguousCustomerIds = new Set(
+      customers
+        .filter((customer) => {
+          const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+          if (customerMeta.autoDepositDisabled) return false
+          return getCustomerLookupTokens(customer).some((token) => token && token === senderKey)
+        })
+        .map((customer) => customer.Id),
+    )
+    const hasAmbiguousDepositor = ambiguousCustomerIds.size > 1
     const invoiceCandidates = invoices
       .filter((invoice) => invoice.asOfRemaining === entry.amount)
       .map((invoice) => {
@@ -433,7 +455,9 @@ export function buildAutoDepositMatchResults(
           resolvedCustomerId,
           score,
           senderMatched ? '입금자명과 고객명이 정확히 맞고 미수 명세표 금액도 같습니다.' : '미수 명세표 잔액과 입금액이 정확히 같습니다.',
-          senderMatched || invoices.filter((candidate) => candidate.asOfRemaining === entry.amount).length === 1 ? 'exact' : 'review',
+          senderMatched && !hasAmbiguousDepositor && invoices.filter((candidate) => candidate.asOfRemaining === entry.amount).length === 1
+            ? 'exact'
+            : 'review',
         )
       })
       .filter((candidate): candidate is AutoDepositCandidate => candidate !== null)
@@ -454,7 +478,9 @@ export function buildAutoDepositMatchResults(
           customer,
           score,
           senderMatched ? '입금자명과 고객명이 맞고 기존 장부 받을 돈과 입금액이 같습니다.' : '기존 장부 받을 돈과 입금액이 정확히 같습니다.',
-          senderMatched || ledgers.filter((candidate) => candidate.legacyBaseline === entry.amount).length === 1 ? 'exact' : 'review',
+          senderMatched && !hasAmbiguousDepositor && ledgers.filter((candidate) => candidate.legacyBaseline === entry.amount).length === 1
+            ? 'exact'
+            : 'review',
         )
       })
       .filter((candidate): candidate is AutoDepositCandidate => candidate !== null)
@@ -504,18 +530,28 @@ export function buildAutoDepositMatchResults(
     const candidates = [...invoiceCandidates, ...legacyCandidates, ...senderOnlyCandidates]
       .sort((left, right) => right.score - left.score)
       .filter((candidate, index, list) => list.findIndex((item) => item.key === candidate.key) === index)
+      .map((candidate) => hasAmbiguousDepositor
+        ? {
+            ...candidate,
+            confidence: 'review' as const,
+            reason: `동명이인 또는 동일 입금자명 후보가 ${ambiguousCustomerIds.size.toLocaleString()}명입니다. 자동반영하지 말고 운영자가 직접 확인해야 합니다. ${candidate.reason}`,
+          }
+        : candidate)
 
     let status: AutoDepositMatchedEntry['status'] = 'unmatched'
     if (entry.status === 'applied') status = 'applied'
+    else if (entry.status === 'manual_completed') status = 'manual_completed'
+    else if (entry.status === 'dismissed') status = 'dismissed'
+    else if (entry.status === 'held') status = 'held'
     else if (candidates.length === 0) status = 'unmatched'
-    else if (candidates[0]?.confidence === 'exact' && (!candidates[1] || candidates[0].score > candidates[1].score)) status = 'exact'
+    else if (!hasAmbiguousDepositor && candidates[0]?.confidence === 'exact' && (!candidates[1] || candidates[0].score > candidates[1].score)) status = 'exact'
     else status = 'review'
 
     return { entry, candidates, status }
   })
 
   return senderMatchedEntries.sort((left, right) => {
-    const statusOrder = { exact: 0, review: 1, unmatched: 2, applied: 3 }
+    const statusOrder = { exact: 0, review: 1, unmatched: 2, held: 3, applied: 4, manual_completed: 5, dismissed: 6 }
     return statusOrder[left.status] - statusOrder[right.status]
   })
 }

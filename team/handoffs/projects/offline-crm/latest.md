@@ -1,60 +1,51 @@
 ---
-handoff_id: HOFF-20260430-020932-tax-invoice-development-final-cleanup-ready
-created_at: 2026-04-30T02:09:32+0900
+handoff_id: HOFF-20260430-0413-direct-trade-task-j-closeout
 runtime: codex-omx
-owner_agent_id: yoo-junho-paircoder
-contributors: []
-scope_type: worktree
-project: offline-crm
-worktree_slot: offline-crm-barobill-tax-invoice-ui
-repo_root: /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-barobill-tax-invoice-ui
-branch: "work/offline-crm/barobill-tax-invoice-ui"
-worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-barobill-tax-invoice-ui"
-source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-barobill-tax-invoice-ui"
-commit_sha: 7a1a591
-status: active
-promoted_to_global: false
-summary: "세금계산서 자동화 개발 최종 종료: CRM UI, n8n webhook, VAT 포함가 분리, 출고확정 후 발급 제한, 운영 배포, 브라우저 검증, 테스트 데이터 정리까지 완료. 추가 개발 없이 마감 상태이며 관련 worktree는 삭제 가능."
-decision: "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다."
-changed_artifacts:
-  - "(no working-tree changes at handoff time)"
-verification:
-  - "local output handoff saved: output/codex-handoffs/20260430-020932-tax-invoice-development-final-cleanup-ready.md"
-  - "git status captured at handoff time"
-open_risks:
-  - "추가 실발급/취소는 사용자 승인 전까지 실행하지 않는다. 인증키·ContactID·등록 URL 토큰·국세청 승인번호 전체값은 출력/문서/커밋 금지."
-next_step: "다른 세션은 main 최신 기준으로 이어가면 되며, 세금계산서 관련 worktree 정리는 /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-barobill-tax-invoice-ui 와 /Users/jangjiho/workspace/pressco21-worktrees/n8n-barobill-tax-invoice-webhook 를 clean 상태 확인 후 제거하면 된다. 이후 세금계산서 영역은 운영 모니터링만 수행."
-learn_to_save:
-  - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
-local_output_handoff: "output/codex-handoffs/20260430-020932-tax-invoice-development-final-cleanup-ready.md"
-session_log: "output/codex-sessions/20260429-101751-offline-crm.md"
-backup_folder: "(none)"
+owner_agent_id: yoon-haneul-pm
+branch: work/offline-crm/shipment-payment-governance-prd
+task_name: Task J — 최종 handoff, commit, push, 배포 판단
+task_goal: 작업 결과를 추적 가능한 handoff와 git 이력으로 남기고 다음 세션이 바로 이어받게 한다.
+run_outcome: in_progress_until_commit_push
 ---
 
-# Codex durable handoff
+## summary
+윤하늘님 기준으로 Task 0~I handoff를 작성했습니다. commit/push와 배포 결과는 이 파일 또는 `latest.md`에 이어서 갱신해야 합니다.
 
-## 요약
-세금계산서 자동화 개발 최종 종료: CRM UI, n8n webhook, VAT 포함가 분리, 출고확정 후 발급 제한, 운영 배포, 브라우저 검증, 테스트 데이터 정리까지 완료. 추가 개발 없이 마감 상태이며 관련 worktree는 삭제 가능.
+## decision
+- 운영 데이터 apply 대기 항목: 과거 완납 출고확정 실제 apply. 현재는 dry-run/승인 대기까지만 구현.
+- 배포는 build/lint/targeted E2E 통과 후 진행 가능하나, full live E2E auth/env blocker를 최종 보고에 명시해야 합니다.
 
-## 다음 작업
-다른 세션은 main 최신 기준으로 이어가면 되며, 세금계산서 관련 worktree 정리는 /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-barobill-tax-invoice-ui 와 /Users/jangjiho/workspace/pressco21-worktrees/n8n-barobill-tax-invoice-webhook 를 clean 상태 확인 후 제거하면 된다. 이후 세금계산서 영역은 운영 모니터링만 수행.
+## changed_artifacts
+- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/*.md`
 
-## 리스크
-추가 실발급/취소는 사용자 승인 전까지 실행하지 않는다. 인증키·ContactID·등록 URL 토큰·국세청 승인번호 전체값은 출력/문서/커밋 금지.
+## verification
+- 현재까지 build/lint/targeted E2E PASS.
+- commit/push 전 `bash _tools/pressco21-check.sh` 재확인 필요.
 
-## 로컬 output handoff
-`output/codex-handoffs/20260430-020932-tax-invoice-development-final-cleanup-ready.md`
+## browser_evidence
+- Task H-I handoff 참조.
 
-## Git 상태
+## open_risks
+- full live E2E 미완료.
+- 실제 운영 데이터 apply 없음.
+- 배포 시 서버 환경에서 추가 문제가 생기면 이 파일에 결과를 갱신해야 합니다.
 
-```text
-(clean)
-```
+## blockers
+- full E2E auth/env.
 
-## 최근 커밋
+## next_step
+1. git add 허용 경로
+2. 의미 단위 commit
+3. push
+4. 필요 시 CRM deploy script 실행 및 smoke 확인
+5. latest handoff 갱신
 
-```text
-7a1a591 [codex] handoff 다음 기준 최신화
-3158054 [codex] handoff 기준 커밋 정정
-3e3f387 [codex] handoff 저장: crm-barobill-tax-invoice-final-closeout
-```
+## files_to_inspect_next
+- `git status --short`
+- `deploy/deploy.sh`
+
+## rollback_or_recovery_note
+commit 후 문제 발생 시 branch commit 단위로 revert 가능합니다. force push/reset hard 금지.
+
+## learn_to_save
+긴 Ralph 작업은 Task handoff를 먼저 남기고 commit/push 단계에서 latest를 갱신해야 다음 세션 복구가 쉽다.

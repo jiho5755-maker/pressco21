@@ -19,8 +19,6 @@ import {
   appendCustomerAccountingEvent,
   appendInvoicePaymentHistory,
   parseCustomerAccountingMeta,
-  parseInvoiceAccountingMeta,
-  serializeInvoiceAccountingMeta,
 } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
 import {
@@ -38,8 +36,31 @@ import {
   saveAutoDepositInbox,
   type AutoDepositCandidate,
   type AutoDepositInboxEntry,
+  type AutoDepositMatchedEntry,
   type AutoDepositReviewQueueItem,
 } from '@/lib/autoDeposits'
+
+type LocalInboxFilter = 'all' | AutoDepositMatchedEntry['status']
+
+const LOCAL_STATUS_LABELS: Record<AutoDepositMatchedEntry['status'], string> = {
+  exact: '정확 후보',
+  review: '검토 필요',
+  unmatched: '미매칭',
+  applied: '반영 완료',
+  manual_completed: '수동 완료',
+  dismissed: '제외 완료',
+  held: '보류',
+}
+
+function getLocalStatusClass(status: AutoDepositMatchedEntry['status']): string {
+  if (status === 'exact') return 'bg-emerald-100 text-emerald-700'
+  if (status === 'review') return 'bg-amber-100 text-amber-700'
+  if (status === 'applied') return 'bg-blue-100 text-blue-700'
+  if (status === 'manual_completed') return 'bg-violet-100 text-violet-700'
+  if (status === 'dismissed') return 'bg-slate-200 text-slate-700'
+  if (status === 'held') return 'bg-orange-100 text-orange-700'
+  return 'bg-slate-100 text-slate-600'
+}
 function todayDate(): string {
   const formatter = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Seoul',
@@ -100,7 +121,7 @@ export function DepositInbox() {
   const [selectedReviewCandidates, setSelectedReviewCandidates] = useState<Record<string, string>>({})
   const [isApplyingKey, setIsApplyingKey] = useState<string | null>(null)
   const [isResolvingReviewKey, setIsResolvingReviewKey] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'exact' | 'review' | 'unmatched' | 'applied'>('all')
+  const [filter, setFilter] = useState<LocalInboxFilter>('all')
   const [search, setSearch] = useState('')
   const activeOperator = loadActiveWorkOperatorProfile()
   const settings = loadStoredCrmSettings()
@@ -164,6 +185,9 @@ export function DepositInbox() {
     review: matchedEntries.filter((item) => item.status === 'review').length,
     unmatched: matchedEntries.filter((item) => item.status === 'unmatched').length,
     applied: matchedEntries.filter((item) => item.status === 'applied').length,
+    manualCompleted: matchedEntries.filter((item) => item.status === 'manual_completed').length,
+    dismissed: matchedEntries.filter((item) => item.status === 'dismissed').length,
+    held: matchedEntries.filter((item) => item.status === 'held').length,
   }), [matchedEntries])
 
   const remoteSummary = remoteReviewQueue?.summary ?? {
@@ -392,33 +416,6 @@ export function DepositInbox() {
     return { appliedAmount, invoice: nextInvoice }
   }
 
-  async function applyDepositToInvoice(invoice: Invoice, amount: number) {
-    const remainingBefore = calcRemaining(invoice)
-    const appliedAmount = Math.min(amount, remainingBefore)
-    if (appliedAmount <= 0) return { appliedAmount: 0, invoice }
-
-    const invoiceMeta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
-    const nextDepositUsedAmount = invoiceMeta.depositUsedAmount + appliedAmount
-    const nextMemo = serializeInvoiceAccountingMeta(invoice.memo as string | undefined, {
-      ...invoiceMeta,
-      depositUsedAmount: nextDepositUsedAmount,
-    })
-    const nextInvoice: Invoice = {
-      ...invoice,
-      memo: nextMemo,
-    }
-    nextInvoice.current_balance = calcRemaining(nextInvoice)
-    nextInvoice.payment_status = calcPaymentStatus(nextInvoice)
-
-    await updateInvoice(invoice.Id, {
-      memo: nextMemo,
-      current_balance: nextInvoice.current_balance,
-      payment_status: nextInvoice.payment_status,
-    })
-
-    return { appliedAmount, invoice: nextInvoice }
-  }
-
   async function applyCustomerDepositLedger(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
     const customerId = candidate.customerId
     if (!customerId) throw new Error('고객 대상 정보가 없습니다.')
@@ -427,12 +424,12 @@ export function DepositInbox() {
       where: `(customer_id,eq,${customerId})`,
       sort: 'invoice_date',
     })
-    let allOpenInvoices = sortInvoicesForSettlement(
-      invoices.filter((invoice) => calcRemaining(invoice) > 0),
+    let openInvoices = sortInvoicesForSettlement(
+      invoices.filter((invoice) =>
+        calcRemaining(invoice) > 0 &&
+        isInvoiceEligibleForDepositDate(invoice, entry.date, candidate.invoiceId)
+      ),
       candidate.invoiceId,
-    )
-    let openInvoices = allOpenInvoices.filter((invoice) =>
-      isInvoiceEligibleForDepositDate(invoice, entry.date, candidate.invoiceId),
     )
 
     let cashRemaining = entry.amount
@@ -447,44 +444,11 @@ export function DepositInbox() {
       cashApplied += appliedAmount
       touchedInvoiceIds.push(invoice.Id)
       openInvoices = openInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
-      allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
-    }
-
-    // 이미 보유 중인 예치금이 있으면 이번 입금 반영 후 남은 미수에 이어서 상계한다.
-    const latestBeforeDepositUse = await getCustomer(customerId)
-    const customerMeta = parseCustomerAccountingMeta(latestBeforeDepositUse.memo as string | undefined)
-    let depositAvailable = customerMeta.depositBalance
-    let depositUsed = 0
-
-    if (depositAvailable > 0) {
-      for (const invoice of openInvoices) {
-        if (depositAvailable <= 0) break
-        const { appliedAmount, invoice: updatedInvoice } = await applyDepositToInvoice(invoice, depositAvailable)
-        if (appliedAmount <= 0) continue
-        depositAvailable -= appliedAmount
-        depositUsed += appliedAmount
-        touchedInvoiceIds.push(invoice.Id)
-        openInvoices = openInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
-        allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
-      }
-    }
-
-    // 입금 반영 뒤 예치금이 소액 남으면 이후 새 주문에도 바로 차감해 운영 잔액을 맞춘다.
-    if (depositAvailable > 0) {
-      for (const invoice of allOpenInvoices) {
-        if (depositAvailable <= 0) break
-        const { appliedAmount, invoice: updatedInvoice } = await applyDepositToInvoice(invoice, depositAvailable)
-        if (appliedAmount <= 0) continue
-        depositAvailable -= appliedAmount
-        depositUsed += appliedAmount
-        touchedInvoiceIds.push(invoice.Id)
-        allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
-      }
     }
 
     let legacyApplied = 0
     if (cashRemaining > 0) {
-      const customerForLegacy = depositUsed > 0 ? await getCustomer(customerId) : latestBeforeDepositUse
+      const customerForLegacy = await getCustomer(customerId)
       const legacyRemaining = getLegacyReceivableBaselineFromSnapshots(customerForLegacy, legacySnapshots, fiscalSnapshots)
       legacyApplied = Math.min(cashRemaining, legacyRemaining)
       if (legacyApplied > 0) {
@@ -494,51 +458,29 @@ export function DepositInbox() {
     }
 
     const depositAdded = Math.max(0, cashRemaining)
-    if (depositUsed > 0 || depositAdded > 0) {
+    if (depositAdded > 0) {
       const latestCustomer = await getCustomer(customerId)
       const latestMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
       let nextDepositBalance = latestMeta.depositBalance
       let nextMemo = latestCustomer.memo as string | undefined
 
-      if (depositUsed > 0) {
-        nextDepositBalance = Math.max(0, nextDepositBalance - depositUsed)
-        nextMemo = appendCustomerAccountingEvent(
-          nextMemo,
-          {
-            type: 'deposit_used',
-            amount: depositUsed,
-            date: entry.date,
-            method: '예치금 사용',
-            operator: activeOperator?.operatorName,
-            accountId: activeOperator?.id,
-            accountLabel: activeOperator?.label,
-            createdAt: currentTimestamp(),
-            relatedInvoiceId: candidate.invoiceId,
-            note: `자동입금 ${entry.amount.toLocaleString()}원 반영 중 기존 예치금 상계`,
-          },
-          { depositBalance: nextDepositBalance },
-        )
-      }
-
-      if (depositAdded > 0) {
-        nextDepositBalance += depositAdded
-        nextMemo = appendCustomerAccountingEvent(
-          nextMemo,
-          {
-            type: 'deposit_added',
-            amount: depositAdded,
-            date: entry.date,
-            method: '계좌이체',
-            operator: activeOperator?.operatorName,
-            accountId: activeOperator?.id,
-            accountLabel: activeOperator?.label,
-            createdAt: currentTimestamp(),
-            relatedInvoiceId: candidate.invoiceId,
-            note: `자동입금 반영 후 남은 금액 ${depositAdded.toLocaleString()}원`,
-          },
-          { depositBalance: nextDepositBalance },
-        )
-      }
+      nextDepositBalance += depositAdded
+      nextMemo = appendCustomerAccountingEvent(
+        nextMemo,
+        {
+          type: 'deposit_added',
+          amount: depositAdded,
+          date: entry.date,
+          method: '계좌이체',
+          operator: activeOperator?.operatorName,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          createdAt: currentTimestamp(),
+          relatedInvoiceId: candidate.invoiceId,
+          note: `입금 수집함 반영 후 남은 금액 ${depositAdded.toLocaleString()}원 · 기존 예치금 자동상계는 MVP에서 차단`,
+        },
+        { depositBalance: nextDepositBalance },
+      )
 
       await updateCustomer(customerId, { memo: nextMemo })
     }
@@ -552,7 +494,7 @@ export function DepositInbox() {
     return {
       customerId,
       cashApplied,
-      depositUsed,
+      depositUsed: 0,
       legacyApplied,
       depositAdded,
       touchedInvoiceIds: Array.from(new Set(touchedInvoiceIds)),
@@ -597,6 +539,66 @@ export function DepositInbox() {
     } finally {
       setIsApplyingKey(null)
     }
+  }
+
+  function resolveLocalEntry(
+    entry: AutoDepositInboxEntry,
+    status: Extract<AutoDepositInboxEntry['status'], 'manual_completed' | 'dismissed' | 'held'>,
+    resolvedReason: string,
+  ) {
+    const nextEntry: AutoDepositInboxEntry = {
+      ...entry,
+      status,
+      resolvedAt: currentTimestamp(),
+      resolvedBy: activeOperator?.label ?? 'manual',
+      resolvedReason,
+    }
+    persistEntries(entries.map((item) => (item.id === entry.id ? nextEntry : item)))
+  }
+
+  function promptResolutionReason(title: string): string | null {
+    const reason = window.prompt(`${title}\n사유를 입력하세요.`)?.trim() ?? ''
+    return reason || null
+  }
+
+  function handleManualComplete(entry: AutoDepositInboxEntry) {
+    const reason = promptResolutionReason('장부 금액을 바꾸지 않고 수동 완료 처리합니다.')
+    if (!reason) {
+      toast.error('수동 완료 사유가 필요합니다.')
+      return
+    }
+    resolveLocalEntry(entry, 'manual_completed', reason)
+    toast.success('수동 완료로 보관했습니다. 명세표/고객 금액은 변경되지 않았습니다.')
+  }
+
+  function handleDismissLocalEntry(entry: AutoDepositInboxEntry) {
+    const reason = promptResolutionReason('이 입금을 CRM 반영 대상에서 제외합니다.')
+    if (!reason) {
+      toast.error('제외 사유가 필요합니다.')
+      return
+    }
+    if (reason === '기타' || reason.length < 2) {
+      toast.error('제외 사유를 구체적으로 입력해주세요.')
+      return
+    }
+    if (entry.amount >= 1_000_000) {
+      const ok = window.confirm(
+        `이 입금을 CRM 반영 대상에서 제외할까요?\n\n입금자: ${entry.sender}\n금액: ${entry.amount.toLocaleString()}원\n제외 사유: ${reason}\n\n은행 원본 내역은 삭제되지 않습니다.\n제외 이력은 월말점검에서 다시 확인할 수 있습니다.`,
+      )
+      if (!ok) return
+    }
+    resolveLocalEntry(entry, 'dismissed', reason)
+    toast.success('제외 완료로 보관했습니다. 원본 수집 내역은 삭제하지 않았습니다.')
+  }
+
+  function handleHoldEntry(entry: AutoDepositInboxEntry) {
+    const reason = promptResolutionReason('고객 확인 전까지 입금 건을 보류합니다.')
+    if (!reason) {
+      toast.error('보류 사유가 필요합니다.')
+      return
+    }
+    resolveLocalEntry(entry, 'held', reason)
+    toast.success('보류 상태로 저장했습니다.')
   }
 
   function buildEntryFromReviewItem(item: AutoDepositReviewQueueItem): AutoDepositInboxEntry {
@@ -661,7 +663,35 @@ export function DepositInbox() {
   }
 
   function handleRemove(entryId: string) {
+    const target = entries.find((entry) => entry.id === entryId)
+    if (!target) return
+    const safeToHide = target.status === 'applied' || target.status === 'manual_completed' || target.status === 'dismissed'
+    if (!safeToHide) {
+      toast.error('미처리 입금은 삭제하지 말고 수동 완료, 제외 또는 보류로 남겨주세요.')
+      return
+    }
     persistEntries(entries.filter((entry) => entry.id !== entryId))
+  }
+
+  function handleClearInbox() {
+    const unsafeCount = entries.filter((entry) =>
+      entry.status !== 'applied' &&
+      entry.status !== 'manual_completed' &&
+      entry.status !== 'dismissed'
+    ).length
+    if (unsafeCount > 0) {
+      const ok = window.confirm(
+        `미처리/보류 입금 ${unsafeCount.toLocaleString()}건이 있습니다.\n단순 비우기보다 제외·수동 완료·보류 처리를 권장합니다.\n\n그래도 반영 완료/수동 완료/제외 완료 건만 숨길까요?`,
+      )
+      if (!ok) return
+      persistEntries(entries.filter((entry) =>
+        entry.status !== 'applied' &&
+        entry.status !== 'manual_completed' &&
+        entry.status !== 'dismissed'
+      ))
+      return
+    }
+    persistEntries([])
   }
 
   function getSelectedCandidate(item: typeof filteredEntries[number]): AutoDepositCandidate | undefined {
@@ -690,20 +720,22 @@ export function DepositInbox() {
             <Upload className="mr-2 h-4 w-4" />
             입금 파일 업로드
           </Button>
-          <Button type="button" variant="outline" onClick={() => persistEntries([])}>
+          <Button type="button" variant="outline" onClick={handleClearInbox}>
             <Trash2 className="mr-2 h-4 w-4" />
             수집함 비우기
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-5" data-guide-id="deposit-summary">
+      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7" data-guide-id="deposit-summary">
         {[
           { label: '전체 건수', value: `${summary.total}건` },
           { label: '정확 후보', value: `${summary.exact}건` },
           { label: '검토 필요', value: `${summary.review}건` },
           { label: '미매칭', value: `${summary.unmatched}건` },
           { label: '반영 완료', value: `${summary.applied}건` },
+          { label: '수동 완료', value: `${summary.manualCompleted}건` },
+          { label: '제외/보류', value: `${summary.dismissed + summary.held}건` },
         ].map((card) => (
           <div key={card.label} className="rounded-xl border bg-white px-4 py-3 shadow-sm">
             <p className="text-xs text-muted-foreground">{card.label}</p>
@@ -874,11 +906,27 @@ export function DepositInbox() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-[#d8e4d6] bg-[#f8faf7] p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-[#2f4d37]">입금 처리 안전장치</h3>
+            <p className="mt-1 text-xs text-[#5f6f60]">
+              정확 후보도 기본은 운영자 확인 후 반영합니다. 동명이인·다중 후보·가족명의·플랫폼 정산은 검토 필요 또는 제외/보류로 남깁니다.
+            </p>
+          </div>
+          <div className="grid gap-2 text-xs text-[#4f6748] md:grid-cols-3">
+            <div className="rounded-lg border border-white/80 bg-white/80 px-3 py-2">수동 완료: 장부 금액 변경 없음</div>
+            <div className="rounded-lg border border-white/80 bg-white/80 px-3 py-2">제외 완료: 원본 내역 보존</div>
+            <div className="rounded-lg border border-white/80 bg-white/80 px-3 py-2">초과분: 예치금/환불대기 분리 검토</div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between" data-guide-id="deposit-filters">
         <div className="grid gap-3 md:grid-cols-[180px_260px]">
           <div>
             <Label className="text-xs text-muted-foreground">상태</Label>
-            <Select value={filter} onValueChange={(value: typeof filter) => setFilter(value)}>
+            <Select value={filter} onValueChange={(value: LocalInboxFilter) => setFilter(value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -888,6 +936,9 @@ export function DepositInbox() {
                 <SelectItem value="review">검토 필요</SelectItem>
                 <SelectItem value="unmatched">미매칭</SelectItem>
                 <SelectItem value="applied">반영 완료</SelectItem>
+                <SelectItem value="manual_completed">수동 완료</SelectItem>
+                <SelectItem value="dismissed">제외 완료</SelectItem>
+                <SelectItem value="held">보류</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -940,21 +991,18 @@ export function DepositInbox() {
                   <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{item.entry.amount.toLocaleString()}원</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                        item.status === 'exact'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : item.status === 'review'
-                            ? 'bg-amber-100 text-amber-700'
-                            : item.status === 'applied'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-slate-100 text-slate-600'
-                      }`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getLocalStatusClass(item.status)}`}
                     >
-                      {item.status === 'exact' ? '정확 후보' : item.status === 'review' ? '검토 필요' : item.status === 'applied' ? '반영 완료' : '미매칭'}
+                      {LOCAL_STATUS_LABELS[item.status]}
                     </span>
                     {item.entry.appliedAt ? (
                       <div className="mt-2 text-xs text-muted-foreground">
                         {item.entry.appliedAt.slice(0, 16).replace('T', ' ')}
+                      </div>
+                    ) : null}
+                    {item.entry.resolvedReason ? (
+                      <div className="mt-2 max-w-40 text-xs text-muted-foreground">
+                        사유: {item.entry.resolvedReason}
                       </div>
                     ) : null}
                   </td>
@@ -1017,19 +1065,47 @@ export function DepositInbox() {
                       <Button
                         type="button"
                         size="sm"
-                        disabled={!selectedCandidate || item.status === 'applied' || isApplyingKey === item.entry.id}
+                        disabled={!selectedCandidate || item.entry.status !== 'pending' || isApplyingKey === item.entry.id}
                         onClick={() => selectedCandidate && void handleApply(item.entry, selectedCandidate)}
                       >
-                        {isApplyingKey === item.entry.id ? '반영 중...' : item.status === 'applied' ? '반영 완료' : '입금 반영'}
+                        {isApplyingKey === item.entry.id ? '반영 중...' : item.entry.status !== 'pending' ? '처리 완료' : '입금 반영'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={item.entry.status !== 'pending'}
+                        onClick={() => handleManualComplete(item.entry)}
+                      >
+                        수동 완료
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={item.entry.status !== 'pending'}
+                        onClick={() => handleHoldEntry(item.entry)}
+                      >
+                        보류
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className="text-red-500 hover:text-red-600"
+                        disabled={item.entry.status !== 'pending'}
+                        onClick={() => handleDismissLocalEntry(item.entry)}
+                      >
+                        제외
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-500 hover:text-slate-600"
                         onClick={() => handleRemove(item.entry.id)}
                       >
-                        수집함에서 제거
+                        완료건 숨기기
                       </Button>
                     </div>
                   </td>

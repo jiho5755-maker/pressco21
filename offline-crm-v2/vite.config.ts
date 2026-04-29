@@ -48,6 +48,12 @@ export default defineConfig({
         rewrite: () => '/webhook/crm/barobill/tax-invoices/sync-status',
         configure: stripN8nBrowserHeaders,
       },
+      '/webhook/crm/barobill/tax-invoices/cancel': {
+        target: 'https://n8n.pressco21.com',
+        changeOrigin: true,
+        rewrite: () => '/webhook/crm/barobill/tax-invoices/cancel',
+        configure: stripN8nBrowserHeaders,
+      },
     },
   },
   build: {

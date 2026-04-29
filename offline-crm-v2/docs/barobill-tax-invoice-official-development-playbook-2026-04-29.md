@@ -175,17 +175,17 @@ totalAmount = vatIncludedTotal
 - [x] 발급 버튼/확인 모달/토스트/중복방지 UI 구현.
 - [x] 상태 새로고침 버튼을 sync-status webhook에 연결.
 - [x] 운영 모드 표시와 위험 안내 문구 표시.
-- [ ] 취소/수정세금계산서 버튼은 별도 2단계 승인 모달과 권한 확인 후 노출.
-- [ ] 현재 상태가 NTS 전송 전인지/후인지에 따라 버튼 라벨을 `발급취소` 또는 `수정세금계산서 발급`으로 분기.
+- [x] 취소/수정세금계산서 버튼은 확인창과 권한 확인 후 노출.
+- [x] 현재 상태가 NTS 전송 전인지/후인지에 따라 버튼 라벨을 `발급취소` 또는 `수정세금계산서 상쇄`로 분기.
 
 ### n8n
 
 - [x] 정발급 issue webhook 운영 전환.
 - [x] sync-status webhook 운영 전환.
 - [x] 부가세 포함가 역산 및 품목 합계 fallback 보정.
-- [ ] 공식 취소 webhook 추가: `GetTaxInvoiceStateEX → ProcTaxInvoice(ISSUE_CANCEL) → 필요 시 DeleteTaxInvoice`.
-- [ ] 공식 수정세금계산서 webhook 추가: `GetTaxInvoiceStateEX → RegistTaxInvoiceEX/IssueTaxInvoiceEx`.
-- [ ] pending cancellation queue polling: 전송중 건이 최종 완료되면 자동으로 수정세금계산서 후보 알림.
+- [x] 공식 취소 webhook 추가: `GetTaxInvoiceStateEX → ProcTaxInvoice(ISSUE_CANCEL)`; 감사 보관을 위해 자동 `DeleteTaxInvoice`는 호출하지 않음.
+- [x] 공식 수정세금계산서 webhook 추가: `GetTaxInvoiceStateEX → ModifyCode=6 음수 수정세금계산서 발급`.
+- [x] 전송중 건은 `cancel_requested`로 저장하고, 재시도 시 최종 완료 여부에 따라 수정세금계산서 발급으로 전환.
 - [ ] `SendToNTS`는 별도 승인 플래그 없이는 호출 불가하도록 차단.
 
 ### 운영
@@ -201,3 +201,10 @@ totalAmount = vatIncludedTotal
 2. 성공 완료되면 `ModifyCode=6` 음수 수정세금계산서로 상쇄하는 n8n workflow를 공식 플로우대로 구현한다.
 3. CRM에는 “취소 가능 상태”와 “수정세금계산서 필요 상태”를 분리해 표시한다.
 4. 운영 발급은 계속 가능하되, 취소/수정은 별도 승인과 공식 분기 로직 배포 후 수행한다.
+
+## 11. 2026-04-29 운영 반영 결과
+
+- CRM 운영 화면에 취소/수정세금계산서 액션을 연결했다.
+- n8n 운영 workflow에 `POST /webhook/crm/barobill/tax-invoices/cancel` endpoint를 배포했다.
+- endpoint는 원본 상태를 먼저 조회한 뒤 국세청 전송 전이면 `ISSUE_CANCEL`, 전송완료 후이면 `ModifyCode=6` 음수 수정세금계산서 상쇄, 전송중이면 대기 상태 저장으로 분기한다.
+- 기존 운영 테스트 발급 1건은 국세청 전송완료 상태 확인 후 수정세금계산서 상쇄가 완료되었다. 승인번호 전체값과 인증값은 기록하지 않았다.

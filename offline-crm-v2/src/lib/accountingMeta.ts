@@ -49,6 +49,7 @@ export type InvoiceTaxInvoiceStatus =
   | 'failed'
   | 'cancel_requested'
   | 'cancelled'
+  | 'amended'
 
 export type InvoiceTaxInvoiceProvider = 'barobill'
 export type InvoiceTaxInvoiceIssueType = 'normal' | 'reverse' | 'consignment' | 'amendment'
@@ -77,6 +78,16 @@ export interface InvoiceTaxInvoiceMeta {
   errorMessage?: string
   mailSent?: boolean
   smsRequested?: boolean
+  cancellationRequestedAt?: string
+  cancellationRequestedBy?: string
+  cancellationReason?: string
+  cancellationMethod?: 'issue_cancel' | 'amendment' | 'amendment_pending' | 'already_cancelled' | 'issue_cancel_failed' | 'amendment_failed'
+  cancellationPending?: boolean
+  cancellationPendingReason?: string
+  cancelledAt?: string
+  amendmentMgtKey?: string
+  amendmentRequestId?: string
+  amendmentIssuedAt?: string
 }
 
 export interface InvoicePaymentReminderState {
@@ -221,7 +232,19 @@ function sanitizeTaxInvoiceStatus(value: unknown): InvoiceTaxInvoiceStatus | und
     value === 'issued' ||
     value === 'failed' ||
     value === 'cancel_requested' ||
-    value === 'cancelled'
+    value === 'cancelled' ||
+    value === 'amended'
+    ? value
+    : undefined
+}
+
+function sanitizeTaxInvoiceCancellationMethod(value: unknown): InvoiceTaxInvoiceMeta['cancellationMethod'] {
+  return value === 'issue_cancel' ||
+    value === 'amendment' ||
+    value === 'amendment_pending' ||
+    value === 'already_cancelled' ||
+    value === 'issue_cancel_failed' ||
+    value === 'amendment_failed'
     ? value
     : undefined
 }
@@ -319,6 +342,16 @@ function sanitizeInvoiceTaxInvoiceMeta(value: unknown): InvoiceTaxInvoiceMeta | 
     errorMessage: sanitizeMultilineText(entry.errorMessage, 500),
     mailSent: sanitizeOptionalBoolean(entry.mailSent),
     smsRequested: sanitizeOptionalBoolean(entry.smsRequested),
+    cancellationRequestedAt: sanitizeIsoLike(entry.cancellationRequestedAt),
+    cancellationRequestedBy: sanitizeShortKey(entry.cancellationRequestedBy, 80),
+    cancellationReason: sanitizeMultilineText(entry.cancellationReason, 300),
+    cancellationMethod: sanitizeTaxInvoiceCancellationMethod(entry.cancellationMethod),
+    cancellationPending: sanitizeOptionalBoolean(entry.cancellationPending),
+    cancellationPendingReason: sanitizeShortKey(entry.cancellationPendingReason, 120),
+    cancelledAt: sanitizeIsoLike(entry.cancelledAt),
+    amendmentMgtKey: sanitizeShortKey(entry.amendmentMgtKey, 80),
+    amendmentRequestId: sanitizeShortKey(entry.amendmentRequestId, 120),
+    amendmentIssuedAt: sanitizeIsoLike(entry.amendmentIssuedAt),
   }
 
   const hasValue = Object.values(meta).some((field) => field !== undefined)

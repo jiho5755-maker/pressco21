@@ -26,6 +26,9 @@ const BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL =
 const BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL =
   import.meta.env.VITE_BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL ||
   '/webhook/crm/barobill/tax-invoices/sync-status'
+const BAROBILL_TAX_INVOICE_CANCEL_WEBHOOK_URL =
+  import.meta.env.VITE_BAROBILL_TAX_INVOICE_CANCEL_WEBHOOK_URL ||
+  '/webhook/crm/barobill/tax-invoices/cancel'
 const BAROBILL_TAX_INVOICE_MODE =
   import.meta.env.VITE_BAROBILL_TAX_INVOICE_MODE === 'production' ? 'production' : 'test'
 const BAROBILL_ALLOW_PRODUCTION_ISSUE =
@@ -798,6 +801,46 @@ export interface BarobillTaxInvoiceStatusResult {
   errorMessage?: string
 }
 
+export interface BarobillTaxInvoiceCancelPayload {
+  requestId: string
+  invoiceId: number
+  invoiceNo?: string
+  idempotencyKey?: string
+  providerMgtKey?: string
+  mode: BarobillTaxInvoiceMode
+  cancelReason: string
+  requestedBy?: string
+}
+
+export interface BarobillTaxInvoiceCancelResult {
+  ok: boolean
+  success?: boolean
+  provider: 'barobill'
+  mode: BarobillTaxInvoiceMode
+  status: InvoiceTaxInvoiceStatus
+  requestId: string
+  invoiceId: number
+  invoiceNo?: string
+  idempotencyKey?: string
+  providerMgtKey?: string
+  mgtKey?: string
+  amendmentMgtKey?: string
+  action?: string
+  cancellationMethod?: string
+  syncedAt: string
+  cancelledAt?: string
+  amendmentIssuedAt?: string
+  statusCode?: string
+  barobillState?: number
+  ntsSendState?: number
+  ntsConfirmNum?: string
+  ntsSendResult?: string
+  message: string
+  crmUpdated?: boolean
+  errorCode?: string
+  errorMessage?: string
+}
+
 function requireBarobillField(value: string | undefined, label: string) {
   if (!value?.trim()) {
     throw new Error(`${label} 값이 없어 바로빌 발급 요청을 만들 수 없습니다`)
@@ -811,7 +854,8 @@ function normalizeBarobillStatus(value: unknown, fallback: InvoiceTaxInvoiceStat
     value === 'issued' ||
     value === 'failed' ||
     value === 'cancel_requested' ||
-    value === 'cancelled'
+    value === 'cancelled' ||
+    value === 'amended'
     ? value
     : fallback
 }
@@ -966,6 +1010,66 @@ export async function syncBarobillTaxInvoiceStatus(params: {
     ntsSendState: typeof json.ntsSendState === 'number' ? json.ntsSendState : undefined,
     ntsConfirmNum: typeof json.ntsConfirmNum === 'string' ? json.ntsConfirmNum : undefined,
     message: getBarobillMessage(json, '바로빌 상태조회가 완료되었습니다'),
+    crmUpdated: typeof json.crmUpdated === 'boolean' ? json.crmUpdated : undefined,
+    errorCode: typeof error?.code === 'string' ? error.code : undefined,
+    errorMessage: typeof error?.message === 'string' ? error.message : undefined,
+  }
+}
+
+export async function cancelBarobillTaxInvoice(
+  payload: BarobillTaxInvoiceCancelPayload,
+): Promise<BarobillTaxInvoiceCancelResult> {
+  if (!payload.invoiceId) throw new Error('취소/수정할 명세표 ID가 없습니다')
+  requireBarobillField(payload.providerMgtKey, '바로빌 관리번호')
+
+  const mode = normalizeBarobillMode(payload.mode || BAROBILL_TAX_INVOICE_MODE)
+  assertBarobillProductionBlocked(mode)
+
+  const res = await fetch(BAROBILL_TAX_INVOICE_CANCEL_WEBHOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    body: JSON.stringify({
+      ...payload,
+      mode,
+    }),
+  })
+  const json = await parseBarobillWebhookResponse(res)
+  const success = json.success !== false && json.ok !== false
+  if (!success) {
+    throw new Error(getBarobillMessage(json, '바로빌 세금계산서 취소/수정 요청이 실패했습니다'))
+  }
+  const error = json.error && typeof json.error === 'object' ? json.error as Record<string, unknown> : undefined
+  const providerMgtKey = typeof json.providerMgtKey === 'string' && json.providerMgtKey.trim()
+    ? json.providerMgtKey.trim()
+    : payload.providerMgtKey
+
+  return {
+    ok: true,
+    success,
+    provider: 'barobill',
+    mode: normalizeBarobillMode(json.mode),
+    status: normalizeBarobillStatus(json.status, 'cancel_requested'),
+    requestId: typeof json.requestId === 'string' && json.requestId.trim() ? json.requestId.trim() : payload.requestId,
+    invoiceId: typeof json.invoiceId === 'number' ? json.invoiceId : payload.invoiceId,
+    invoiceNo: typeof json.invoiceNo === 'string' ? json.invoiceNo : payload.invoiceNo,
+    idempotencyKey: typeof json.idempotencyKey === 'string' ? json.idempotencyKey : payload.idempotencyKey,
+    providerMgtKey,
+    mgtKey: providerMgtKey,
+    amendmentMgtKey: typeof json.amendmentMgtKey === 'string' ? json.amendmentMgtKey : undefined,
+    action: typeof json.action === 'string' ? json.action : undefined,
+    cancellationMethod: typeof json.cancellationMethod === 'string' ? json.cancellationMethod : undefined,
+    syncedAt: typeof json.syncedAt === 'string' && json.syncedAt.trim() ? json.syncedAt.trim() : new Date().toISOString(),
+    cancelledAt: typeof json.cancelledAt === 'string' ? json.cancelledAt : undefined,
+    amendmentIssuedAt: typeof json.amendmentIssuedAt === 'string' ? json.amendmentIssuedAt : undefined,
+    statusCode: typeof json.statusCode === 'string' ? json.statusCode : undefined,
+    barobillState: typeof json.barobillState === 'number' ? json.barobillState : undefined,
+    ntsSendState: typeof json.ntsSendState === 'number' ? json.ntsSendState : undefined,
+    ntsConfirmNum: typeof json.ntsConfirmNum === 'string' ? json.ntsConfirmNum : undefined,
+    ntsSendResult: typeof json.ntsSendResult === 'string' ? json.ntsSendResult : undefined,
+    message: getBarobillMessage(json, '바로빌 세금계산서 취소/수정 처리가 완료되었습니다'),
     crmUpdated: typeof json.crmUpdated === 'boolean' ? json.crmUpdated : undefined,
     errorCode: typeof error?.code === 'string' ? error.code : undefined,
     errorMessage: typeof error?.message === 'string' ? error.message : undefined,

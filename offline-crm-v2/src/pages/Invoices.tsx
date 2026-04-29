@@ -11,12 +11,12 @@ import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TaxInvoiceRequestDialog } from '@/components/TaxInvoiceRequestDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink, updateInvoice, requestBarobillTaxInvoice, syncBarobillTaxInvoiceStatus } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink, updateInvoice, requestBarobillTaxInvoice, syncBarobillTaxInvoiceStatus, cancelBarobillTaxInvoice } from '@/lib/api'
 import type { BarobillTaxInvoiceRequestPayload, Customer, Invoice, InvoiceItem } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
-import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized, parseInvoiceAccountingMeta, serializeInvoiceAccountingMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
+import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized, parseInvoiceAccountingMeta, serializeInvoiceAccountingMeta, type InvoiceTaxInvoiceMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
 const PAGE_SIZE = 25
@@ -99,6 +99,7 @@ const TAX_INVOICE_BADGE: Record<InvoiceTaxInvoiceStatus, { label: string; cls: s
   failed: { label: '실패', cls: 'border-red-200 bg-red-50 text-red-700' },
   cancel_requested: { label: '취소요청', cls: 'border-purple-200 bg-purple-50 text-purple-700' },
   cancelled: { label: '취소완료', cls: 'border-slate-300 bg-slate-100 text-slate-700' },
+  amended: { label: '상쇄완료', cls: 'border-slate-300 bg-slate-100 text-slate-700' },
 }
 
 function getInvoiceTaxInvoiceStatus(invoice: Invoice): InvoiceTaxInvoiceStatus {
@@ -119,6 +120,20 @@ function getMaskedConfirmNumber(value?: string): string | undefined {
   if (!value) return undefined
   if (value.length <= 8) return value
   return `${value.slice(0, 4)}…${value.slice(-4)}`
+}
+
+function isTaxInvoiceCancelAvailable(status: InvoiceTaxInvoiceStatus): boolean {
+  return status === 'requested' || status === 'issued' || status === 'cancel_requested'
+}
+
+function getTaxInvoiceCancelLabel(invoice: Invoice): string {
+  const meta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
+  const taxInvoice = meta.taxInvoice
+  if (meta.taxInvoiceStatus === 'cancel_requested') return '취소/상쇄 재시도'
+  if (taxInvoice?.ntsSendState === 1 || taxInvoice?.ntsSendState === 2) return '발급취소'
+  if (taxInvoice?.ntsConfirmNum || taxInvoice?.ntsSendState === 4) return '수정세금계산서 상쇄'
+  if (taxInvoice?.ntsSendState === 3) return '상쇄 대기 등록'
+  return '취소/상쇄 요청'
 }
 
 function getTaxInvoiceSummary(invoice: Invoice): { status: InvoiceTaxInvoiceStatus; label: string; cls: string; detail?: string } {
@@ -279,6 +294,7 @@ export function Invoices() {
   const [loadingTaxInvoiceId, setLoadingTaxInvoiceId] = useState<number | null>(null)
   const [requestingTaxInvoiceId, setRequestingTaxInvoiceId] = useState<number | null>(null)
   const [syncingTaxInvoiceId, setSyncingTaxInvoiceId] = useState<number | null>(null)
+  const [cancellingTaxInvoiceId, setCancellingTaxInvoiceId] = useState<number | null>(null)
   const [confirmingShipmentId, setConfirmingShipmentId] = useState<number | null>(null)
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<number>>(() => new Set())
   const [isBulkShipmentConfirming, setIsBulkShipmentConfirming] = useState(false)
@@ -848,6 +864,93 @@ export function Invoices() {
       toast.error(message)
     } finally {
       setSyncingTaxInvoiceId(null)
+    }
+  }
+
+  async function handleTaxInvoiceCancelRequest(inv: Invoice) {
+    const actionLabel = getTaxInvoiceCancelLabel(inv)
+    const ok = window.confirm(
+      `${actionLabel}을 진행할까요?\n\n` +
+      '국세청 전송 전이면 바로빌 발급취소를 실행하고, 국세청 전송 후이면 수정세금계산서 상쇄를 시도합니다.',
+    )
+    if (!ok) return
+
+    setCancellingTaxInvoiceId(inv.Id)
+    try {
+      const latestInvoice = await getInvoice(inv.Id)
+      const latestMeta = parseInvoiceAccountingMeta(latestInvoice.memo as string | undefined)
+      const currentStatus = latestMeta.taxInvoiceStatus ?? 'not_requested'
+      const providerMgtKey = latestMeta.taxInvoice?.mgtKey
+
+      if (!isTaxInvoiceCancelAvailable(currentStatus)) {
+        toast.info('현재 상태에서는 세금계산서 취소/상쇄를 요청할 수 없습니다')
+        return
+      }
+      if (!providerMgtKey) {
+        toast.error('바로빌 관리번호가 없어 취소/상쇄를 요청할 수 없습니다')
+        return
+      }
+
+      const result = await cancelBarobillTaxInvoice({
+        requestId: `barobill-cancel-${latestInvoice.Id}-${Date.now()}`,
+        invoiceId: latestInvoice.Id,
+        invoiceNo: latestInvoice.invoice_no,
+        idempotencyKey: latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+        providerMgtKey,
+        mode: latestMeta.taxInvoice?.mode ?? 'test',
+        cancelReason: 'CRM 관리자 요청',
+        requestedBy: 'crm-admin',
+      })
+      const statusCode = result.statusCode ??
+        (result.barobillState != null ? String(result.barobillState) : result.status)
+      const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
+        ...latestMeta,
+        taxInvoiceStatus: result.status,
+        taxInvoice: {
+          ...latestMeta.taxInvoice,
+          provider: 'barobill',
+          issueType: latestMeta.taxInvoice?.issueType ?? 'normal',
+          mode: result.mode,
+          mgtKey: result.mgtKey ?? result.providerMgtKey ?? latestMeta.taxInvoice?.mgtKey,
+          idempotencyKey: result.idempotencyKey ?? latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+          requestId: latestMeta.taxInvoice?.requestId ?? result.requestId,
+          lastStatusSyncedAt: result.syncedAt,
+          ntsConfirmNum: result.ntsConfirmNum ?? latestMeta.taxInvoice?.ntsConfirmNum,
+          statusCode,
+          barobillState: result.barobillState,
+          ntsSendState: result.ntsSendState,
+          ntsSendResult: result.ntsSendResult ?? latestMeta.taxInvoice?.ntsSendResult,
+          statusMessage: result.message,
+          cancellationRequestedAt: latestMeta.taxInvoice?.cancellationRequestedAt ?? result.syncedAt,
+          cancellationRequestedBy: 'crm-admin',
+          cancellationReason: 'CRM 관리자 요청',
+          cancellationMethod: result.cancellationMethod as InvoiceTaxInvoiceMeta['cancellationMethod'],
+          cancellationPending: result.status === 'cancel_requested',
+          cancellationPendingReason: result.status === 'cancel_requested' ? 'NTS_RESULT_PENDING' : undefined,
+          cancelledAt: result.cancelledAt ?? latestMeta.taxInvoice?.cancelledAt,
+          amendmentMgtKey: result.amendmentMgtKey ?? latestMeta.taxInvoice?.amendmentMgtKey,
+          amendmentRequestId: result.action?.includes('amendment') ? result.requestId : latestMeta.taxInvoice?.amendmentRequestId,
+          amendmentIssuedAt: result.amendmentIssuedAt ?? latestMeta.taxInvoice?.amendmentIssuedAt,
+          errorCode: result.errorCode,
+          errorMessage: result.errorMessage,
+        },
+      })
+      const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
+      setTaxInvoiceDetailInvoice(updatedInvoice)
+      invalidateTaxInvoiceViews(updatedInvoice.Id)
+
+      if (result.status === 'cancelled') {
+        toast.success('세금계산서 발급취소가 완료되었습니다')
+      } else if (result.status === 'amended') {
+        toast.success('수정세금계산서 상쇄 발급이 완료되었습니다')
+      } else {
+        toast.info(result.message || '취소/상쇄 대기 상태로 저장했습니다')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '세금계산서 취소/상쇄 요청에 실패했습니다'
+      toast.error(message)
+    } finally {
+      setCancellingTaxInvoiceId(null)
     }
   }
 
@@ -1872,6 +1975,9 @@ export function Invoices() {
         const meta = parseInvoiceAccountingMeta(taxInvoiceDetailInvoice.memo as string | undefined)
         const taxInvoice = meta.taxInvoice
         const isSyncing = syncingTaxInvoiceId === taxInvoiceDetailInvoice.Id
+        const isCancelling = cancellingTaxInvoiceId === taxInvoiceDetailInvoice.Id
+        const cancelAvailable = isTaxInvoiceCancelAvailable(summary.status) && Boolean(taxInvoice?.mgtKey)
+        const cancelLabel = getTaxInvoiceCancelLabel(taxInvoiceDetailInvoice)
         return (
           <Dialog open={!!taxInvoiceDetailInvoice} onOpenChange={(open) => {
             if (!open) setTaxInvoiceDetailInvoice(null)
@@ -1883,7 +1989,7 @@ export function Invoices() {
                   세금계산서 발급내역
                 </DialogTitle>
                 <DialogDescription>
-                  바로빌 테스트환경 발급/상태조회 webhook 결과와 저장된 요청 메타입니다.
+                  바로빌 발급/상태조회/취소·수정 webhook 결과와 저장된 요청 메타입니다.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -1921,7 +2027,15 @@ export function Invoices() {
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">국세청 승인번호</dt>
-                    <dd className="font-mono">{taxInvoice?.ntsConfirmNum ?? '-'}</dd>
+                    <dd className="font-mono">{getMaskedConfirmNumber(taxInvoice?.ntsConfirmNum) ?? '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">취소/상쇄 방식</dt>
+                    <dd>{taxInvoice?.cancellationMethod ?? '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">수정 관리번호</dt>
+                    <dd className="max-w-[280px] truncate font-mono">{taxInvoice?.amendmentMgtKey ?? '-'}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">메일/문자</dt>
@@ -1932,7 +2046,7 @@ export function Invoices() {
                 </dl>
 
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                  취소 요청과 실제 발급 execute는 2차 승인 흐름과 n8n idempotency 검증 후 활성화합니다.
+                  취소/상쇄는 공식문서 기준으로 자동 분기됩니다. 국세청 전송 전이면 발급취소, 전송완료 후이면 수정세금계산서 상쇄, 전송중이면 대기 상태로 저장합니다.
                 </div>
               </div>
               <DialogFooter>
@@ -1945,8 +2059,12 @@ export function Invoices() {
                   <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                   {isSyncing ? '확인 중...' : '상태 새로고침'}
                 </Button>
-                <Button variant="outline" disabled>
-                  취소 요청 준비
+                <Button
+                  variant="outline"
+                  disabled={!cancelAvailable || isCancelling}
+                  onClick={() => void handleTaxInvoiceCancelRequest(taxInvoiceDetailInvoice)}
+                >
+                  {isCancelling ? '처리 중...' : cancelLabel}
                 </Button>
               </DialogFooter>
             </DialogContent>

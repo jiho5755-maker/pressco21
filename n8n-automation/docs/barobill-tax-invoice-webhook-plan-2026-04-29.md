@@ -367,6 +367,33 @@ BAROBILL_CERTKEY=... BAROBILL_CORP_NUM=2150552221 \
 - 실제 테스트 정발급 성공을 위해서는 테스트 서버에 해당 사업자 공동인증서 등록/재등록이 먼저 필요하다.
 - 운영 발급 금지는 유지한다.
 
+### 13.2 테스트 공동인증서 등록 후 smoke 성공 (2026-04-29)
+
+2026-04-29에 `GetBaroBillURL`의 `TOGO=CERT` 방식으로 테스트환경 공동인증서 등록을 완료한 뒤, 동일 테스트 인증키/사업자번호로 smoke test를 재실행했다.
+
+사용 도구:
+
+```bash
+python3 n8n-automation/_tools/barobill/soap-smoke-test.py --issue
+```
+
+결과 요약:
+
+- 테스트 서버 URL: `https://testws.baroservice.com/TI.asmx`
+- `CheckCorpIsMember`: `1` — 회원사 확인 성공
+- `CheckCERTIsValid`: `1` — 공동인증서 유효성 확인 성공
+- `GetBalanceCostAmount`: `10000` — 테스트 잔액 확인
+- `RegistAndIssueTaxInvoice`: `1` — 테스트 세금계산서 발급 요청 성공
+- 테스트 관리번호: `PCTEST-120215-0429120215`
+- `GetTaxInvoiceStateEX`: `BarobillState=3014`, `NTSSendState=1`, 테스트 국세청 승인번호 형태의 `NTSSendKey` 확인
+
+판단:
+
+- 테스트환경 공동인증서 등록이 완료되어 테스트 SOAP 정발급 path가 동작한다.
+- 이후 CRM/n8n 버튼 발급 테스트는 같은 테스트 runtime 환경변수와 현재 workflow adapter를 사용하면 된다.
+- 운영환경은 테스트환경과 별도 DB이므로 운영 전환 시 운영 바로빌에 공동인증서를 다시 1회 등록해야 한다.
+- 운영 발급 금지는 유지한다.
+
 ## 14. 테스트 인증키 환경변수 운영 방식
 
 2026-04-29에 테스트 인증키를 로컬 개발 환경에 영속 설정했다. 실제 인증키 값은 Git, 문서, handoff에 기록하지 않는다.

@@ -1,0 +1,25 @@
+{
+  "execute": true,
+  "request": {
+    "method": "PUT",
+    "path": "/rest/prodservices/stockqty/39437284752",
+    "body": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?>\n<ProductStock>\n  <prdNo>8236631707</prdNo>\n  <prdStckNo>39437284752</prdStckNo>\n  <stckQty>0</stckQty>\n  <optWght>0</optWght>\n</ProductStock>"
+  },
+  "response": {
+    "status_code": 200,
+    "root": "ClientMessage",
+    "resultCode": "200",
+    "message": "옵션재고 번호 : 39437284752(상품번호: 8236631707)의 수량이 업데이트 되었습니다. 변경된 수량 : 0",
+    "productNo": "39437284752",
+    "data": {
+      "message": "옵션재고 번호 : 39437284752(상품번호: 8236631707)의 수량이 업데이트 되었습니다. 변경된 수량 : 0",
+      "preSelPrc": "0",
+      "productNo": "39437284752",
+      "resultCode": "200"
+    },
+    "request": {
+      "method": "PUT",
+      "url": "https://api.11st.co.kr/rest/prodservices/stockqty/39437284752"
+    }
+  }
+}

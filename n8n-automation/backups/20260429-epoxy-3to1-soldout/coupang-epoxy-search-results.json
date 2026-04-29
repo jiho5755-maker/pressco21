@@ -1,0 +1,46 @@
+[
+  {
+    "term": "3:1 에폭시",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777425627116,
+      "status": 403
+    }
+  },
+  {
+    "term": "에폭시레진",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777425627396,
+      "status": 403
+    }
+  },
+  {
+    "term": "에폭시",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777425627670,
+      "status": 403
+    }
+  },
+  {
+    "term": "3:1",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777425627926,
+      "status": 403
+    }
+  }
+]

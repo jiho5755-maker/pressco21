@@ -1,0 +1,49 @@
+{
+  "status_code": 200,
+  "root": "ProductStocks",
+  "stocks": [
+    {
+      "addPrc": "0",
+      "mixDtlOptNm": "3:1 에폭시레진_1000g",
+      "mixOptNm": "종류",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236634127",
+      "prdStckNo": "39437294199",
+      "prdStckStatCd": "01",
+      "selQty": "20",
+      "sellerStockCd": "",
+      "stckQty": "9973"
+    },
+    {
+      "addPrc": "-12500",
+      "mixDtlOptNm": "1:1 에폭시레진_200g",
+      "mixOptNm": "종류",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236634127",
+      "prdStckNo": "39437294201",
+      "prdStckStatCd": "01",
+      "selQty": "6",
+      "sellerStockCd": "",
+      "stckQty": "9991"
+    },
+    {
+      "addPrc": "3000",
+      "mixDtlOptNm": "1:1 에폭시레진_1000g",
+      "mixOptNm": "종류",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236634127",
+      "prdStckNo": "39437294202",
+      "prdStckStatCd": "01",
+      "selQty": "5",
+      "sellerStockCd": "",
+      "stckQty": "9992"
+    }
+  ],
+  "request": {
+    "method": "GET",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/8236634127"
+  }
+}

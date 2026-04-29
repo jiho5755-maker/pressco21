@@ -1,0 +1,125 @@
+{
+  "return_code": "0000",
+  "datas": [
+    {
+      "result": true,
+      "product_id": "11701355",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11701043",
+      "stock_id": "15"
+    },
+    {
+      "result": true,
+      "product_id": "11700977",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11700858",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11700523",
+      "stock_id": "4"
+    },
+    {
+      "result": true,
+      "product_id": "11700523",
+      "stock_id": "15"
+    },
+    {
+      "result": true,
+      "product_id": "11700453",
+      "stock_id": "12"
+    },
+    {
+      "result": true,
+      "product_id": "11700452",
+      "stock_id": "2"
+    },
+    {
+      "result": true,
+      "product_id": "11700452",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11700449",
+      "stock_id": "2"
+    },
+    {
+      "result": true,
+      "product_id": "11700448",
+      "stock_id": "2"
+    },
+    {
+      "result": true,
+      "product_id": "11700448",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11700143",
+      "stock_id": "50"
+    },
+    {
+      "result": true,
+      "product_id": "11700142",
+      "stock_id": "32"
+    },
+    {
+      "result": true,
+      "product_id": "11700141",
+      "stock_id": "50"
+    },
+    {
+      "result": true,
+      "product_id": "11700140",
+      "stock_id": "15"
+    },
+    {
+      "result": true,
+      "product_id": "11700113",
+      "stock_id": "14"
+    },
+    {
+      "result": true,
+      "product_id": "11700113",
+      "stock_id": "15"
+    },
+    {
+      "result": true,
+      "product_id": "11700076",
+      "stock_id": "50"
+    },
+    {
+      "result": true,
+      "product_id": "11700075",
+      "stock_id": "15"
+    },
+    {
+      "result": true,
+      "product_id": "11699994",
+      "stock_id": "4"
+    },
+    {
+      "result": true,
+      "product_id": "11698155",
+      "stock_id": "2"
+    },
+    {
+      "result": true,
+      "product_id": "11698155",
+      "stock_id": "3"
+    },
+    {
+      "result": true,
+      "product_id": "11616091",
+      "stock_id": "11"
+    }
+  ]
+}

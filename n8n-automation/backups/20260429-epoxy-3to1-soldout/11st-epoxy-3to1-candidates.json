@@ -1,0 +1,100 @@
+[
+  {
+    "product": {
+      "prdNo": "8813274437",
+      "prdNm": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+      "selStatCd": "103",
+      "selStatNm": "판매중",
+      "sellerPrdCd": "",
+      "selPrc": "18500"
+    },
+    "target_stocks": [
+      {
+        "addPrc": "0",
+        "mixDtlOptNm": "3:1 에폭시레진_1kg",
+        "mixOptNm": "종류",
+        "mixOptNo": "1",
+        "optWght": "0",
+        "prdNo": "8813274437",
+        "prdStckNo": "42942345243",
+        "prdStckStatCd": "01",
+        "selQty": "0",
+        "sellerStockCd": "",
+        "stckQty": "9999"
+      }
+    ]
+  },
+  {
+    "product": {
+      "prdNo": "8236629683",
+      "prdNm": "프레스코21 투명 3:1 에폭시 레진 1kg 2액형 레진 공예 아트 재료",
+      "selStatCd": "103",
+      "selStatNm": "판매중",
+      "sellerPrdCd": "1277",
+      "selPrc": "45800"
+    },
+    "target_stocks": [
+      {
+        "addPrc": "0",
+        "mixOptNo": "0",
+        "optWght": "0",
+        "prdNo": "8236629683",
+        "prdStckNo": "39437275440",
+        "prdStckStatCd": "01",
+        "selQty": "0",
+        "sellerStockCd": "",
+        "stckQty": "91"
+      }
+    ]
+  },
+  {
+    "product": {
+      "prdNo": "8236631707",
+      "prdNm": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+      "selStatCd": "107",
+      "selStatNm": "판매강제종료",
+      "sellerPrdCd": "",
+      "selPrc": "32000"
+    },
+    "target_stocks": [
+      {
+        "addPrc": "12500",
+        "mixDtlOptNm": "3:1 에폭시레진_1000g",
+        "mixOptNm": "종류",
+        "mixOptNo": "1",
+        "optWght": "0",
+        "prdNo": "8236631707",
+        "prdStckNo": "39437284752",
+        "prdStckStatCd": "01",
+        "selQty": "21",
+        "sellerStockCd": "",
+        "stckQty": "99951"
+      }
+    ]
+  },
+  {
+    "product": {
+      "prdNo": "8236634127",
+      "prdNm": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+      "selStatCd": "107",
+      "selStatNm": "판매강제종료",
+      "sellerPrdCd": "",
+      "selPrc": "25000"
+    },
+    "target_stocks": [
+      {
+        "addPrc": "0",
+        "mixDtlOptNm": "3:1 에폭시레진_1000g",
+        "mixOptNm": "종류",
+        "mixOptNo": "1",
+        "optWght": "0",
+        "prdNo": "8236634127",
+        "prdStckNo": "39437294199",
+        "prdStckStatCd": "01",
+        "selQty": "20",
+        "sellerStockCd": "",
+        "stckQty": "9973"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1883 @@
+{
+  "candidate_count": 13,
+  "candidates": [
+    {
+      "originProductNo": 11449647875,
+      "search": {
+        "originProductNo": 11449647875,
+        "channelProducts": [
+          {
+            "originProductNo": 11449647875,
+            "channelProductNo": 11503304325,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+            "statusType": "OUTOFSTOCK",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 25000,
+            "discountedPrice": 18500,
+            "mobileDiscountedPrice": 18500,
+            "stockQuantity": 19982,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "textReviewPoint": 10,
+            "photoVideoReviewPoint": 10,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20241119_128/1732000336352ygLuQ_JPEG/21381696124310581_1938223721.jpg"
+            },
+            "modelName": "에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "프레스코21",
+            "sellerTags": [
+              {
+                "code": 496867,
+                "text": "압화재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              },
+              {
+                "code": 752293,
+                "text": "수업용"
+              },
+              {
+                "code": 1836185,
+                "text": "어린이만들기재료"
+              },
+              {
+                "code": 520837,
+                "text": "어린이만들기놀이"
+              },
+              {
+                "code": 3687288,
+                "text": "학생만들기재료"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 333088,
+                "text": "레진공예"
+              }
+            ],
+            "regDate": "2025-02-21T17:19:02.657+09:00",
+            "modifiedDate": "2026-04-15T10:16:13.669+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 200,
+      "detail": {
+        "originProduct": {
+          "statusType": "OUTOFSTOCK",
+          "saleType": "NEW",
+          "leafCategoryId": "50000375",
+          "name": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+          "detailContent": "[OMITTED]",
+          "images": {
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20241119_128/1732000336352ygLuQ_JPEG/21381696124310581_1938223721.jpg"
+            },
+            "optionalImages": [
+              {
+                "url": "https://shop-phinf.pstatic.net/20250221_75/17401258549778vwy6_JPEG/2496322107708624_1468813214.jpeg"
+              }
+            ]
+          },
+          "salePrice": 25000,
+          "stockQuantity": 19982,
+          "deliveryInfo": {
+            "deliveryType": "DELIVERY",
+            "deliveryAttributeType": "TODAY",
+            "deliveryCompany": "HANJIN",
+            "deliveryBundleGroupUsable": true,
+            "deliveryBundleGroupId": 3154053,
+            "deliveryFee": {
+              "deliveryFeeType": "CONDITIONAL_FREE",
+              "baseFee": 3000,
+              "freeConditionalAmount": 80000,
+              "deliveryFeePayType": "COLLECT_OR_PREPAID"
+            },
+            "claimDeliveryInfo": {
+              "returnDeliveryCompanyPriorityType": "PRIMARY",
+              "returnDeliveryFee": 3000,
+              "exchangeDeliveryFee": 6000,
+              "shippingAddressId": 1189117,
+              "returnAddressId": 1189118,
+              "freeReturnInsuranceYn": false
+            },
+            "installationFee": false
+          },
+          "detailAttribute": {
+            "naverShoppingSearchInfo": {
+              "modelName": "에폭시레진",
+              "manufacturerName": "프레스코21",
+              "brandName": "프레스코21",
+              "catalogMatchingYn": false
+            },
+            "afterServiceInfo": {
+              "afterServiceTelephoneNumber": "02-403-5007",
+              "afterServiceGuideContent": "- 칼라액,풀한지(필름지)와 같은 종이류등은 반품이 되지 않습니다.\n\n\n\n- 쇼핑몰에서 공급중인 압화재료는 일정수준 제작기법 습득을 필요로 합니다\n\n- 사용방법(전화통화로 가능한 간단한 제작 및 사용방법) 및 기타 문의\n\n- 는 프레스코21(02-403-4012), 메일등을 통해 문의해 주시기 바랍니다 \n\n\n\n- 주문하신 상품이 파손/손상되었거나 불량 제품일 경우에는 \n\n- 공급받는 날로부터 7일 이내에 프레스코21과 상담후 교환 및 반품이\n\n- 가능하며 수거 및 재발송 비용은 프레스코21이 부담합니다. \n\n- 단, 고객님의 단순 변심 또는 색상, 규격 변경으로 인한 교환 반품은\n\n- 7일 이내에 교환/반품 가능하며 수거 및 재발송 비용을\n\n- 고객님께서 부담하셔야 합니다."
+            },
+            "originAreaInfo": {
+              "originAreaCode": "04",
+              "content": "대한민국+기타(아시아)",
+              "plural": false
+            },
+            "optionInfo": {
+              "simpleOptionSortType": "CREATE",
+              "optionSimple": [],
+              "optionCustom": [],
+              "optionCombinationSortType": "CREATE",
+              "optionCombinationGroupNames": {
+                "optionGroupName1": "종류"
+              },
+              "optionCombinations": [
+                {
+                  "id": 47182637762,
+                  "stockQuantity": 0,
+                  "price": 0,
+                  "usable": true,
+                  "optionName1": "3:1 에폭시레진_1000g"
+                },
+                {
+                  "id": 47182637763,
+                  "stockQuantity": 9997,
+                  "price": -12500,
+                  "usable": true,
+                  "optionName1": "1:1 에폭시레진_200g"
+                },
+                {
+                  "id": 47182637764,
+                  "stockQuantity": 9985,
+                  "price": 3000,
+                  "usable": true,
+                  "optionName1": "1:1 에폭시레진_1000g"
+                }
+              ],
+              "standardOptionGroups": [],
+              "optionStandards": [],
+              "useStockManagement": true,
+              "optionDeliveryAttributes": []
+            },
+            "supplementProductInfo": {
+              "sortType": "CREATE",
+              "supplementProducts": [
+                {
+                  "id": 3055056059,
+                  "groupName": "관련 재료 구매",
+                  "name": "초정밀저울",
+                  "price": 7000,
+                  "stockQuantity": 9997,
+                  "usable": true
+                },
+                {
+                  "id": 3055056060,
+                  "groupName": "관련 재료 구매",
+                  "name": "토치",
+                  "price": 12000,
+                  "stockQuantity": 9998,
+                  "usable": true
+                },
+                {
+                  "id": 3055056061,
+                  "groupName": "관련 재료 구매",
+                  "name": "나무스틱(50개)_소",
+                  "price": 1500,
+                  "stockQuantity": 9994,
+                  "usable": true
+                },
+                {
+                  "id": 3055056062,
+                  "groupName": "관련 재료 구매",
+                  "name": "나무스틱(50개)_대",
+                  "price": 1600,
+                  "stockQuantity": 9999,
+                  "usable": true
+                },
+                {
+                  "id": 3055056063,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘계량컵 100ml",
+                  "price": 1200,
+                  "stockQuantity": 9992,
+                  "usable": true
+                },
+                {
+                  "id": 3055056064,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘계량컵 250ml",
+                  "price": 3000,
+                  "stockQuantity": 9996,
+                  "usable": true
+                },
+                {
+                  "id": 3055056065,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘주걱_소",
+                  "price": 1500,
+                  "stockQuantity": 9994,
+                  "usable": true
+                }
+              ]
+            },
+            "purchaseReviewInfo": {
+              "purchaseReviewExposure": true
+            },
+            "eventPhraseCont": "국내 최초 압화 전문 쇼핑몰 첫구매 시 5프로 할인 쿠폰 증정",
+            "taxType": "TAX",
+            "certificationTargetExcludeContent": {
+              "kcCertifiedProductExclusionYn": "TRUE"
+            },
+            "sellerCommentUsable": false,
+            "minorPurchasable": true,
+            "productInfoProvidedNotice": {
+              "productInfoProvidedNoticeType": "ETC",
+              "etc": {
+                "returnCostReason": "0",
+                "noRefundReason": "0",
+                "qualityAssuranceStandard": "0",
+                "compensationProcedure": "0",
+                "troubleShootingContents": "0",
+                "itemName": "실리콘몰드",
+                "modelName": "실리콘몰드",
+                "manufacturer": "프레스코21",
+                "customerServicePhoneNumber": "02-403-5007"
+              }
+            },
+            "itselfProductionProductYn": false,
+            "seoInfo": {
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ]
+            }
+          },
+          "customerBenefit": {
+            "immediateDiscountPolicy": {
+              "discountMethod": {
+                "value": 6500,
+                "unitType": "WON"
+              }
+            },
+            "reviewPointPolicy": {
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "afterUseTextReviewPoint": 100,
+              "afterUsePhotoVideoReviewPoint": 190
+            }
+          }
+        },
+        "smartstoreChannelProduct": {
+          "storeKeepExclusiveProduct": false,
+          "naverShoppingRegistration": true,
+          "channelProductDisplayStatusType": "ON"
+        }
+      },
+      "summary": {
+        "statusType": "OUTOFSTOCK",
+        "salePrice": 25000,
+        "stockQuantity": 19982,
+        "useStockManagement": true,
+        "optionGroupNames": {
+          "optionGroupName1": "종류"
+        },
+        "optionCombinations": [
+          {
+            "id": 47182637762,
+            "optionName1": "3:1 에폭시레진_1000g",
+            "stockQuantity": 0,
+            "price": 0,
+            "usable": true
+          },
+          {
+            "id": 47182637763,
+            "optionName1": "1:1 에폭시레진_200g",
+            "stockQuantity": 9997,
+            "price": -12500,
+            "usable": true
+          },
+          {
+            "id": 47182637764,
+            "optionName1": "1:1 에폭시레진_1000g",
+            "stockQuantity": 9985,
+            "price": 3000,
+            "usable": true
+          }
+        ],
+        "supplementProducts": [
+          {
+            "id": 3055056059,
+            "name": "초정밀저울",
+            "stockQuantity": 9997,
+            "price": 7000,
+            "usable": true
+          },
+          {
+            "id": 3055056060,
+            "name": "토치",
+            "stockQuantity": 9998,
+            "price": 12000,
+            "usable": true
+          },
+          {
+            "id": 3055056061,
+            "name": "나무스틱(50개)_소",
+            "stockQuantity": 9994,
+            "price": 1500,
+            "usable": true
+          },
+          {
+            "id": 3055056062,
+            "name": "나무스틱(50개)_대",
+            "stockQuantity": 9999,
+            "price": 1600,
+            "usable": true
+          },
+          {
+            "id": 3055056063,
+            "name": "실리콘계량컵 100ml",
+            "stockQuantity": 9992,
+            "price": 1200,
+            "usable": true
+          },
+          {
+            "id": 3055056064,
+            "name": "실리콘계량컵 250ml",
+            "stockQuantity": 9996,
+            "price": 3000,
+            "usable": true
+          },
+          {
+            "id": 3055056065,
+            "name": "실리콘주걱_소",
+            "stockQuantity": 9994,
+            "price": 1500,
+            "usable": true
+          }
+        ]
+      }
+    },
+    {
+      "originProductNo": 11097676627,
+      "search": {
+        "originProductNo": 11097676627,
+        "channelProducts": [
+          {
+            "originProductNo": 11097676627,
+            "channelProductNo": 11150215541,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 32000,
+            "discountedPrice": 6000,
+            "mobileDiscountedPrice": 6000,
+            "stockQuantity": 199880,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "textReviewPoint": 10,
+            "photoVideoReviewPoint": 10,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20241126_50/17326211797573j8uD_JPEG/77958060547483952_75912028.JPG"
+            },
+            "modelName": "에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "프레스코21",
+            "sellerTags": [
+              {
+                "code": 496867,
+                "text": "압화재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              },
+              {
+                "code": 752293,
+                "text": "수업용"
+              },
+              {
+                "code": 1836185,
+                "text": "어린이만들기재료"
+              },
+              {
+                "code": 520837,
+                "text": "어린이만들기놀이"
+              },
+              {
+                "code": 3687288,
+                "text": "학생만들기재료"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 333088,
+                "text": "레진공예"
+              }
+            ],
+            "regDate": "2024-11-19T16:13:53.349+09:00",
+            "modifiedDate": "2026-04-15T10:16:26.791+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 200,
+      "detail": {
+        "originProduct": {
+          "statusType": "SALE",
+          "saleType": "NEW",
+          "leafCategoryId": "50000375",
+          "name": "에폭시레진 크리스탈 투명 레진 공예 재료 2액형 3:1, 1:1",
+          "detailContent": "[OMITTED]",
+          "images": {
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20241126_50/17326211797573j8uD_JPEG/77958060547483952_75912028.JPG"
+            },
+            "optionalImages": [
+              {
+                "url": "https://shop-phinf.pstatic.net/20241119_128/1732000336352ygLuQ_JPEG/21381696124310581_1938223721.jpg"
+              }
+            ]
+          },
+          "salePrice": 32000,
+          "stockQuantity": 199880,
+          "deliveryInfo": {
+            "deliveryType": "DELIVERY",
+            "deliveryAttributeType": "TODAY",
+            "deliveryCompany": "HANJIN",
+            "deliveryBundleGroupUsable": true,
+            "deliveryBundleGroupId": 3154053,
+            "deliveryFee": {
+              "deliveryFeeType": "CONDITIONAL_FREE",
+              "baseFee": 3000,
+              "freeConditionalAmount": 80000,
+              "deliveryFeePayType": "COLLECT_OR_PREPAID"
+            },
+            "claimDeliveryInfo": {
+              "returnDeliveryCompanyPriorityType": "PRIMARY",
+              "returnDeliveryFee": 3000,
+              "exchangeDeliveryFee": 6000,
+              "shippingAddressId": 1189117,
+              "returnAddressId": 1189118,
+              "freeReturnInsuranceYn": false
+            },
+            "installationFee": false
+          },
+          "detailAttribute": {
+            "naverShoppingSearchInfo": {
+              "modelName": "에폭시레진",
+              "manufacturerName": "프레스코21",
+              "brandName": "프레스코21",
+              "catalogMatchingYn": false
+            },
+            "afterServiceInfo": {
+              "afterServiceTelephoneNumber": "02-403-5007",
+              "afterServiceGuideContent": "- 칼라액,풀한지(필름지)와 같은 종이류등은 반품이 되지 않습니다.\n\n\n\n- 쇼핑몰에서 공급중인 압화재료는 일정수준 제작기법 습득을 필요로 합니다\n\n- 사용방법(전화통화로 가능한 간단한 제작 및 사용방법) 및 기타 문의\n\n- 는 프레스코21(02-403-4012), 메일등을 통해 문의해 주시기 바랍니다 \n\n\n\n- 주문하신 상품이 파손/손상되었거나 불량 제품일 경우에는 \n\n- 공급받는 날로부터 7일 이내에 프레스코21과 상담후 교환 및 반품이\n\n- 가능하며 수거 및 재발송 비용은 프레스코21이 부담합니다. \n\n- 단, 고객님의 단순 변심 또는 색상, 규격 변경으로 인한 교환 반품은\n\n- 7일 이내에 교환/반품 가능하며 수거 및 재발송 비용을\n\n- 고객님께서 부담하셔야 합니다."
+            },
+            "originAreaInfo": {
+              "originAreaCode": "04",
+              "content": "대한민국+기타(아시아)",
+              "plural": false
+            },
+            "optionInfo": {
+              "simpleOptionSortType": "CREATE",
+              "optionSimple": [],
+              "optionCustom": [],
+              "optionCombinationSortType": "CREATE",
+              "optionCombinationGroupNames": {
+                "optionGroupName1": "종류"
+              },
+              "optionCombinations": [
+                {
+                  "id": 45445173849,
+                  "stockQuantity": 99924,
+                  "price": 0,
+                  "usable": true,
+                  "optionName1": "1:1 에폭시레진_200g"
+                },
+                {
+                  "id": 45445173850,
+                  "stockQuantity": 99956,
+                  "price": 15500,
+                  "usable": true,
+                  "optionName1": "1:1 에폭시레진_1000g"
+                },
+                {
+                  "id": 45445173851,
+                  "stockQuantity": 0,
+                  "price": 12500,
+                  "usable": true,
+                  "optionName1": "3:1 에폭시레진_1000g"
+                }
+              ],
+              "standardOptionGroups": [],
+              "optionStandards": [],
+              "useStockManagement": true,
+              "optionDeliveryAttributes": []
+            },
+            "supplementProductInfo": {
+              "sortType": "CREATE",
+              "supplementProducts": [
+                {
+                  "id": 2946329512,
+                  "groupName": "관련 재료 구매",
+                  "name": "초정밀저울",
+                  "price": 7000,
+                  "stockQuantity": 9996,
+                  "usable": true
+                },
+                {
+                  "id": 2946329513,
+                  "groupName": "관련 재료 구매",
+                  "name": "토치",
+                  "price": 12000,
+                  "stockQuantity": 9996,
+                  "usable": true
+                },
+                {
+                  "id": 2946329514,
+                  "groupName": "관련 재료 구매",
+                  "name": "나무스틱(50개)_소",
+                  "price": 1500,
+                  "stockQuantity": 9993,
+                  "usable": true
+                },
+                {
+                  "id": 2946329515,
+                  "groupName": "관련 재료 구매",
+                  "name": "나무스틱(50개)_대",
+                  "price": 1600,
+                  "stockQuantity": 9997,
+                  "usable": true
+                },
+                {
+                  "id": 2946329516,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘계량컵 100ml",
+                  "price": 1200,
+                  "stockQuantity": 9990,
+                  "usable": true
+                },
+                {
+                  "id": 2946329517,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘계량컵 250ml",
+                  "price": 3000,
+                  "stockQuantity": 9996,
+                  "usable": true
+                },
+                {
+                  "id": 2946329518,
+                  "groupName": "관련 재료 구매",
+                  "name": "실리콘주걱_소",
+                  "price": 1500,
+                  "stockQuantity": 9994,
+                  "usable": true
+                }
+              ]
+            },
+            "purchaseReviewInfo": {
+              "purchaseReviewExposure": true
+            },
+            "eventPhraseCont": "국내 최초 압화 전문 쇼핑몰 첫구매 시 5프로 할인 쿠폰 증정",
+            "taxType": "TAX",
+            "certificationTargetExcludeContent": {
+              "kcCertifiedProductExclusionYn": "TRUE"
+            },
+            "sellerCommentUsable": false,
+            "minorPurchasable": true,
+            "productInfoProvidedNotice": {
+              "productInfoProvidedNoticeType": "ETC",
+              "etc": {
+                "returnCostReason": "0",
+                "noRefundReason": "0",
+                "qualityAssuranceStandard": "0",
+                "compensationProcedure": "0",
+                "troubleShootingContents": "0",
+                "itemName": "실리콘몰드",
+                "modelName": "실리콘몰드",
+                "manufacturer": "프레스코21",
+                "customerServicePhoneNumber": "02-403-5007"
+              }
+            },
+            "itselfProductionProductYn": false,
+            "seoInfo": {
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ]
+            }
+          },
+          "customerBenefit": {
+            "immediateDiscountPolicy": {
+              "discountMethod": {
+                "value": 26000,
+                "unitType": "WON"
+              }
+            },
+            "reviewPointPolicy": {
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "afterUseTextReviewPoint": 100,
+              "afterUsePhotoVideoReviewPoint": 190
+            }
+          }
+        },
+        "smartstoreChannelProduct": {
+          "storeKeepExclusiveProduct": false,
+          "naverShoppingRegistration": true,
+          "channelProductDisplayStatusType": "ON"
+        }
+      },
+      "summary": {
+        "statusType": "SALE",
+        "salePrice": 32000,
+        "stockQuantity": 199880,
+        "useStockManagement": true,
+        "optionGroupNames": {
+          "optionGroupName1": "종류"
+        },
+        "optionCombinations": [
+          {
+            "id": 45445173849,
+            "optionName1": "1:1 에폭시레진_200g",
+            "stockQuantity": 99924,
+            "price": 0,
+            "usable": true
+          },
+          {
+            "id": 45445173850,
+            "optionName1": "1:1 에폭시레진_1000g",
+            "stockQuantity": 99956,
+            "price": 15500,
+            "usable": true
+          },
+          {
+            "id": 45445173851,
+            "optionName1": "3:1 에폭시레진_1000g",
+            "stockQuantity": 0,
+            "price": 12500,
+            "usable": true
+          }
+        ],
+        "supplementProducts": [
+          {
+            "id": 2946329512,
+            "name": "초정밀저울",
+            "stockQuantity": 9996,
+            "price": 7000,
+            "usable": true
+          },
+          {
+            "id": 2946329513,
+            "name": "토치",
+            "stockQuantity": 9996,
+            "price": 12000,
+            "usable": true
+          },
+          {
+            "id": 2946329514,
+            "name": "나무스틱(50개)_소",
+            "stockQuantity": 9993,
+            "price": 1500,
+            "usable": true
+          },
+          {
+            "id": 2946329515,
+            "name": "나무스틱(50개)_대",
+            "stockQuantity": 9997,
+            "price": 1600,
+            "usable": true
+          },
+          {
+            "id": 2946329516,
+            "name": "실리콘계량컵 100ml",
+            "stockQuantity": 9990,
+            "price": 1200,
+            "usable": true
+          },
+          {
+            "id": 2946329517,
+            "name": "실리콘계량컵 250ml",
+            "stockQuantity": 9996,
+            "price": 3000,
+            "usable": true
+          },
+          {
+            "id": 2946329518,
+            "name": "실리콘주걱_소",
+            "stockQuantity": 9994,
+            "price": 1500,
+            "usable": true
+          }
+        ]
+      }
+    },
+    {
+      "originProductNo": 9777145854,
+      "search": {
+        "originProductNo": 9777145854,
+        "channelProducts": [
+          {
+            "originProductNo": 9777145854,
+            "channelProductNo": 9823938311,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(Quick coat) 946ml 고점도 레진 공예",
+            "sellerManagementCode": "1277",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 91000,
+            "discountedPrice": 81000,
+            "mobileDiscountedPrice": 81000,
+            "stockQuantity": 988,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_223/1705453357251dfVpO_JPEG/106589252971660455_1886732140.jpg"
+            },
+            "modelName": "어에미징에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2024-01-17T10:02:59.472+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 200,
+      "detail": {
+        "originProduct": {
+          "statusType": "SALE",
+          "saleType": "NEW",
+          "leafCategoryId": "50000375",
+          "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(Quick coat) 946ml 고점도 레진 공예",
+          "detailContent": "[OMITTED]",
+          "images": {
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_223/1705453357251dfVpO_JPEG/106589252971660455_1886732140.jpg"
+            },
+            "optionalImages": []
+          },
+          "salePrice": 91000,
+          "stockQuantity": 988,
+          "deliveryInfo": {
+            "deliveryType": "DELIVERY",
+            "deliveryAttributeType": "TODAY",
+            "deliveryCompany": "HANJIN",
+            "deliveryBundleGroupUsable": true,
+            "deliveryBundleGroupId": 3154053,
+            "deliveryFee": {
+              "deliveryFeeType": "CONDITIONAL_FREE",
+              "baseFee": 3000,
+              "freeConditionalAmount": 80000,
+              "deliveryFeePayType": "COLLECT_OR_PREPAID"
+            },
+            "claimDeliveryInfo": {
+              "returnDeliveryCompanyPriorityType": "PRIMARY",
+              "returnDeliveryFee": 3000,
+              "exchangeDeliveryFee": 6000,
+              "shippingAddressId": 1189117,
+              "returnAddressId": 1189118,
+              "freeReturnInsuranceYn": false
+            },
+            "installationFee": false
+          },
+          "detailAttribute": {
+            "naverShoppingSearchInfo": {
+              "modelName": "어에미징에폭시레진",
+              "manufacturerName": "Amazing",
+              "brandName": "프레스코21",
+              "catalogMatchingYn": false
+            },
+            "afterServiceInfo": {
+              "afterServiceTelephoneNumber": "02-403-5007",
+              "afterServiceGuideContent": "- 칼라액,풀한지(필름지)와 같은 종이류등은 반품이 되지 않습니다.\n\n- 쇼핑몰에서 공급중인 압화재료는 일정수준 제작기법 습득을 필요로 합니다\n- 사용방법(전화통화로 가능한 간단한 제작 및 사용방법) 및 기타 문의\n- 는 프레스코21(02-403-4012), 메일등을 통해 문의해 주시기 바랍니다 \n\n- 주문하신 상품이 파손/손상되었거나 불량 제품일 경우에는 \n- 공급받는 날로부터 7일 이내에 프레스코21과 상담후 교환 및 반품이\n- 가능하며 수거 및 재발송 비용은 프레스코21이 부담합니다. \n- 단, 고객님의 단순 변심 또는 색상, 규격 변경으로 인한 교환 반품은\n- 7일 이내에 교환/반품 가능하며 수거 및 재발송 비용을\n- 고객님께서 부담하셔야 합니다."
+            },
+            "originAreaInfo": {
+              "originAreaCode": "04",
+              "content": "상세설명참조",
+              "plural": false
+            },
+            "sellerCodeInfo": {
+              "sellerManagementCode": "1277"
+            },
+            "optionInfo": {
+              "simpleOptionSortType": "CREATE",
+              "optionSimple": [],
+              "optionCustom": [],
+              "optionCombinationSortType": "CREATE",
+              "standardOptionGroups": [],
+              "optionStandards": [],
+              "useStockManagement": true,
+              "optionDeliveryAttributes": []
+            },
+            "purchaseReviewInfo": {
+              "purchaseReviewExposure": true
+            },
+            "eventPhraseCont": "국내 최초 압화 전문 쇼핑몰 첫구매 시 5프로 할인 쿠폰 증정",
+            "taxType": "TAX",
+            "certificationTargetExcludeContent": {
+              "kcExemptionType": "SAFE_CRITERION",
+              "kcCertifiedProductExclusionYn": "KC_EXEMPTION_OBJECT"
+            },
+            "sellerCommentUsable": false,
+            "minorPurchasable": true,
+            "productInfoProvidedNotice": {
+              "productInfoProvidedNoticeType": "ETC",
+              "etc": {
+                "returnCostReason": "1",
+                "noRefundReason": "1",
+                "qualityAssuranceStandard": "1",
+                "compensationProcedure": "1",
+                "troubleShootingContents": "1",
+                "itemName": "상품상세참조",
+                "modelName": "상품상세참조",
+                "manufacturer": "상품상세참조",
+                "customerServicePhoneNumber": "02-403-5007"
+              }
+            },
+            "itselfProductionProductYn": false,
+            "seoInfo": {
+              "sellerTags": [
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 1519250,
+                  "text": "레진몰드"
+                },
+                {
+                  "code": 1102539,
+                  "text": "공방제작"
+                },
+                {
+                  "code": 404864,
+                  "text": "미술재료"
+                },
+                {
+                  "code": 181345,
+                  "text": "만들기재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                }
+              ]
+            }
+          },
+          "customerBenefit": {
+            "immediateDiscountPolicy": {
+              "discountMethod": {
+                "value": 10000,
+                "unitType": "WON"
+              }
+            },
+            "reviewPointPolicy": {
+              "afterUseTextReviewPoint": 50,
+              "afterUsePhotoVideoReviewPoint": 190
+            }
+          }
+        },
+        "smartstoreChannelProduct": {
+          "storeKeepExclusiveProduct": false,
+          "naverShoppingRegistration": true,
+          "channelProductDisplayStatusType": "ON"
+        }
+      },
+      "summary": {
+        "statusType": "SALE",
+        "salePrice": 91000,
+        "stockQuantity": 988,
+        "useStockManagement": true,
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 9777129381,
+      "search": {
+        "originProductNo": 9777129381,
+        "channelProducts": [
+          {
+            "originProductNo": 9777129381,
+            "channelProductNo": 9823921777,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(Quick coat) 473ml 고점도 레진 공예",
+            "sellerManagementCode": "1277",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 60000,
+            "discountedPrice": 50000,
+            "mobileDiscountedPrice": 50000,
+            "stockQuantity": 988,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_163/1705453123256CWR4g_JPEG/106589018964401241_1281350892.jpg"
+            },
+            "modelName": "어에미징에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2024-01-17T09:59:28.096+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 200,
+      "detail": {
+        "originProduct": {
+          "statusType": "SALE",
+          "saleType": "NEW",
+          "leafCategoryId": "50000375",
+          "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(Quick coat) 473ml 고점도 레진 공예",
+          "detailContent": "[OMITTED]",
+          "images": {
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_163/1705453123256CWR4g_JPEG/106589018964401241_1281350892.jpg"
+            },
+            "optionalImages": []
+          },
+          "salePrice": 60000,
+          "stockQuantity": 988,
+          "deliveryInfo": {
+            "deliveryType": "DELIVERY",
+            "deliveryAttributeType": "TODAY",
+            "deliveryCompany": "HANJIN",
+            "deliveryBundleGroupUsable": true,
+            "deliveryBundleGroupId": 3154053,
+            "deliveryFee": {
+              "deliveryFeeType": "CONDITIONAL_FREE",
+              "baseFee": 3000,
+              "freeConditionalAmount": 80000,
+              "deliveryFeePayType": "COLLECT_OR_PREPAID"
+            },
+            "claimDeliveryInfo": {
+              "returnDeliveryCompanyPriorityType": "PRIMARY",
+              "returnDeliveryFee": 3000,
+              "exchangeDeliveryFee": 6000,
+              "shippingAddressId": 1189117,
+              "returnAddressId": 1189118,
+              "freeReturnInsuranceYn": false
+            },
+            "installationFee": false
+          },
+          "detailAttribute": {
+            "naverShoppingSearchInfo": {
+              "modelName": "어에미징에폭시레진",
+              "manufacturerName": "Amazing",
+              "brandName": "프레스코21",
+              "catalogMatchingYn": false
+            },
+            "afterServiceInfo": {
+              "afterServiceTelephoneNumber": "02-403-5007",
+              "afterServiceGuideContent": "- 칼라액,풀한지(필름지)와 같은 종이류등은 반품이 되지 않습니다.\n\n- 쇼핑몰에서 공급중인 압화재료는 일정수준 제작기법 습득을 필요로 합니다\n- 사용방법(전화통화로 가능한 간단한 제작 및 사용방법) 및 기타 문의\n- 는 프레스코21(02-403-4012), 메일등을 통해 문의해 주시기 바랍니다 \n\n- 주문하신 상품이 파손/손상되었거나 불량 제품일 경우에는 \n- 공급받는 날로부터 7일 이내에 프레스코21과 상담후 교환 및 반품이\n- 가능하며 수거 및 재발송 비용은 프레스코21이 부담합니다. \n- 단, 고객님의 단순 변심 또는 색상, 규격 변경으로 인한 교환 반품은\n- 7일 이내에 교환/반품 가능하며 수거 및 재발송 비용을\n- 고객님께서 부담하셔야 합니다."
+            },
+            "originAreaInfo": {
+              "originAreaCode": "04",
+              "content": "상세설명참조",
+              "plural": false
+            },
+            "sellerCodeInfo": {
+              "sellerManagementCode": "1277"
+            },
+            "optionInfo": {
+              "simpleOptionSortType": "CREATE",
+              "optionSimple": [],
+              "optionCustom": [],
+              "optionCombinationSortType": "CREATE",
+              "standardOptionGroups": [],
+              "optionStandards": [],
+              "useStockManagement": true,
+              "optionDeliveryAttributes": []
+            },
+            "purchaseReviewInfo": {
+              "purchaseReviewExposure": true
+            },
+            "eventPhraseCont": "국내 최초 압화 전문 쇼핑몰 첫구매 시 5프로 할인 쿠폰 증정",
+            "taxType": "TAX",
+            "certificationTargetExcludeContent": {
+              "kcExemptionType": "SAFE_CRITERION",
+              "kcCertifiedProductExclusionYn": "KC_EXEMPTION_OBJECT"
+            },
+            "sellerCommentUsable": false,
+            "minorPurchasable": true,
+            "productInfoProvidedNotice": {
+              "productInfoProvidedNoticeType": "ETC",
+              "etc": {
+                "returnCostReason": "1",
+                "noRefundReason": "1",
+                "qualityAssuranceStandard": "1",
+                "compensationProcedure": "1",
+                "troubleShootingContents": "1",
+                "itemName": "상품상세참조",
+                "modelName": "상품상세참조",
+                "manufacturer": "상품상세참조",
+                "customerServicePhoneNumber": "02-403-5007"
+              }
+            },
+            "itselfProductionProductYn": false,
+            "seoInfo": {
+              "sellerTags": [
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 1519250,
+                  "text": "레진몰드"
+                },
+                {
+                  "code": 1102539,
+                  "text": "공방제작"
+                },
+                {
+                  "code": 404864,
+                  "text": "미술재료"
+                },
+                {
+                  "code": 181345,
+                  "text": "만들기재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                }
+              ]
+            }
+          },
+          "customerBenefit": {
+            "immediateDiscountPolicy": {
+              "discountMethod": {
+                "value": 10000,
+                "unitType": "WON"
+              }
+            },
+            "reviewPointPolicy": {
+              "afterUseTextReviewPoint": 50,
+              "afterUsePhotoVideoReviewPoint": 190
+            }
+          }
+        },
+        "smartstoreChannelProduct": {
+          "storeKeepExclusiveProduct": false,
+          "naverShoppingRegistration": true,
+          "channelProductDisplayStatusType": "ON"
+        }
+      },
+      "summary": {
+        "statusType": "SALE",
+        "salePrice": 60000,
+        "stockQuantity": 988,
+        "useStockManagement": true,
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 7437250958,
+      "search": {
+        "originProductNo": 7437250958,
+        "channelProducts": [
+          {
+            "originProductNo": 7437250958,
+            "channelProductNo": 7472320602,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 투명 3:1 에폭시 레진 1kg 2액형 레진 공예 아트 재료",
+            "sellerManagementCode": "1277",
+            "statusType": "OUTOFSTOCK",
+            "channelProductDisplayStatusType": "SUSPENSION",
+            "salePrice": 56000,
+            "discountedPrice": 45800,
+            "mobileDiscountedPrice": 45800,
+            "stockQuantity": 0,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20221028_131/16669337237022fsGL_JPEG/68069566405909978_345585412.jpg"
+            },
+            "modelName": "1:1에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "수입",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2022-10-28T14:08:59.757+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.441+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156397"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 7437247009,
+      "search": {
+        "originProductNo": 7437247009,
+        "channelProducts": [
+          {
+            "originProductNo": 7437247009,
+            "channelProductNo": 7472316636,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 투명 3:1 에폭시 레진 120g 2액형 레진 공예 아트 재료",
+            "sellerManagementCode": "1277",
+            "statusType": "SUSPENSION",
+            "channelProductDisplayStatusType": "SUSPENSION",
+            "salePrice": 9000,
+            "discountedPrice": 6000,
+            "mobileDiscountedPrice": 6000,
+            "stockQuantity": 920,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20221028_291/1666933663876IOpK6_JPEG/68069506515183150_349194624.jpg"
+            },
+            "modelName": "1:1에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "수입",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2022-10-28T14:08:10.192+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.455+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156398"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 6747498915,
+      "search": {
+        "originProductNo": 6747498915,
+        "channelProducts": [
+          {
+            "originProductNo": 6747498915,
+            "channelProductNo": 6779766532,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(clear cast) 473ml 고점도 레진 공예",
+            "sellerManagementCode": "1277",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 41000,
+            "discountedPrice": 41000,
+            "mobileDiscountedPrice": 41000,
+            "stockQuantity": 986,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_12/1705451285601a2Led_JPEG/106587119407640813_1109360204.jpg"
+            },
+            "modelName": "어에미징에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2022-06-10T11:13:04.402+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.468+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156399"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 6747484403,
+      "search": {
+        "originProductNo": 6747484403,
+        "channelProducts": [
+          {
+            "originProductNo": 6747484403,
+            "channelProductNo": 6779751981,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(PLUS) 473ml 고점도 레진 공예",
+            "sellerManagementCode": "1277",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 50000,
+            "discountedPrice": 50000,
+            "mobileDiscountedPrice": 50000,
+            "stockQuantity": 986,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20240117_237/17054519080189BTRr_JPEG/106587741829244803_1500919340.jpg"
+            },
+            "modelName": "어에미징에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2022-06-10T11:10:46.707+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.481+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156401"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 6747433579,
+      "search": {
+        "originProductNo": 6747433579,
+        "channelProducts": [
+          {
+            "originProductNo": 6747433579,
+            "channelProductNo": 6779701036,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 플루이드아트 어메이징 에폭시 레진(PLUS) 고점도 7.6L 대용량 레진 공예",
+            "sellerManagementCode": "1277",
+            "statusType": "OUTOFSTOCK",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 397000,
+            "discountedPrice": 397000,
+            "mobileDiscountedPrice": 397000,
+            "stockQuantity": 0,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20220610_256/1654826464727jSbt1_JPEG/55962353169229765_1336425580.jpg"
+            },
+            "modelName": "어에미징에폭시레진",
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2022-06-10T11:03:23.058+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.498+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156402"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 4959199987,
+      "search": {
+        "originProductNo": 4959199987,
+        "channelProducts": [
+          {
+            "originProductNo": 4959199987,
+            "channelProductNo": 4976000200,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50006880",
+            "name": "프레스코21 레진플루이드 어메이징 에폭시 레진(clear cast) 고점도 7.6L 레진공예",
+            "sellerManagementCode": "1277",
+            "statusType": "OUTOFSTOCK",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 293000,
+            "discountedPrice": 293000,
+            "mobileDiscountedPrice": 293000,
+            "stockQuantity": 0,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>원예/식물>플라워소품만들기",
+            "wholeCategoryId": "50000008>50000079>50006880",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20200617_215/1592361441966wfOLk_JPEG/29721276492789364_1420277501.jpg"
+            },
+            "brandName": "프레스코21",
+            "manufacturerName": "Amazing",
+            "sellerTags": [
+              {
+                "code": 333088,
+                "text": "레진공예"
+              },
+              {
+                "code": 697652,
+                "text": "레진아트"
+              },
+              {
+                "code": 1519250,
+                "text": "레진몰드"
+              },
+              {
+                "code": 1102539,
+                "text": "공방제작"
+              },
+              {
+                "code": 404864,
+                "text": "미술재료"
+              },
+              {
+                "code": 181345,
+                "text": "만들기재료"
+              },
+              {
+                "code": 459589,
+                "text": "만들기교구"
+              }
+            ],
+            "regDate": "2020-06-17T11:43:09.731+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.511+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156405"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 4815028135,
+      "search": {
+        "originProductNo": 4815028135,
+        "channelProducts": [
+          {
+            "originProductNo": 4815028135,
+            "channelProductNo": 4829101573,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50006880",
+            "name": "[압화]에폭시 레진/고점도/2L",
+            "sellerManagementCode": "1277",
+            "statusType": "OUTOFSTOCK",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 110000,
+            "discountedPrice": 110000,
+            "mobileDiscountedPrice": 110000,
+            "stockQuantity": 0,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 2500,
+            "exchangeFee": 5000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>원예/식물>플라워소품만들기",
+            "wholeCategoryId": "50000008>50000079>50006880",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20200221_136/1582269861246qugCB_JPEG/113000002031.jpg"
+            },
+            "sellerTags": [],
+            "regDate": "2020-02-21T16:24:21.971+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.524+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156407"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 681894127,
+      "search": {
+        "originProductNo": 681894127,
+        "channelProducts": [
+          {
+            "originProductNo": 681894127,
+            "channelProductNo": 681894127,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 에폭시레진 60cc",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 3600,
+            "discountedPrice": 3600,
+            "mobileDiscountedPrice": 3600,
+            "stockQuantity": 9275,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20170314_229/pressco21farm_1489476673440dRJow_JPEG/13820911238031653_-1637386596.jpg"
+            },
+            "modelName": "epox-60",
+            "brandName": "프레스코21",
+            "sellerTags": [
+              {
+                "text": "압화"
+              },
+              {
+                "text": "압화케이스"
+              },
+              {
+                "text": "압화폰케이스"
+              },
+              {
+                "text": "에폭시레진"
+              },
+              {
+                "text": "에폭"
+              }
+            ],
+            "regDate": "2017-03-14T16:32:36.656+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.538+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156409"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    },
+    {
+      "originProductNo": 681621582,
+      "search": {
+        "originProductNo": 681621582,
+        "channelProducts": [
+          {
+            "originProductNo": 681621582,
+            "channelProductNo": 681621582,
+            "channelServiceType": "STOREFARM",
+            "categoryId": "50000375",
+            "name": "프레스코21 에폭시레진 30cc",
+            "statusType": "SALE",
+            "channelProductDisplayStatusType": "ON",
+            "salePrice": 1800,
+            "discountedPrice": 1800,
+            "mobileDiscountedPrice": 1800,
+            "stockQuantity": 9470,
+            "knowledgeShoppingProductRegistration": true,
+            "deliveryAttributeType": "TODAY",
+            "deliveryFee": 3000,
+            "returnFee": 3000,
+            "exchangeFee": 6000,
+            "managerPurchasePoint": 1,
+            "wholeCategoryName": "생활/건강>수집품>공예품",
+            "wholeCategoryId": "50000008>50000056>50000375",
+            "representativeImage": {
+              "url": "https://shop-phinf.pstatic.net/20170314_30/pressco21farm_1489471876455kdtel_JPEG/13736655794513202_-1604184174.jpg"
+            },
+            "modelName": "epox-30",
+            "brandName": "프레스코21",
+            "sellerTags": [
+              {
+                "text": "압화"
+              },
+              {
+                "text": "압화케이스"
+              },
+              {
+                "text": "압화폰케이스"
+              },
+              {
+                "text": "에폭시레진"
+              },
+              {
+                "text": "에폭"
+              }
+            ],
+            "regDate": "2017-03-14T15:12:59.236+09:00",
+            "modifiedDate": "2025-11-05T13:46:09.403+09:00"
+          }
+        ]
+      },
+      "detailStatusCode": 429,
+      "detail": {
+        "code": "GW.RATE_LIMIT",
+        "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+        "timestamp": "2026-04-29T10:15:53.551+09:00",
+        "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^125156410"
+      },
+      "summary": {
+        "optionCombinations": [],
+        "supplementProducts": []
+      }
+    }
+  ]
+}

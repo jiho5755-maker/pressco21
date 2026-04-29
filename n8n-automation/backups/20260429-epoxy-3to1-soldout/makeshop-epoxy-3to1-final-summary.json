@@ -1,0 +1,590 @@
+{
+  "total_products": 5805,
+  "candidate_count": 27,
+  "summary": [
+    {
+      "uid": "11701735",
+      "name": "최수연 님 개인결제건(3:1에폭시레진 경화제 2통)",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 0
+    },
+    {
+      "uid": "11701355",
+      "name": "실리콘몰드/캔들볼몰드",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 2,
+      "stocks": [
+        {
+          "sto_id": "20",
+          "values": "소형",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "21",
+          "values": "대형",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 10
+    },
+    {
+      "uid": "11701043",
+      "name": "실리콘몰드/집게핀몰드",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 10
+    },
+    {
+      "uid": "11700977",
+      "name": "실리콘몰드/한송이화병몰드",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "21",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 10
+    },
+    {
+      "uid": "11700859",
+      "name": "실리콘몰드/집게핀몰드",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700858",
+      "name": "실리콘몰드/도어벨몰드",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 14
+    },
+    {
+      "uid": "11700531",
+      "name": "1:1에폭시레진/3:1에폭시레진",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 4,
+      "stocks": [
+        {
+          "sto_id": "2",
+          "values": "1:1 에폭시레진_200g",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "3",
+          "values": "1:1 에폭시레진_1000g",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "4",
+          "values": "3:1 에폭시레진_1000g",
+          "state": "SOLDOUT",
+          "real_stock": "0",
+          "unlimit": "N"
+        },
+        {
+          "sto_id": "26",
+          "values": "대량구매시 선택",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 0
+    },
+    {
+      "uid": "11700530",
+      "name": "1:1에폭시레진/3:1에폭시레진",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 3,
+      "stocks": [
+        {
+          "sto_id": "2",
+          "values": "1:1 에폭시레진_200g",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "3",
+          "values": "1:1 에폭시레진_1000g",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "4",
+          "values": "3:1 에폭시레진_1000g",
+          "state": "SOLDOUT",
+          "real_stock": "0",
+          "unlimit": "N"
+        }
+      ],
+      "addition_count": 7
+    },
+    {
+      "uid": "11700523",
+      "name": "실리콘몰드/구몰드",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "30",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 9
+    },
+    {
+      "uid": "11700453",
+      "name": "레진 믹스컵",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700452",
+      "name": "레진 믹스컵",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 9
+    },
+    {
+      "uid": "11700449",
+      "name": "레진 열쇠고리 만들기 키트",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700448",
+      "name": "레진 열쇠고리 만들기 키트",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 10
+    },
+    {
+      "uid": "11700143",
+      "name": "실리콘몰드/팔각 컵받침 4구 세트",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "75",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700142",
+      "name": "실리콘몰드/팔각 컵받침 4구 세트",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "54",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 17
+    },
+    {
+      "uid": "11700141",
+      "name": "실리콘몰드/사각 컵받침 4구 세트",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "70",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700140",
+      "name": "실리콘몰드/사각 컵받침 4구 세트",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "36",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 17
+    },
+    {
+      "uid": "11700113",
+      "name": "실리콘몰드/하트캔들홀더",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 2,
+      "stocks": [
+        {
+          "sto_id": "12",
+          "values": "작은하트몰드",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "13",
+          "values": "큰하트몰드",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 20
+    },
+    {
+      "uid": "11700076",
+      "name": "실리콘몰드/원형 컵받침 4구 세트",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "74",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11700075",
+      "name": "실리콘몰드/원형 컵받침 4구 세트",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "36",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 16
+    },
+    {
+      "uid": "11700033",
+      "name": "실리콘몰드/다이어리",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 3,
+      "stocks": [
+        {
+          "sto_id": "12",
+          "values": "직사각(소)",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "13",
+          "values": "직사각(대)",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "14",
+          "values": "정사각",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 22
+    },
+    {
+      "uid": "11699994",
+      "name": "실리콘몰드/구름트레이",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 2,
+      "stocks": [
+        {
+          "sto_id": "2",
+          "values": "타원형",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "3",
+          "values": "원형",
+          "state": "TEMPOUT",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 8
+    },
+    {
+      "uid": "11699992",
+      "name": "실리콘몰드/반지홀더 8구",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 1
+    },
+    {
+      "uid": "11699991",
+      "name": "실리콘몰드/반지홀더 8구",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 8
+    },
+    {
+      "uid": "11698155",
+      "name": "실리콘몰드/왕궁보석함",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "basic_total": 1,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "addition_count": 9
+    },
+    {
+      "uid": "11616091",
+      "name": "실리콘몰드/시계",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "12966",
+      "basic_total": 4,
+      "stocks": [
+        {
+          "sto_id": "2",
+          "values": "육각형",
+          "state": "SALE",
+          "real_stock": "989",
+          "unlimit": "N"
+        },
+        {
+          "sto_id": "3",
+          "values": "정사각형",
+          "state": "SALE",
+          "real_stock": "994",
+          "unlimit": "N"
+        },
+        {
+          "sto_id": "4",
+          "values": "아치형",
+          "state": "SALE",
+          "real_stock": "989",
+          "unlimit": "N"
+        },
+        {
+          "sto_id": "16",
+          "values": "부재료만 구매",
+          "state": "SALE",
+          "real_stock": "9994",
+          "unlimit": "N"
+        }
+      ],
+      "addition_count": 9
+    },
+    {
+      "uid": "1155258",
+      "name": "압화 스마트톡 만들기세트/10개묶음/K310",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "19961",
+      "basic_total": 2,
+      "stocks": [
+        {
+          "sto_id": "1",
+          "values": "흰색",
+          "state": "SALE",
+          "real_stock": "9962",
+          "unlimit": "N"
+        },
+        {
+          "sto_id": "2",
+          "values": "검정",
+          "state": "SALE",
+          "real_stock": "9999",
+          "unlimit": "N"
+        }
+      ],
+      "addition_count": 0
+    }
+  ]
+}

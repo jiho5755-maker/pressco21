@@ -1,0 +1,30 @@
+{
+  "return_code": "0000",
+  "datas": [
+    {
+      "result": true,
+      "product_id": "11700531",
+      "stock_id": "4"
+    },
+    {
+      "result": true,
+      "product_id": "11700530",
+      "stock_id": "4"
+    },
+    {
+      "result": true,
+      "product_id": "11699992",
+      "stock_id": "10"
+    },
+    {
+      "result": true,
+      "product_id": "11699991",
+      "stock_id": "2"
+    },
+    {
+      "result": true,
+      "product_id": "11616091",
+      "stock_id": "10"
+    }
+  ]
+}

@@ -109,6 +109,12 @@ function isTaxInvoiceRequestAvailable(status: InvoiceTaxInvoiceStatus): boolean 
   return status === 'not_requested' || status === 'failed'
 }
 
+function buildTaxInvoiceIdempotencyKey(invoice: Invoice): string | undefined {
+  const invoiceNo = typeof invoice.invoice_no === 'string' ? invoice.invoice_no.trim() : ''
+  if (!invoice.Id || !invoiceNo) return undefined
+  return `barobill:tax-invoice:pressco21:${invoice.Id}:${invoiceNo}`
+}
+
 function getMaskedConfirmNumber(value?: string): string | undefined {
   if (!value) return undefined
   if (value.length <= 8) return value
@@ -744,6 +750,9 @@ export function Invoices() {
       }
 
       const result = await requestBarobillTaxInvoice(payload)
+      const statusCode =
+        result.errorCode ??
+        (result.barobillResultCode == null ? result.status : String(result.barobillResultCode))
       const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
         ...latestMeta,
         taxInvoiceStatus: result.status,
@@ -751,25 +760,35 @@ export function Invoices() {
           ...latestMeta.taxInvoice,
           provider: 'barobill',
           issueType: 'normal',
-          mgtKey: result.mgtKey,
+          mode: result.mode,
+          mgtKey: result.mgtKey || result.providerMgtKey,
           idempotencyKey: result.idempotencyKey,
           requestId: result.requestId,
-          requestedAt: result.requestedAt,
-          requestedBy: 'CRM dry-run',
-          lastStatusSyncedAt: result.requestedAt,
-          statusCode: 'DRY_RUN_REQUESTED',
+          requestedAt: result.requestedAt ?? latestMeta.taxInvoice?.requestedAt,
+          requestedBy: 'crm-admin',
+          lastStatusSyncedAt: result.syncedAt ?? result.requestedAt ?? latestMeta.taxInvoice?.lastStatusSyncedAt,
+          statusCode,
+          barobillResultCode: result.barobillResultCode == null ? undefined : String(result.barobillResultCode),
           statusMessage: result.message,
-          mailSent: payload.options.mailSent,
-          smsRequested: payload.options.smsRequested,
+          errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
+          errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
+          mailSent: payload.sendEmail,
+          smsRequested: payload.sendSms,
         },
       })
       const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
       setTaxInvoiceDialogData(null)
       setTaxInvoiceDetailInvoice(updatedInvoice)
       invalidateTaxInvoiceViews(updatedInvoice.Id)
-      toast.success('세금계산서 dry-run 발급 요청을 저장했습니다')
+      if (result.duplicate) {
+        toast.warning('중복 발급 요청이 차단되어 기존 발급내역을 표시합니다')
+      } else if (result.status === 'failed') {
+        toast.error(result.message)
+      } else {
+        toast.success('바로빌 테스트 세금계산서 발급 요청을 보냈습니다')
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '세금계산서 발급 요청 저장에 실패했습니다'
+      const message = error instanceof Error ? error.message : '세금계산서 발급 요청에 실패했습니다'
       toast.error(message)
     } finally {
       setRequestingTaxInvoiceId(null)
@@ -789,8 +808,13 @@ export function Invoices() {
 
       const result = await syncBarobillTaxInvoiceStatus({
         invoiceId: latestInvoice.Id,
+        invoiceNo: latestInvoice.invoice_no,
+        idempotencyKey: latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+        providerMgtKey: latestMeta.taxInvoice?.mgtKey,
         currentStatus,
       })
+      const statusCode = result.statusCode ??
+        (result.barobillState != null ? String(result.barobillState) : result.status)
       const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
         ...latestMeta,
         taxInvoiceStatus: result.status,
@@ -798,17 +822,30 @@ export function Invoices() {
           ...latestMeta.taxInvoice,
           provider: 'barobill',
           issueType: latestMeta.taxInvoice?.issueType ?? 'normal',
+          mode: result.mode,
+          mgtKey: result.mgtKey ?? result.providerMgtKey ?? latestMeta.taxInvoice?.mgtKey,
+          idempotencyKey: result.idempotencyKey ?? latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+          requestId: latestMeta.taxInvoice?.requestId ?? result.requestId,
           lastStatusSyncedAt: result.syncedAt,
-          statusCode: result.statusCode,
+          ntsConfirmNum: result.ntsConfirmNum ?? latestMeta.taxInvoice?.ntsConfirmNum,
+          issuedAt: result.status === 'issued'
+            ? result.issuedAt ?? latestMeta.taxInvoice?.issuedAt ?? result.syncedAt
+            : latestMeta.taxInvoice?.issuedAt,
+          statusCode,
+          barobillState: result.barobillState,
+          ntsSendState: result.ntsSendState,
           statusMessage: result.message,
+          errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
+          errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
         },
       })
       const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
       setTaxInvoiceDetailInvoice(updatedInvoice)
       invalidateTaxInvoiceViews(updatedInvoice.Id)
-      toast.success('세금계산서 상태를 dry-run으로 확인했습니다')
-    } catch {
-      toast.error('세금계산서 상태 새로고침에 실패했습니다')
+      toast.success('바로빌 세금계산서 상태를 새로고침했습니다')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '세금계산서 상태 새로고침에 실패했습니다'
+      toast.error(message)
     } finally {
       setSyncingTaxInvoiceId(null)
     }
@@ -1392,7 +1429,7 @@ export function Invoices() {
                       {isTaxInvoiceLoading
                         ? '불러오는 중...'
                         : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
-                          ? '세금계산서 요청'
+                          ? '세금계산서 발급'
                           : '발급내역 보기'}
                     </span>
                   </Button>
@@ -1599,7 +1636,7 @@ export function Invoices() {
                             variant="outline"
                             size="sm"
                             className="h-8 border-blue-200 px-3 text-xs text-blue-700 hover:bg-blue-50"
-                            title={isTaxInvoiceRequestAvailable(taxInvoiceSummary.status) ? '세금계산서 발급 요청' : '발급내역 보기'}
+                            title={isTaxInvoiceRequestAvailable(taxInvoiceSummary.status) ? '세금계산서 발급' : '발급내역 보기'}
                             disabled={isTaxInvoiceLoading}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -1612,7 +1649,7 @@ export function Invoices() {
                               {isTaxInvoiceLoading
                                 ? '로딩'
                                 : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
-                                  ? '발급 요청'
+                                  ? '세금계산서 발급'
                                   : '내역 보기'}
                             </span>
                           </Button>
@@ -1846,7 +1883,7 @@ export function Invoices() {
                   세금계산서 발급내역
                 </DialogTitle>
                 <DialogDescription>
-                  바로빌 dry-run 상태와 n8n 연동 전 저장된 요청 메타입니다.
+                  바로빌 테스트환경 발급/상태조회 webhook 결과와 저장된 요청 메타입니다.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">

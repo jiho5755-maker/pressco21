@@ -48,19 +48,29 @@ function normalizeBizNo(value: string): string {
   return value.replace(/[^0-9]/g, '')
 }
 
+function fnv1a(value: string): string {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
+}
+
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function buildBarobillMgtKey(invoice: Invoice): string {
-  const safeInvoiceNo = normalizeInvoiceNo(invoice.invoice_no)
-    .replace(/[^A-Za-z0-9-]/g, '')
-    .slice(0, 40)
-  return `PC21-${invoice.Id}-${safeInvoiceNo}`.slice(0, 80)
-}
-
 function buildBarobillIdempotencyKey(invoice: Invoice): string {
   return `barobill:tax-invoice:pressco21:${invoice.Id}:${normalizeInvoiceNo(invoice.invoice_no)}`
+}
+
+function buildBarobillMgtKey(invoice: Invoice): string {
+  const idempotencyKey = buildBarobillIdempotencyKey(invoice)
+  const idPart = String(invoice.Id).replace(/\D/g, '').slice(-7) || '0'
+  const noPart = normalizeInvoiceNo(invoice.invoice_no).replace(/[^0-9A-Za-z]/g, '').slice(-6) || 'INV'
+  const hash = fnv1a(idempotencyKey).slice(0, 8).toUpperCase()
+  return `PC${idPart}-${noPart}-${hash}`.slice(0, 24)
 }
 
 function getCustomerValue(
@@ -80,12 +90,15 @@ function getCustomerValue(
 
 function buildCustomerParty(invoice: Invoice, customer: Customer | null): BarobillTaxInvoicePartyPayload {
   return {
-    bizNo: getCustomerValue(invoice, customer, 'customer_bizno', ['biz_no', 'business_no']),
-    companyName: getCustomerValue(invoice, customer, 'customer_name', ['name', 'book_name']),
+    corpNum: getCustomerValue(invoice, customer, 'customer_bizno', ['biz_no', 'business_no']),
+    corpName: getCustomerValue(invoice, customer, 'customer_name', ['name', 'book_name']),
     ceoName: getCustomerValue(invoice, customer, 'customer_ceo_name', ['ceo_name']),
-    address: getCustomerValue(invoice, customer, 'customer_address', ['business_address', 'address1']),
+    addr: getCustomerValue(invoice, customer, 'customer_address', ['business_address', 'address1']),
     bizType: getCustomerValue(invoice, customer, 'customer_biz_type', ['biz_type', 'business_type']),
-    bizItem: getCustomerValue(invoice, customer, 'customer_biz_item', ['biz_item', 'business_item']),
+    bizClass: getCustomerValue(invoice, customer, 'customer_biz_item', ['biz_item', 'business_item']),
+    contactName: getCustomerValue(invoice, customer, 'customer_name', ['name', 'book_name']),
+    tel: getCustomerValue(invoice, customer, 'customer_phone', ['phone1', 'phone']),
+    hp: normalizeText(customer?.mobile),
     email: normalizeText(customer?.email),
   }
 }
@@ -97,13 +110,12 @@ function buildInvoiceItems(items: InvoiceItem[]): BarobillTaxInvoiceItemPayload[
     const taxAmount = Math.max(0, Number(item.tax_amount ?? 0))
     const unitPrice = Number(item.unit_price ?? (quantity > 0 ? Math.round(supplyAmount / quantity) : 0))
     return {
-      productName: normalizeText(item.product_name),
-      unit: normalizeText(item.unit) || undefined,
+      name: normalizeText(item.product_name),
+      spec: normalizeText(item.unit) || undefined,
       quantity,
       unitPrice: Number.isFinite(unitPrice) ? Math.max(0, unitPrice) : 0,
       supplyAmount,
       taxAmount,
-      taxable: normalizeText(item.taxable) || undefined,
     }
   })
 }
@@ -151,9 +163,9 @@ export function TaxInvoiceRequestDialog({
     if (LOCKED_TAX_INVOICE_STATUSES.includes(status)) {
       errors.push('이미 발급 요청 또는 발급 완료된 명세표입니다')
     }
-    if (!normalizeBizNo(customerParty.bizNo)) errors.push('공급받는자 사업자번호가 없습니다')
-    else if (normalizeBizNo(customerParty.bizNo).length !== 10) errors.push('공급받는자 사업자번호는 숫자 10자리여야 합니다')
-    if (!customerParty.companyName) errors.push('공급받는자 상호가 없습니다')
+    if (!normalizeBizNo(customerParty.corpNum)) errors.push('공급받는자 사업자번호가 없습니다')
+    else if (normalizeBizNo(customerParty.corpNum).length !== 10) errors.push('공급받는자 사업자번호는 숫자 10자리여야 합니다')
+    if (!customerParty.corpName) errors.push('공급받는자 상호가 없습니다')
     if (!customerParty.ceoName) errors.push('공급받는자 대표자가 없습니다')
     if (!customerParty.email) errors.push('전자세금계산서 수신 이메일이 없습니다')
     else if (!isValidEmail(customerParty.email)) errors.push('전자세금계산서 수신 이메일 형식이 올바르지 않습니다')
@@ -162,7 +174,7 @@ export function TaxInvoiceRequestDialog({
     if (Number(invoice.tax_amount ?? 0) < 0) errors.push('세액을 확인해주세요')
     if (Number(invoice.total_amount ?? 0) <= 0) errors.push('합계금액이 0원입니다')
     if (itemPayloads.length === 0) errors.push('품목이 없습니다')
-    if (itemPayloads.some((item) => !item.productName || item.quantity <= 0)) {
+    if (itemPayloads.some((item) => !item.name || item.quantity <= 0)) {
       errors.push('품목명과 수량이 없는 품목이 있습니다')
     }
     return errors
@@ -172,31 +184,33 @@ export function TaxInvoiceRequestDialog({
     if (!invoice || !customerParty || validationErrors.length > 0) return
 
     await onSubmit({
+      requestId: `barobill-${invoice.Id}-${Date.now()}`,
+      idempotencyKey,
       invoiceId: invoice.Id,
       invoiceNo: normalizeInvoiceNo(invoice.invoice_no),
-      issueDate,
-      provider: 'barobill',
       issueType: 'normal',
-      idempotencyKey,
-      mgtKey,
+      provider: 'barobill',
+      mode: 'test',
+      providerMgtKey: mgtKey,
+      writeDate: issueDate,
+      sendEmail: mailSent,
+      sendSms: smsRequested,
       supplier: {
-        bizNo: 'server-configured',
-        companyName: '프레스코21',
+        corpName: '프레스코21',
         ceoName: '서버 설정값',
-        address: 'CRM 서버 설정 기준',
+        addr: 'CRM 서버 설정 기준',
       },
-      customer: customerParty,
+      buyer: {
+        ...customerParty,
+        corpNum: normalizeBizNo(customerParty.corpNum),
+      },
       amounts: {
         supplyAmount: Math.max(0, Number(invoice.supply_amount ?? 0)),
         taxAmount: Math.max(0, Number(invoice.tax_amount ?? 0)),
         totalAmount: Math.max(0, Number(invoice.total_amount ?? 0)),
       },
       items: itemPayloads,
-      options: {
-        mailSent,
-        smsRequested,
-      },
-      dryRun: true,
+      requestedBy: 'crm-admin',
     })
   }
 
@@ -208,10 +222,10 @@ export function TaxInvoiceRequestDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ReceiptText className="h-5 w-5 text-[#5e8a6e]" />
-            바로빌 전자세금계산서 발급 요청
+            바로빌 전자세금계산서 발급
           </DialogTitle>
           <DialogDescription>
-            CRM은 dry-run 계약과 상태만 저장합니다. 실제 바로빌 SOAP 호출은 n8n 서버 workflow 연결 후 실행됩니다.
+            테스트환경 n8n webhook으로만 발급을 요청합니다. 운영 발급은 별도 승인 전까지 CRM에서 차단됩니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -254,11 +268,11 @@ export function TaxInvoiceRequestDialog({
                 <dl className="mt-3 space-y-2 text-sm">
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">상호</dt>
-                    <dd className="text-right font-medium">{customerParty.companyName || '-'}</dd>
+                    <dd className="text-right font-medium">{customerParty.corpName || '-'}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">사업자번호</dt>
-                    <dd className="font-mono text-right">{customerParty.bizNo || '-'}</dd>
+                    <dd className="font-mono text-right">{customerParty.corpNum || '-'}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">대표자</dt>
@@ -314,8 +328,8 @@ export function TaxInvoiceRequestDialog({
                   </thead>
                   <tbody>
                     {itemPayloads.map((item, index) => (
-                      <tr key={`${item.productName}-${index}`} className="border-t">
-                        <td className="px-3 py-2">{item.productName || '품목명 없음'}</td>
+                      <tr key={`${item.name}-${index}`} className="border-t">
+                        <td className="px-3 py-2">{item.name || '품목명 없음'}</td>
                         <td className="px-3 py-2 text-right">{item.quantity.toLocaleString()}</td>
                         <td className="px-3 py-2 text-right">{formatAmount(item.supplyAmount)}</td>
                         <td className="px-3 py-2 text-right">{formatAmount(item.taxAmount)}</td>
@@ -368,7 +382,8 @@ export function TaxInvoiceRequestDialog({
             </section>
 
             <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
-              바로빌은 중복발급 방지를 제공하지 않습니다. CRM/n8n idempotency 검증 전까지 운영 발급 execute는 금지합니다.
+              실제 바로빌 테스트 서버로 발급 요청됩니다. 같은 명세표는 CRM/n8n idempotency key로 중복 발급을 차단합니다.
+              운영 발급 execute는 별도 승인 전까지 비활성입니다.
               <div className="mt-1 font-mono text-[11px] text-red-600">{idempotencyKey}</div>
             </div>
 
@@ -390,7 +405,7 @@ export function TaxInvoiceRequestDialog({
             disabled={!invoice || validationErrors.length > 0 || isSubmitting}
             onClick={() => void handleSubmit()}
           >
-            {isSubmitting ? '요청 저장 중...' : 'dry-run 발급 요청 저장'}
+            {isSubmitting ? '테스트 발급 요청 중...' : '테스트 세금계산서 발급'}
           </Button>
         </DialogFooter>
       </DialogContent>

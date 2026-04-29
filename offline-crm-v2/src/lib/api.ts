@@ -20,6 +20,16 @@ import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 // 직접 n8n 공개 URL을 기본값으로 두면 브라우저가 공개 실행면을 우회 호출할 수 있으므로 금지합니다.
 const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || '/crm-proxy'
 const PAYMENT_REMINDER_WEBHOOK_URL = import.meta.env.VITE_CRM_PAYMENT_REMINDER_WEBHOOK_URL || '/crm-payment-reminder'
+const BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL =
+  import.meta.env.VITE_BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL ||
+  '/webhook/crm/barobill/tax-invoices/issue'
+const BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL =
+  import.meta.env.VITE_BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL ||
+  '/webhook/crm/barobill/tax-invoices/sync-status'
+const BAROBILL_TAX_INVOICE_MODE =
+  import.meta.env.VITE_BAROBILL_TAX_INVOICE_MODE === 'production' ? 'production' : 'test'
+const BAROBILL_ALLOW_PRODUCTION_ISSUE =
+  import.meta.env.VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE === 'true'
 // CRM 전용 API Key (NocoDB 토큰과 무관한 별도 키)
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
@@ -695,71 +705,97 @@ export const updateInvoice = (id: number, data: Partial<Invoice>) =>
   }).then(normalizeInvoiceRecord)
 
 // ─────────────────────────────────────────
-// 바로빌 전자세금계산서 dry-run 계약
+// 바로빌 전자세금계산서 n8n webhook 계약
 // ─────────────────────────────────────────
+export type BarobillTaxInvoiceMode = 'test' | 'production'
+
 export interface BarobillTaxInvoicePartyPayload {
-  bizNo: string
-  companyName: string
+  corpNum: string
+  corpName: string
   ceoName: string
-  address?: string
+  addr?: string
   bizType?: string
-  bizItem?: string
+  bizClass?: string
+  contactName?: string
+  tel?: string
+  hp?: string
   email?: string
 }
 
 export interface BarobillTaxInvoiceItemPayload {
-  productName: string
-  unit?: string
+  name: string
+  spec?: string
   quantity: number
   unitPrice: number
   supplyAmount: number
   taxAmount: number
-  taxable?: string
 }
 
 export interface BarobillTaxInvoiceRequestPayload {
+  requestId: string
+  idempotencyKey: string
   invoiceId: number
   invoiceNo: string
-  issueDate: string
-  provider: 'barobill'
   issueType: 'normal'
-  idempotencyKey: string
-  mgtKey: string
-  supplier: BarobillTaxInvoicePartyPayload
-  customer: BarobillTaxInvoicePartyPayload
+  provider: 'barobill'
+  mode: BarobillTaxInvoiceMode
+  providerMgtKey: string
+  writeDate: string
+  sendEmail: boolean
+  sendSms: boolean
+  supplier?: Partial<BarobillTaxInvoicePartyPayload>
+  buyer: BarobillTaxInvoicePartyPayload
   amounts: {
     supplyAmount: number
     taxAmount: number
     totalAmount: number
   }
   items: BarobillTaxInvoiceItemPayload[]
-  options: {
-    mailSent: boolean
-    smsRequested: boolean
-  }
-  dryRun: true
+  requestedBy?: string
 }
 
 export interface BarobillTaxInvoiceRequestResult {
-  ok: true
+  ok: boolean
+  success?: boolean
   provider: 'barobill'
-  dryRun: true
-  status: Extract<InvoiceTaxInvoiceStatus, 'requested'>
+  mode: BarobillTaxInvoiceMode
+  status: InvoiceTaxInvoiceStatus
   requestId: string
-  requestedAt: string
   idempotencyKey: string
+  providerMgtKey: string
   mgtKey: string
   message: string
+  requestedAt?: string
+  syncedAt?: string
+  barobillResultCode?: string | number
+  crmUpdated?: boolean
+  duplicate?: boolean
+  errorCode?: string
+  errorMessage?: string
 }
 
 export interface BarobillTaxInvoiceStatusResult {
-  ok: true
+  ok: boolean
+  success?: boolean
   provider: 'barobill'
-  dryRun: true
+  mode: BarobillTaxInvoiceMode
   status: InvoiceTaxInvoiceStatus
+  requestId: string
+  invoiceId: number
+  invoiceNo?: string
+  idempotencyKey?: string
+  providerMgtKey?: string
+  mgtKey?: string
   syncedAt: string
-  statusCode: string
+  statusCode?: string
+  barobillState?: number
+  ntsSendState?: number
+  ntsConfirmNum?: string
+  issuedAt?: string
   message: string
+  crmUpdated?: boolean
+  errorCode?: string
+  errorMessage?: string
 }
 
 function requireBarobillField(value: string | undefined, label: string) {
@@ -768,16 +804,61 @@ function requireBarobillField(value: string | undefined, label: string) {
   }
 }
 
+function normalizeBarobillStatus(value: unknown, fallback: InvoiceTaxInvoiceStatus): InvoiceTaxInvoiceStatus {
+  return value === 'not_requested' ||
+    value === 'requesting' ||
+    value === 'requested' ||
+    value === 'issued' ||
+    value === 'failed' ||
+    value === 'cancel_requested' ||
+    value === 'cancelled'
+    ? value
+    : fallback
+}
+
+function normalizeBarobillMode(value: unknown): BarobillTaxInvoiceMode {
+  return value === 'production' ? 'production' : 'test'
+}
+
+function getBarobillMessage(json: Record<string, unknown>, fallback: string): string {
+  const error = json.error && typeof json.error === 'object' ? json.error as Record<string, unknown> : undefined
+  if (typeof json.message === 'string' && json.message.trim()) return json.message.trim()
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message.trim()
+  return fallback
+}
+
+async function parseBarobillWebhookResponse(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text()
+  let json: Record<string, unknown>
+  try {
+    json = text ? JSON.parse(text) as Record<string, unknown> : {}
+  } catch {
+    throw new Error(`BaroBill Webhook Error ${res.status}: ${text || 'invalid json response'}`)
+  }
+
+  if (!res.ok) {
+    throw new Error(getBarobillMessage(json, `BaroBill Webhook Error ${res.status}`))
+  }
+
+  return json
+}
+
+function assertBarobillProductionBlocked(mode: BarobillTaxInvoiceMode) {
+  if (mode === 'production' && !BAROBILL_ALLOW_PRODUCTION_ISSUE) {
+    throw new Error('운영 바로빌 발급/상태조회는 별도 승인 전까지 CRM에서 차단됩니다')
+  }
+}
+
 export async function requestBarobillTaxInvoice(
   payload: BarobillTaxInvoiceRequestPayload,
 ): Promise<BarobillTaxInvoiceRequestResult> {
   requireBarobillField(payload.invoiceNo, '명세표 번호')
   requireBarobillField(payload.idempotencyKey, '중복방지 키')
-  requireBarobillField(payload.mgtKey, '바로빌 관리번호')
-  requireBarobillField(payload.customer.bizNo, '공급받는자 사업자번호')
-  requireBarobillField(payload.customer.companyName, '공급받는자 상호')
-  requireBarobillField(payload.customer.ceoName, '공급받는자 대표자')
-  requireBarobillField(payload.customer.email, '공급받는자 이메일')
+  requireBarobillField(payload.providerMgtKey, '바로빌 관리번호')
+  requireBarobillField(payload.buyer.corpNum, '공급받는자 사업자번호')
+  requireBarobillField(payload.buyer.corpName, '공급받는자 상호')
+  requireBarobillField(payload.buyer.ceoName, '공급받는자 대표자')
+  requireBarobillField(payload.buyer.email, '공급받는자 이메일')
 
   if (payload.amounts.supplyAmount <= 0 || payload.amounts.totalAmount <= 0 || payload.amounts.taxAmount < 0) {
     throw new Error('공급가액/세액/합계금액을 확인해주세요')
@@ -786,35 +867,108 @@ export async function requestBarobillTaxInvoice(
     throw new Error('세금계산서 품목이 없습니다')
   }
 
-  const requestedAt = new Date().toISOString()
+  const mode = normalizeBarobillMode(payload.mode || BAROBILL_TAX_INVOICE_MODE)
+  assertBarobillProductionBlocked(mode)
+
+  const res = await fetch(BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    body: JSON.stringify({
+      ...payload,
+      mode,
+    }),
+  })
+  const json = await parseBarobillWebhookResponse(res)
+  const duplicate = json.duplicate === true
+  const success = json.success !== false && json.ok !== false
+  if (!success && !duplicate) {
+    throw new Error(getBarobillMessage(json, '바로빌 세금계산서 발급 요청이 실패했습니다'))
+  }
+
+  const now = new Date().toISOString()
+  const error = json.error && typeof json.error === 'object' ? json.error as Record<string, unknown> : undefined
+  const status = normalizeBarobillStatus(json.status, duplicate ? 'requested' : 'requested')
+  const providerMgtKey =
+    typeof json.providerMgtKey === 'string' && json.providerMgtKey.trim()
+      ? json.providerMgtKey.trim()
+      : payload.providerMgtKey
+
   return {
-    ok: true,
+    ok: success || duplicate,
+    success,
     provider: 'barobill',
-    dryRun: true,
-    status: 'requested',
-    requestId: `dryrun-${payload.invoiceId}-${Date.now()}`,
-    requestedAt,
+    mode,
+    status,
+    requestId: typeof json.requestId === 'string' && json.requestId.trim() ? json.requestId.trim() : payload.requestId,
+    requestedAt: typeof json.requestedAt === 'string' && json.requestedAt.trim() ? json.requestedAt.trim() : now,
     idempotencyKey: payload.idempotencyKey,
-    mgtKey: payload.mgtKey,
-    message: 'CRM dry-run으로 발급 요청 계약만 저장했습니다. 실제 SOAP 호출은 n8n 연동 후 실행됩니다.',
+    providerMgtKey,
+    mgtKey: providerMgtKey,
+    message: getBarobillMessage(json, duplicate ? '중복 발급 요청이 차단되었습니다' : '바로빌 테스트 발급 요청이 완료되었습니다'),
+    barobillResultCode: json.barobillResultCode as string | number | undefined,
+    crmUpdated: typeof json.crmUpdated === 'boolean' ? json.crmUpdated : undefined,
+    duplicate,
+    errorCode: typeof error?.code === 'string' ? error.code : undefined,
+    errorMessage: typeof error?.message === 'string' ? error.message : undefined,
   }
 }
 
 export async function syncBarobillTaxInvoiceStatus(params: {
   invoiceId: number
+  invoiceNo?: string
+  idempotencyKey?: string
+  providerMgtKey?: string
   currentStatus: InvoiceTaxInvoiceStatus
 }): Promise<BarobillTaxInvoiceStatusResult> {
-  const syncedAt = new Date().toISOString()
-  const status = params.currentStatus === 'requesting' ? 'requested' : params.currentStatus
+  const mode = BAROBILL_TAX_INVOICE_MODE
+  assertBarobillProductionBlocked(mode)
+
+  const res = await fetch(BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    body: JSON.stringify({
+      requestId: `barobill-status-${params.invoiceId}-${Date.now()}`,
+      invoiceId: params.invoiceId,
+      invoiceNo: params.invoiceNo,
+      idempotencyKey: params.idempotencyKey,
+      providerMgtKey: params.providerMgtKey,
+      mode,
+    }),
+  })
+  const json = await parseBarobillWebhookResponse(res)
+  const success = json.success !== false && json.ok !== false
+  if (!success) {
+    throw new Error(getBarobillMessage(json, '바로빌 세금계산서 상태조회가 실패했습니다'))
+  }
+  const error = json.error && typeof json.error === 'object' ? json.error as Record<string, unknown> : undefined
 
   return {
     ok: true,
+    success,
     provider: 'barobill',
-    dryRun: true,
-    status,
-    syncedAt,
-    statusCode: `DRY_RUN_${params.invoiceId}`,
-    message: 'n8n 상태조회 workflow 연결 전 dry-run 확인입니다. 바로빌/국세청 상태는 조회하지 않았습니다.',
+    mode: normalizeBarobillMode(json.mode),
+    status: normalizeBarobillStatus(json.status, params.currentStatus === 'requesting' ? 'requested' : params.currentStatus),
+    requestId: typeof json.requestId === 'string' && json.requestId.trim() ? json.requestId.trim() : `barobill-status-${params.invoiceId}`,
+    invoiceId: typeof json.invoiceId === 'number' ? json.invoiceId : params.invoiceId,
+    invoiceNo: typeof json.invoiceNo === 'string' ? json.invoiceNo : params.invoiceNo,
+    idempotencyKey: typeof json.idempotencyKey === 'string' ? json.idempotencyKey : params.idempotencyKey,
+    providerMgtKey: typeof json.providerMgtKey === 'string' ? json.providerMgtKey : params.providerMgtKey,
+    mgtKey: typeof json.providerMgtKey === 'string' ? json.providerMgtKey : params.providerMgtKey,
+    syncedAt: typeof json.syncedAt === 'string' && json.syncedAt.trim() ? json.syncedAt.trim() : new Date().toISOString(),
+    statusCode: typeof json.statusCode === 'string' ? json.statusCode : undefined,
+    barobillState: typeof json.barobillState === 'number' ? json.barobillState : undefined,
+    ntsSendState: typeof json.ntsSendState === 'number' ? json.ntsSendState : undefined,
+    ntsConfirmNum: typeof json.ntsConfirmNum === 'string' ? json.ntsConfirmNum : undefined,
+    message: getBarobillMessage(json, '바로빌 상태조회가 완료되었습니다'),
+    crmUpdated: typeof json.crmUpdated === 'boolean' ? json.crmUpdated : undefined,
+    errorCode: typeof error?.code === 'string' ? error.code : undefined,
+    errorMessage: typeof error?.message === 'string' ? error.message : undefined,
   }
 }
 

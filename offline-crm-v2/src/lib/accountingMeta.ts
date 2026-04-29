@@ -56,6 +56,7 @@ export type InvoiceTaxInvoiceIssueType = 'normal' | 'reverse' | 'consignment' | 
 export interface InvoiceTaxInvoiceMeta {
   provider?: InvoiceTaxInvoiceProvider
   issueType?: InvoiceTaxInvoiceIssueType
+  mode?: 'test' | 'production'
   mgtKey?: string
   idempotencyKey?: string
   requestId?: string
@@ -66,6 +67,12 @@ export interface InvoiceTaxInvoiceMeta {
   issuedAt?: string
   statusCode?: string
   statusMessage?: string
+  barobillResultCode?: string
+  barobillState?: number
+  ntsSendState?: number
+  ntsSendResult?: string
+  ntsSendDT?: string
+  ntsResultDT?: string
   errorCode?: string
   errorMessage?: string
   mailSent?: boolean
@@ -233,6 +240,17 @@ function sanitizeOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined
 }
 
+function sanitizeOptionalInteger(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value)
+  if (typeof value !== 'string') return undefined
+  const parsed = Number(value.replace(/,/g, '').trim())
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined
+}
+
+function sanitizeTaxInvoiceMode(value: unknown): 'test' | 'production' | undefined {
+  return value === 'test' || value === 'production' ? value : undefined
+}
+
 function sanitizeMultilineText(value: unknown, maxLength = 2000): string | undefined {
   if (typeof value !== 'string') return undefined
   const normalized = normalizeMemo(value)
@@ -280,6 +298,7 @@ function sanitizeInvoiceTaxInvoiceMeta(value: unknown): InvoiceTaxInvoiceMeta | 
   const meta: InvoiceTaxInvoiceMeta = {
     provider: sanitizeTaxInvoiceProvider(entry.provider),
     issueType: sanitizeTaxInvoiceIssueType(entry.issueType),
+    mode: sanitizeTaxInvoiceMode(entry.mode),
     mgtKey: sanitizeShortKey(entry.mgtKey, 80),
     idempotencyKey: sanitizeShortKey(entry.idempotencyKey, 160),
     requestId: sanitizeShortKey(entry.requestId, 120),
@@ -290,6 +309,12 @@ function sanitizeInvoiceTaxInvoiceMeta(value: unknown): InvoiceTaxInvoiceMeta | 
     issuedAt: sanitizeIsoLike(entry.issuedAt),
     statusCode: sanitizeShortKey(entry.statusCode, 80),
     statusMessage: sanitizeMultilineText(entry.statusMessage, 300),
+    barobillResultCode: sanitizeShortKey(entry.barobillResultCode, 80),
+    barobillState: sanitizeOptionalInteger(entry.barobillState),
+    ntsSendState: sanitizeOptionalInteger(entry.ntsSendState),
+    ntsSendResult: sanitizeMultilineText(entry.ntsSendResult, 300),
+    ntsSendDT: sanitizeIsoLike(entry.ntsSendDT),
+    ntsResultDT: sanitizeIsoLike(entry.ntsResultDT),
     errorCode: sanitizeShortKey(entry.errorCode, 80),
     errorMessage: sanitizeMultilineText(entry.errorMessage, 500),
     mailSent: sanitizeOptionalBoolean(entry.mailSent),

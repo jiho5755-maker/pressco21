@@ -25,7 +25,6 @@ import {
 import {
   appendCustomerAccountingEvent,
   appendInvoicePaymentHistory,
-  getInvoiceDepositUsedAmount,
   parseInvoiceAccountingMeta,
   parseCustomerAccountingMeta,
 } from '@/lib/accountingMeta'
@@ -35,6 +34,8 @@ import {
   buildCustomerReceivableLedger,
   buildSettlementTimeline,
   buildResolvedReceivableInvoices,
+  getInvoiceRemainingAmount,
+  getInvoiceSettlementStatus,
   resolveInvoiceCustomer,
   type CustomerReceivableLedger,
   type ResolvedReceivableInvoice,
@@ -112,7 +113,7 @@ function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): numb
 }
 
 function calcRemaining(inv: Invoice): number {
-  return Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0) - getInvoiceDepositUsedAmount(inv.memo as string | undefined))
+  return getInvoiceRemainingAmount(inv)
 }
 
 interface ReceivableSnapshot extends Invoice {
@@ -182,12 +183,11 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
   const overflowAmount = Math.max(0, amount - remaining)
   const newPaid = Math.min(total, prevPaid + effectivePaidAmount)
   const newRemaining = Math.max(0, remaining - effectivePaidAmount)
-  // payment_status: 이번 명세표 total 기준으로만 판정 (InvoiceDialog.calcStatus와 동일 기준)
-  // prevBal은 이전 명세표에 귀속된 채무이므로 완납 여부에 포함하지 않음
-  const newPaymentStatus: string =
-    total <= 0 ? 'paid'
-    : newPaid >= total ? 'paid'
-    : newPaid > 0 ? 'partial'
+  const newPaymentStatus = invoice
+    ? getInvoiceSettlementStatus({
+        ...invoice,
+        paid_amount: newPaid,
+      })
     : 'unpaid'
   const { data: linkedCustomer } = useQuery({
     queryKey: ['receivable-payment-customer', invoiceId, invoice?.customer_id],

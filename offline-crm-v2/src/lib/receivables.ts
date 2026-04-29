@@ -1,4 +1,5 @@
 import type { Customer, Invoice } from '@/lib/api'
+import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
 import type {
   FiscalBalanceSnapshotPayload,
   LegacyCustomerSnapshotPayload,
@@ -37,6 +38,55 @@ export interface SettlementTimelineRow {
   entry: LegacyReceivableSettlementEntry
   cumulativeAmount: number
   remainingAmount: number
+}
+
+export interface InvoiceSettlementSnapshot {
+  totalAmount: number
+  cashPaidAmount: number
+  depositUsedAmount: number
+  settledAmount: number
+  remainingAmount: number
+  paymentStatus: 'paid' | 'partial' | 'unpaid'
+}
+
+function toNonNegativeInteger(value: unknown): number {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0
+}
+
+export function getInvoiceSettlementSnapshot(
+  invoice: Pick<Invoice, 'total_amount' | 'paid_amount' | 'memo'>,
+): InvoiceSettlementSnapshot {
+  const totalAmount = toNonNegativeInteger(invoice.total_amount)
+  const cashPaidAmount = toNonNegativeInteger(invoice.paid_amount)
+  const depositUsedAmount = Math.max(0, getInvoiceDepositUsedAmount(invoice.memo as string | undefined))
+  const settledAmount = Math.min(totalAmount, cashPaidAmount + depositUsedAmount)
+  const remainingAmount = Math.max(0, totalAmount - settledAmount)
+  const paymentStatus =
+    totalAmount <= 0 || remainingAmount <= 0
+      ? 'paid'
+      : settledAmount > 0
+        ? 'partial'
+        : 'unpaid'
+
+  return {
+    totalAmount,
+    cashPaidAmount,
+    depositUsedAmount,
+    settledAmount,
+    remainingAmount,
+    paymentStatus,
+  }
+}
+
+export function getInvoiceRemainingAmount(invoice: Pick<Invoice, 'total_amount' | 'paid_amount' | 'memo'>): number {
+  return getInvoiceSettlementSnapshot(invoice).remainingAmount
+}
+
+export function getInvoiceSettlementStatus(
+  invoice: Pick<Invoice, 'total_amount' | 'paid_amount' | 'memo'>,
+): 'paid' | 'partial' | 'unpaid' {
+  return getInvoiceSettlementSnapshot(invoice).paymentStatus
 }
 
 function normalizeLookup(value?: string | null): string {

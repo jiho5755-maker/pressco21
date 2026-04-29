@@ -678,9 +678,10 @@ export function InvoiceDialog({
     ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
     : 0
   const availableDeposit = activeCustomerAccounting.depositBalance + previousInvoiceDepositUsed
-  const maxDepositApplicable = Math.min(availableDeposit, prevBal + grandTotal)
+  const maxDepositApplicable = Math.min(availableDeposit, Math.max(0, grandTotal - paidAmt))
   const appliedDeposit = Math.min(depositUseAmount, maxDepositApplicable)
-  const curBal = prevBal + grandTotal - paidAmt - appliedDeposit
+  const curBal = Math.max(0, grandTotal - paidAmt - appliedDeposit)
+  const statementBalance = prevBal + curBal
 
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -1039,11 +1040,33 @@ export function InvoiceDialog({
       toast.warning('품목을 한 개 이상 입력해주세요')
       return
     }
+    if (paidAmt > grandTotal) {
+      toast.warning('입금액은 이번 명세표 합계까지만 입력할 수 있습니다. 초과 입금은 수금 관리에서 예치금으로 보관해 주세요.')
+      return
+    }
     setIsSaving(true)
     try {
       const status = calcStatus(paidAmt + appliedDeposit, prevBal, grandTotal)
       const sourceCustomer = currentCustomer ?? selectedCustomer
       const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
+      const effectiveCustomerId = normalizePositiveId(form.customer_id)
+      const previousDepositUsed = invoiceId && !isCopy
+        ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
+        : 0
+      const deltaDepositUsed = appliedDeposit - previousDepositUsed
+      let latestCustomerForDeposit: Customer | null = null
+      if (deltaDepositUsed > 0) {
+        if (!effectiveCustomerId) {
+          toast.error('예치금 사용에는 연결된 고객 정보가 필요합니다.')
+          return
+        }
+        latestCustomerForDeposit = await getCustomer(effectiveCustomerId)
+        const latestDepositBalance = parseCustomerAccountingMeta(latestCustomerForDeposit.memo as string | undefined).depositBalance
+        if (latestDepositBalance < deltaDepositUsed) {
+          toast.error(`사용 가능 예치금이 부족합니다. 현재 ${latestDepositBalance.toLocaleString()}원만 사용할 수 있습니다.`)
+          return
+        }
+      }
       const reminderAmount = paymentDueAmount > 0 ? paymentDueAmount : Math.max(0, curBal)
       const hasPaymentPromise = Boolean(paymentDueDate || paymentDueAmount > 0 || paymentReminderEnabled)
       const reminderEnabled = Boolean(paymentDueDate && paymentReminderEnabled)
@@ -1130,14 +1153,9 @@ export function InvoiceDialog({
       }
 
       // 잔액 재계산
-      const effectiveCustomerId = normalizePositiveId(form.customer_id)
       if (effectiveCustomerId) {
-        const previousDepositUsed = invoiceId && !isCopy
-          ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
-          : 0
-        const deltaDepositUsed = appliedDeposit - previousDepositUsed
         if (deltaDepositUsed !== 0) {
-          const latestCustomer = await getCustomer(effectiveCustomerId)
+          const latestCustomer = latestCustomerForDeposit ?? await getCustomer(effectiveCustomerId)
           const sourceMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
           const nextDepositBalance = deltaDepositUsed > 0
             ? Math.max(0, sourceMeta.depositBalance - deltaDepositUsed)
@@ -1252,6 +1270,7 @@ export function InvoiceDialog({
         discount_amount: discountAmount,
         previous_balance: prevBal,
         paid_amount: paidAmt,
+        current_balance_override: statementBalance,
         memo: getDisplayMemo(form.memo as string | undefined),
         deposit_used_amount: appliedDeposit,
       },
@@ -1686,10 +1705,15 @@ export function InvoiceDialog({
                 <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
               </div>
               <div className="rounded-md border bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">예치금 반영 후 잔액</p>
+                <p className="text-xs text-muted-foreground">예치금 반영 후 명세표 잔액</p>
                 <p className={`mt-1 text-sm font-semibold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
                   {curBal.toLocaleString()}원
                 </p>
+                {prevBal > 0 && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    전잔액 포함 참고 {statementBalance.toLocaleString()}원
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -2068,10 +2092,19 @@ export function InvoiceDialog({
                   <Label className="text-xs">입금액</Label>
                   <Input
                     type="number"
+                    max={grandTotal}
                     value={form.paid_amount ?? 0}
-                    onChange={(e) => { setForm((f) => ({ ...f, paid_amount: sanitizeAmount(e.target.value) })); setIsDirty(true) }}
+                    onChange={(e) => {
+                      const nextPaidAmount = sanitizeAmount(e.target.value)
+                      setForm((f) => ({ ...f, paid_amount: nextPaidAmount }))
+                      setDepositUseAmount((prev) => Math.min(prev, Math.max(0, grandTotal - nextPaidAmount)))
+                      setIsDirty(true)
+                    }}
                     className="mt-1"
                   />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    초과 입금은 수금 관리에서 예치금으로 분리 처리합니다.
+                  </p>
                 </div>
                 <div>
                   <Label className="text-xs">입금방법</Label>
@@ -2096,12 +2129,12 @@ export function InvoiceDialog({
             <div className="rounded-lg border bg-gray-50 p-4">
               <p className="text-sm font-medium">잔액 계산</p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                전잔액과 이번 출고액에서 입금액, 예치금 사용액을 차감한 결과입니다.
+                이번 출고액에서 입금액과 예치금 사용액을 차감한 명세표 잔액입니다. 전잔액은 참고로만 표시합니다.
               </p>
 
               <div className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
-                  <span className="text-xs text-muted-foreground">전잔액</span>
+                  <span className="text-xs text-muted-foreground">전잔액(참고)</span>
                   <span>{prevBal.toLocaleString()}원</span>
                 </div>
                 <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
@@ -2126,7 +2159,7 @@ export function InvoiceDialog({
                 )}
                 <div className={`rounded-md px-3 py-3 ${curBal > 0 ? 'bg-[#fff1f2]' : 'bg-[#edf6ea]'}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">현잔액</span>
+                    <span className="text-xs font-medium">이번 명세표 잔액</span>
                     <span className={`text-lg font-bold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
                       {curBal.toLocaleString()}원
                     </span>
@@ -2134,6 +2167,11 @@ export function InvoiceDialog({
                   <p className={`mt-1 text-[11px] ${curBal > 0 ? 'text-red-500' : 'text-green-700/80'}`}>
                     {curBal > 0 ? '미수금이 남아 있습니다.' : '즉시 정산 가능한 상태입니다.'}
                   </p>
+                  {prevBal > 0 && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      전잔액 포함 참고 잔액 {statementBalance.toLocaleString()}원
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

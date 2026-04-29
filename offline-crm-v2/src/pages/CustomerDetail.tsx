@@ -34,7 +34,7 @@ import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constan
 import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { buildSettlementTimeline, buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
+import { buildSettlementTimeline, buildResolvedReceivableInvoices, getInvoiceSettlementSnapshot, resolveInvoiceCustomer } from '@/lib/receivables'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
 import {
@@ -621,12 +621,13 @@ export function CustomerDetail() {
   const periodStats = useMemo(() => {
     // CRM v2 명세표 합산
     const crmSales = filteredInvoices.reduce((s, inv) => s + (inv.total_amount ?? 0), 0)
-    const received = filteredInvoices.reduce((s, inv) => s + (inv.paid_amount ?? 0), 0)
-    const outstanding = crmSales - received
+    const received = filteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).settledAmount, 0)
+    const depositUsed = filteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).depositUsedAmount, 0)
+    const outstanding = Math.max(0, crmSales - received)
     // 레거시 출고 합산 (txAll에서 가져옴)
     const legacySales = filteredLegacyTx.reduce((s, tx) => s + (tx.amount ?? 0), 0)
     return {
-      crmSales, received, outstanding,
+      crmSales, received, depositUsed, outstanding,
       crmCount: filteredInvoices.length,
       legacySales,
       legacyCount: filteredLegacyTx.length,
@@ -2008,19 +2009,25 @@ export function CustomerDetail() {
                 size="sm"
                 variant="outline"
                 className="gap-1.5 h-7 text-xs"
-                onClick={() =>
-                  printPeriodReport(
-                    customer.name ?? '',
-                    dateFrom,
-                    dateTo,
-                    filteredInvoices.map((inv) => ({
+                onClick={() => {
+                  const printableInvoices = filteredInvoices.map((inv) => {
+                    const settlement = getInvoiceSettlementSnapshot(inv)
+                    return {
                       invoice_no: inv.invoice_no,
                       invoice_date: inv.invoice_date,
                       supply_amount: inv.supply_amount,
                       total_amount: inv.total_amount,
                       paid_amount: inv.paid_amount,
-                      status: inv.payment_status,
-                    })),
+                      deposit_used_amount: settlement.depositUsedAmount,
+                      settled_amount: settlement.settledAmount,
+                      status: settlement.paymentStatus,
+                    }
+                  })
+                  printPeriodReport(
+                    customer.name ?? '',
+                    dateFrom,
+                    dateTo,
+                    printableInvoices,
                     filteredLegacyTx.map((tx) => ({
                       tx_date: tx.tx_date,
                       tx_type: tx.tx_type,
@@ -2030,7 +2037,7 @@ export function CustomerDetail() {
                     })),
                     periodStats,
                   )
-                }
+                }}
               >
                 <Printer className="h-3.5 w-3.5" />
                 PDF 출력
@@ -2083,12 +2090,17 @@ export function CustomerDetail() {
                   sub: `새 입력 ${periodStats.crmCount}건 + 기존 장부 ${periodStats.legacyCount}건`,
                   red: false,
                 },
-                { label: '새 입력 명세표', value: `${periodStats.crmSales.toLocaleString()}원`, sub: `${periodStats.crmCount}건`, red: false },
+                {
+                  label: '새 입력 명세표',
+                  value: `${periodStats.crmSales.toLocaleString()}원`,
+                  sub: `정산 ${periodStats.received.toLocaleString()}원${periodStats.depositUsed > 0 ? ` · 예치금 ${periodStats.depositUsed.toLocaleString()}원` : ''}`,
+                  red: false,
+                },
                 { label: '기존 장부 출고', value: `${periodStats.legacySales.toLocaleString()}원`, sub: `${periodStats.legacyCount}건 (최대 1,000건)`, red: false },
                 {
                   label: '기간 미수금',
                   value: `${periodStats.outstanding.toLocaleString()}원`,
-                  sub: '새 입력 명세표 기준',
+                  sub: '입금액 + 예치금 사용 반영',
                   red: periodStats.outstanding > 0,
                 },
               ].map((s) => (
@@ -2117,62 +2129,69 @@ export function CustomerDetail() {
                   <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">공급가</th>
                   <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">합계</th>
                   <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">입금</th>
+                  <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">예치금</th>
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">수금</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredInvoices.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-6 text-muted-foreground text-xs">
+                    <td colSpan={7} className="text-center py-6 text-muted-foreground text-xs">
                       해당 기간에 발행된 명세표가 없습니다.
                     </td>
                   </tr>
                 )}
-                {filteredInvoices.map((inv) => (
-                  <tr
-                    key={inv.Id}
-                    className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? customer.name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : customerId,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
-                  >
-                    <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
-                      {inv.invoice_no ?? '-'}
-                    </td>
-                    <td className="px-4 py-2 text-sm">{inv.invoice_date?.slice(0, 10) ?? '-'}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-sm">
-                      {(inv.supply_amount ?? 0).toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium tabular-nums text-sm">
-                      {(inv.total_amount ?? 0).toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-sm text-green-700">
-                      {(inv.paid_amount ?? 0) > 0 ? `${(inv.paid_amount ?? 0).toLocaleString()}원` : '-'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`text-xs font-medium ${
-                          inv.payment_status === 'paid'
-                            ? 'text-green-600'
-                            : inv.payment_status === 'partial'
-                            ? 'text-amber-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {inv.payment_status === 'paid' ? '완납' : inv.payment_status === 'partial' ? '부분수금' : '미수금'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filteredInvoices.map((inv) => {
+                  const settlement = getInvoiceSettlementSnapshot(inv)
+                  return (
+                    <tr
+                      key={inv.Id}
+                      className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => setSelectedTransaction({
+                        source: 'crm',
+                        recordId: inv.Id,
+                        date: inv.invoice_date?.slice(0, 10) ?? '',
+                        customerName: inv.customer_name ?? customer.name ?? '',
+                        customerId: typeof inv.customer_id === 'number' ? inv.customer_id : customerId,
+                        txType: '출고',
+                        amount: inv.total_amount ?? 0,
+                        tax: inv.tax_amount ?? 0,
+                        slipNo: inv.invoice_no,
+                        memo: getDisplayMemo(inv.memo as string | undefined),
+                      })}
+                    >
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                        {inv.invoice_no ?? '-'}
+                      </td>
+                      <td className="px-4 py-2 text-sm">{inv.invoice_date?.slice(0, 10) ?? '-'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-sm">
+                        {(inv.supply_amount ?? 0).toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2 text-right font-medium tabular-nums text-sm">
+                        {(inv.total_amount ?? 0).toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-sm text-green-700">
+                        {(inv.paid_amount ?? 0) > 0 ? `${(inv.paid_amount ?? 0).toLocaleString()}원` : '-'}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-sm text-emerald-700">
+                        {settlement.depositUsedAmount > 0 ? `${settlement.depositUsedAmount.toLocaleString()}원` : '-'}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`text-xs font-medium ${
+                            settlement.paymentStatus === 'paid'
+                              ? 'text-green-600'
+                              : settlement.paymentStatus === 'partial'
+                              ? 'text-amber-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {settlement.paymentStatus === 'paid' ? '완납' : settlement.paymentStatus === 'partial' ? '부분수금' : '미수금'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

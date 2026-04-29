@@ -44,6 +44,7 @@ export interface PrintInvoice {
   discount_amount?: number
   previous_balance?: number
   paid_amount?: number
+  deposit_used_amount?: number
   current_balance_override?: number
   memo?: string
 }
@@ -363,10 +364,11 @@ function buildInvoicePageHtml(
 
   const prevBal = inv.previous_balance ?? 0
   const paidAmt = inv.paid_amount ?? 0
+  const depositUsedAmt = inv.deposit_used_amount ?? 0
   const totalAmt = inv.total_amount ?? 0
   const discountAmt = inv.discount_amount ?? 0
   const subtotalAmt = (inv.supply_amount ?? 0) + (inv.tax_amount ?? 0)
-  const curBal = prevBal + totalAmt - paidAmt
+  const curBal = inv.current_balance_override ?? (prevBal + totalAmt - paidAmt - depositUsedAmt)
   const payNoteLines = [
     formatBankInfo(c) ? `입금계좌: ${formatBankInfo(c)}` : '',
     c.invoice_footer ?? '',
@@ -496,7 +498,15 @@ function buildInvoicePageHtml(
       `<td class="inv-bl">입&nbsp;&nbsp;금&nbsp;&nbsp;액</td><td class="inv-bv t-right">${paidAmt.toLocaleString()}</td>` +
       `<td class="inv-bl">현&nbsp;&nbsp;잔&nbsp;&nbsp;액</td>` +
       `<td class="inv-bv t-right${curBal > 0 ? ' inv-bv-warn' : ''}">${curBal.toLocaleString()}</td>` +
-      '</tr></table>' +
+      '</tr>' +
+      (depositUsedAmt > 0
+        ? '<tr>' +
+          '<td class="inv-bl">예&nbsp;치&nbsp;금</td>' +
+          `<td class="inv-bv t-right">-${depositUsedAmt.toLocaleString()}</td>` +
+          '<td class="inv-bl" colspan="6">예치금은 이미 받은 선입금에서 차감한 금액이며, 세금계산서 기준 금액은 위 품목 합계입니다.</td>' +
+          '</tr>'
+        : '') +
+      '</table>' +
       (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
       (payNoteLines.length > 0
         ? `<div class="inv-paynote">${payNoteLines.map((line) => esc(line)).join('<br />')}</div>`
@@ -1318,6 +1328,8 @@ export interface PeriodReportInvoice {
   supply_amount?: number
   total_amount?: number
   paid_amount?: number
+  deposit_used_amount?: number
+  settled_amount?: number
   status?: string
 }
 
@@ -1335,6 +1347,8 @@ export interface PeriodReportStats {
   legacySales: number
   legacyCount: number
   totalSales: number
+  received?: number
+  depositUsed?: number
   outstanding: number
 }
 
@@ -1377,7 +1391,7 @@ export function printPeriodReport(
         `<td class="c">${esc((inv.invoice_date ?? '').slice(0, 10))}</td>` +
         `<td class="r">${(inv.supply_amount ?? 0).toLocaleString()}</td>` +
         `<td class="r b">${(inv.total_amount ?? 0).toLocaleString()}</td>` +
-        `<td class="r">${(inv.paid_amount ?? 0) > 0 ? (inv.paid_amount ?? 0).toLocaleString() : '-'}</td>` +
+        `<td class="r">${(inv.settled_amount ?? inv.paid_amount ?? 0) > 0 ? (inv.settled_amount ?? inv.paid_amount ?? 0).toLocaleString() : '-'}${(inv.deposit_used_amount ?? 0) > 0 ? `<br><span style="font-size:6pt;color:#047857;">예치 ${(inv.deposit_used_amount ?? 0).toLocaleString()}</span>` : ''}</td>` +
         `<td class="c" style="color:${statusColor(inv.status)};font-weight:600;">${statusLabel(inv.status)}</td>` +
         `</tr>`,
     )
@@ -1447,11 +1461,11 @@ export function printPeriodReport(
     `</div>` +
     (crmInvoices.length > 0
       ? `<div class="sec">거래명세표 발행 내역</div>` +
-        `<div class="sec-sub">${stats.crmCount}건 · ${stats.crmSales.toLocaleString()}원</div>` +
+        `<div class="sec-sub">${stats.crmCount}건 · ${stats.crmSales.toLocaleString()}원 · 정산 ${(stats.received ?? 0).toLocaleString()}원${(stats.depositUsed ?? 0) > 0 ? ` · 예치금 ${(stats.depositUsed ?? 0).toLocaleString()}원` : ''}</div>` +
         `<table><thead><tr>` +
         `<th style="width:22%">발행번호</th><th style="width:12%">발행일</th>` +
         `<th style="width:14%">공급가액</th><th style="width:14%">합계금액</th>` +
-        `<th style="width:14%">입금액</th><th style="width:10%">수금</th>` +
+        `<th style="width:14%">정산액</th><th style="width:10%">수금</th>` +
         `</tr></thead><tbody>${crmRows}</tbody></table>`
       : '') +
     (legacyTx.length > 0

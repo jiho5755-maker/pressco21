@@ -17,6 +17,7 @@ import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
 import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
+import { getInvoiceSettlementSnapshot } from '@/lib/receivables'
 
 const PAGE_SIZE = 25
 
@@ -87,12 +88,6 @@ function getFulfillmentBadge(invoice: Invoice): { label: string; cls: string } {
 function formatAmount(value?: number | null) {
   if (value == null) return '-'
   return `${value.toLocaleString()}원`
-}
-
-function getOutstandingAmount(invoice: Invoice) {
-  const totalAmount = Number(invoice.total_amount ?? 0)
-  const paidAmount = Number(invoice.paid_amount ?? 0)
-  return Math.max(totalAmount - paidAmount, 0)
 }
 
 function isShipmentConfirmable(invoice: Invoice): boolean {
@@ -1053,9 +1048,10 @@ export function Invoices() {
           </div>
         )}
         {!isLoading && !isError && invoices.map((inv) => {
-          const st = STATUS_LABEL[inv.payment_status ?? '']
           const isDeleting = deletingId === inv.Id
-          const outstandingAmount = getOutstandingAmount(inv)
+          const settlement = getInvoiceSettlementSnapshot(inv)
+          const st = STATUS_LABEL[settlement.paymentStatus]
+          const outstandingAmount = settlement.remainingAmount
           const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
           const invoiceName = inv.customer_name?.trim()
           const masterName = linkedCustomer?.name?.trim()
@@ -1129,7 +1125,7 @@ export function Invoices() {
                     <div className="mt-1 text-sm font-semibold text-foreground">{formatAmount(outstandingAmount)}</div>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-[11px]">
+                <div className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-4">
                   <div>
                     <div className="text-muted-foreground">공급가액</div>
                     <div className="mt-1 font-medium text-foreground">{formatAmount(inv.supply_amount)}</div>
@@ -1141,6 +1137,10 @@ export function Invoices() {
                   <div>
                     <div className="text-muted-foreground">입금액</div>
                     <div className="mt-1 font-medium text-foreground">{formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">예치금</div>
+                    <div className="mt-1 font-medium text-emerald-700">{formatAmount(settlement.depositUsedAmount > 0 ? settlement.depositUsedAmount : null)}</div>
                   </div>
                 </div>
               </div>
@@ -1253,9 +1253,10 @@ export function Invoices() {
               </tr>
             )}
             {invoices.map((inv) => {
-              const st = STATUS_LABEL[inv.payment_status ?? '']
               const isDeleting = deletingId === inv.Id
-              const outstandingAmount = getOutstandingAmount(inv)
+              const settlement = getInvoiceSettlementSnapshot(inv)
+              const st = STATUS_LABEL[settlement.paymentStatus]
+              const outstandingAmount = settlement.remainingAmount
               const fulfillment = getFulfillmentBadge(inv)
               const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
               const isConfirmingShipment = confirmingShipmentId === inv.Id
@@ -1335,6 +1336,11 @@ export function Invoices() {
                     <div className="mt-2 text-xs text-muted-foreground">
                       입금 {formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}
                     </div>
+                    {settlement.depositUsedAmount > 0 && (
+                      <div className="mt-1 text-xs text-emerald-700">
+                        예치금 {formatAmount(settlement.depositUsedAmount)}
+                      </div>
+                    )}
                     <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${fulfillment.cls}`}>
                       {fulfillment.label}
                     </div>

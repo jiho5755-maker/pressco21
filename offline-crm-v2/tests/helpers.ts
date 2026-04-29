@@ -248,6 +248,17 @@ export async function createTestInvoice(
   })
 }
 
+export async function createTestItem(
+  request: APIRequestContext,
+  payload: Record<string, unknown>,
+): Promise<ItemCleanupRow> {
+  return proxyRequest<ItemCleanupRow>(request, {
+    table: 'items',
+    method: 'POST',
+    payload,
+  })
+}
+
 // ─── 네비게이션 헬퍼 ─────────────────────────────────────
 
 /**

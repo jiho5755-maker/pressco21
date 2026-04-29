@@ -18,13 +18,17 @@ import {
 import {
   appendCustomerAccountingEvent,
   appendInvoicePaymentHistory,
-  getInvoiceDepositUsedAmount,
   parseCustomerAccountingMeta,
   parseInvoiceAccountingMeta,
   serializeInvoiceAccountingMeta,
 } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
-import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
+import {
+  buildCustomerReceivableLedger,
+  buildResolvedReceivableInvoices,
+  getInvoiceRemainingAmount,
+  getInvoiceSettlementStatus,
+} from '@/lib/receivables'
 import {
   buildAutoDepositMatchResults,
   dismissAutoDepositReviewQueueItem,
@@ -51,17 +55,11 @@ function currentTimestamp(): string {
 }
 
 function calcRemaining(inv: Invoice): number {
-  return Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0) - getInvoiceDepositUsedAmount(inv.memo as string | undefined))
+  return getInvoiceRemainingAmount(inv)
 }
 
 function calcPaymentStatus(inv: Invoice): 'paid' | 'partial' | 'unpaid' {
-  const total = inv.total_amount ?? 0
-  const paid = inv.paid_amount ?? 0
-  const depositUsed = getInvoiceDepositUsedAmount(inv.memo as string | undefined)
-  const remaining = Math.max(0, total - paid - depositUsed)
-  if (remaining <= 0) return 'paid'
-  if (paid + depositUsed > 0) return 'partial'
-  return 'unpaid'
+  return getInvoiceSettlementStatus(inv)
 }
 
 function getInvoiceDate(inv: Invoice): string {
@@ -335,8 +333,10 @@ export function DepositInbox() {
 
     const nextPaid = Math.min(invoice.total_amount ?? 0, (invoice.paid_amount ?? 0) + entry.amount)
     const nextRemaining = Math.max(0, remaining - entry.amount)
-    const nextPaymentStatus =
-      nextRemaining <= 0 ? 'paid' : nextPaid > 0 ? 'partial' : 'unpaid'
+    const nextPaymentStatus = getInvoiceSettlementStatus({
+      ...invoice,
+      paid_amount: nextPaid,
+    })
     const nextMemo = appendInvoicePaymentHistory(invoice.memo as string | undefined, {
       amount: entry.amount,
       date: entry.date,

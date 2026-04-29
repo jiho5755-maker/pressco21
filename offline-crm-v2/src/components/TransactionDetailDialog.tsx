@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { getInvoice, getItems, getTxHistory, sanitizeSearchTerm } from '@/lib/api'
 import type { Invoice, InvoiceItem, TxHistory } from '@/lib/api'
 import { getDisplayMemo, parseInvoiceAccountingMeta } from '@/lib/accountingMeta'
+import { getInvoiceSettlementSnapshot } from '@/lib/receivables'
 
 export interface TransactionPreview {
   source: 'crm' | 'legacy' | 'legacySettlement'
@@ -264,6 +265,7 @@ function CrmTransactionContent({
     memo: transaction.memo,
   }
   const invoiceMeta = parseInvoiceAccountingMeta(effectiveInvoice.memo as string | undefined)
+  const settlement = getInvoiceSettlementSnapshot(effectiveInvoice)
   const paymentReminder = invoiceMeta.paymentReminder
   const loggedPaymentAmount = invoiceMeta.paymentHistory.reduce((sum, entry) => sum + entry.amount, 0)
   const fallbackPaymentAmount = Math.max(0, (effectiveInvoice.paid_amount ?? 0) - loggedPaymentAmount)
@@ -292,15 +294,16 @@ function CrmTransactionContent({
             {renderKeyValue('합계금액', formatCurrency(effectiveInvoice.total_amount))}
             {renderKeyValue(
               '수금상태',
-              effectiveInvoice.payment_status === 'paid'
+              settlement.paymentStatus === 'paid'
                 ? '완납'
-                : effectiveInvoice.payment_status === 'partial'
+                : settlement.paymentStatus === 'partial'
                   ? '부분수금'
-                  : effectiveInvoice.payment_status === 'unpaid'
-                    ? '미수금'
-                    : '-',
+                  : '미수금',
             )}
             {renderKeyValue('입금액', formatCurrency(effectiveInvoice.paid_amount))}
+            {invoiceMeta.depositUsedAmount > 0
+              ? renderKeyValue('예치금 사용', formatCurrency(invoiceMeta.depositUsedAmount))
+              : null}
             {renderKeyValue('품목 수량 합계', `${getItemQuantity(items).toLocaleString()}개`)}
           </div>
           {getDisplayMemo(effectiveInvoice.memo as string | undefined) ? (

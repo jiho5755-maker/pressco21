@@ -23,7 +23,7 @@ verification:
   - "git status captured at handoff time"
 open_risks:
   - "실제 바로빌/국세청 연동은 외부 상태에 의존하므로 운영 실발급은 매번 대상 명세표 fresh read 후 확인 필요. 인증키·ContactID·토큰·승인번호 전체값은 문서/출력 금지."
-next_step: "다음 세션은 main c831bda 기준에서 CRM 실사용 모니터링만 진행하고, 추가 실발급/취소는 사용자 승인 후 실행"
+next_step: "다음 세션은 main 최신 기준에서 CRM 실사용 모니터링만 진행하고, 추가 실발급/취소는 사용자 승인 후 실행"
 learn_to_save:
   - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
 local_output_handoff: "output/codex-handoffs/20260430-020030-crm-barobill-tax-invoice-final-closeout.md"
@@ -37,7 +37,7 @@ backup_folder: "(none)"
 CRM 바로빌 세금계산서 자동화 UI/n8n 연동 최종 마감: 발급/상태조회/취소·상쇄, VAT 포함가 분리, 출고확정 후 발급 제한, 운영 배포와 브라우저 검증 및 테스트 데이터 정리 완료
 
 ## 다음 작업
-다음 세션은 main c831bda 기준에서 CRM 실사용 모니터링만 진행하고, 추가 실발급/취소는 사용자 승인 후 실행
+다음 세션은 main 최신 기준에서 CRM 실사용 모니터링만 진행하고, 추가 실발급/취소는 사용자 승인 후 실행
 
 ## 리스크
 실제 바로빌/국세청 연동은 외부 상태에 의존하므로 운영 실발급은 매번 대상 명세표 fresh read 후 확인 필요. 인증키·ContactID·토큰·승인번호 전체값은 문서/출력 금지.

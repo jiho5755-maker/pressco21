@@ -1,0 +1,47 @@
+{
+  "requestId": "req-20260429-fixture-001",
+  "idempotencyKey": "barobill:tax-invoice:pressco21:123:INV-20260429-001",
+  "invoiceId": 123,
+  "invoiceNo": "INV-20260429-001",
+  "issueType": "normal",
+  "provider": "barobill",
+  "mode": "test",
+  "sendEmail": true,
+  "sendSms": false,
+  "requestedBy": "fixture",
+  "supplier": {
+    "corpNum": "1234567890",
+    "corpName": "PRESSCO21 TEST",
+    "ceoName": "TEST CEO",
+    "addr": "Seoul Test Address",
+    "bizType": "wholesale-retail",
+    "bizClass": "craft supplies",
+    "contactName": "Test Operator",
+    "email": "sender@example.com"
+  },
+  "buyer": {
+    "corpNum": "9876543210",
+    "corpName": "Fixture Buyer",
+    "ceoName": "Buyer CEO",
+    "addr": "Buyer Test Address",
+    "bizType": "public",
+    "bizClass": "education",
+    "contactName": "Buyer Contact",
+    "email": "buyer@example.com"
+  },
+  "amounts": {
+    "supplyAmount": 675909,
+    "taxAmount": 67591,
+    "totalAmount": 743500
+  },
+  "items": [
+    {
+      "name": "Fixture Product",
+      "spec": "set",
+      "quantity": 1,
+      "unitPrice": 743500,
+      "supplyAmount": 675909,
+      "taxAmount": 67591
+    }
+  ]
+}

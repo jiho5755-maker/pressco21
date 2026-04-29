@@ -366,3 +366,81 @@ BAROBILL_CERTKEY=... BAROBILL_CORP_NUM=2150552221 \
 - 테스트 인증키와 사업자번호는 SOAP 서버에서 인식된다.
 - 실제 테스트 정발급 성공을 위해서는 테스트 서버에 해당 사업자 공동인증서 등록/재등록이 먼저 필요하다.
 - 운영 발급 금지는 유지한다.
+
+## 14. 테스트 인증키 환경변수 운영 방식
+
+2026-04-29에 테스트 인증키를 로컬 개발 환경에 영속 설정했다. 실제 인증키 값은 Git, 문서, handoff에 기록하지 않는다.
+
+로컬 설정 위치:
+
+```text
+~/.config/pressco21/barobill-test.env
+```
+
+권한:
+
+```text
+chmod 600
+```
+
+자동 로드:
+
+- `~/.zshrc`에 위 파일을 source하는 loader만 추가했다.
+- `soap-smoke-test.py`도 환경변수가 없으면 위 로컬 파일을 자동 로드한다.
+
+설정된 변수명:
+
+```text
+BAROBILL_CERTKEY
+BAROBILL_CORP_NUM
+BAROBILL_CONTACT_ID
+BAROBILL_SERVICE_TEST_URL
+BAROBILL_SERVICE_PROD_URL
+BAROBILL_ALLOW_PRODUCTION=false
+```
+
+주의:
+
+- `BAROBILL_CERTKEY` 값은 테스트 서버용이며 운영 발급에 쓰지 않는다.
+- n8n 서버에 배포할 때는 서버 runtime 환경변수에도 별도로 같은 테스트 값을 주입해야 한다.
+- 운영 전환 시에는 테스트 키를 운영 키로 교체하고, `BAROBILL_ALLOW_PRODUCTION=true`는 별도 승인 후에만 설정한다.
+
+## 15. 공동인증서 등록 안내
+
+현재 테스트 발급 실패 원인은 바로빌 테스트 서버가 인증키와 사업자번호는 인식하지만, 발행에 필요한 공동인증서가 등록되어 있지 않기 때문이다.
+
+공식 안내 기준 등록 위치:
+
+```text
+바로빌 사이트 로그인 → 공동인증서 → 공동인증서 등록 → MY 인증서 조회하기 → 인증서 (재)등록
+```
+
+운영자가 해야 할 일:
+
+1. PC에서 `https://www.barobill.co.kr`에 로그인한다.
+2. 상단/좌측 메뉴에서 `공동인증서 > 공동인증서 등록`으로 이동한다.
+3. `MY 인증서 조회하기` 또는 `등록가능 인증서 확인`으로 현재 PC/저장매체의 인증서를 확인한다.
+4. 목록에 인증서가 보이면 반드시 하단의 `인증서 (재)등록` 버튼까지 눌러 등록을 완료한다.
+5. 가능하면 같은 화면에서 `간편발급 설정`을 `허용`으로 저장한다.
+6. 등록 후 로컬에서 다시 다음을 실행한다.
+
+```bash
+python3 n8n-automation/_tools/barobill/soap-smoke-test.py --issue
+```
+
+등록 가능한 인증서:
+
+- 전자세금용 공동인증서
+- 바로빌 특목용 인증서
+- 사업자 범용 인증서
+
+등록 불가 예시:
+
+- 개인범용 인증서
+- 은행용/증권용/보험용 등 타기관 특목용 인증서
+
+공식 참고:
+
+- 바로빌 FAQ `공동인증서 등록 절차`: https://www.barobill.co.kr/csc/faq_v.asp?DocSEQ=14763
+- 바로빌 공지 `모바일 승인 전 PC 공동인증서 등록 필요`: https://www.barobill.co.kr/csc/notice_v.asp?DocSEQ=13302
+- 바로빌 공동인증센터: https://cert.barobill.co.kr/

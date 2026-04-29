@@ -21,9 +21,31 @@ from typing import Any
 
 DEFAULT_TEST_URL = "https://testws.baroservice.com/TI.asmx"
 DEFAULT_PROD_URL = "https://ws.baroservice.com/TI.asmx"
+DEFAULT_ENV_FILE = "~/.config/pressco21/barobill-test.env"
 NS = "http://ws.baroservice.com/"
 SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/"
 
+
+
+def load_env_file(path: str = DEFAULT_ENV_FILE) -> None:
+    env_path = os.path.expanduser(path)
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if not key or key in os.environ:
+                continue
+            os.environ[key] = value
 
 def digits_only(value: str | None) -> str:
     return re.sub(r"\D", "", value or "")
@@ -31,9 +53,7 @@ def digits_only(value: str | None) -> str:
 
 def mask_certkey(value: str) -> str:
     value = value.strip()
-    if len(value) <= 8:
-        return "***"
-    return f"{value[:4]}…{value[-4:]}"
+    return "configured" if value else "missing"
 
 
 def mask_text(value: str) -> str:
@@ -412,6 +432,7 @@ def run_issue(client: BaroBillClient, buyer_corp_num: str, contact_id: str = "")
 
 
 def main() -> int:
+    load_env_file()
     parser = argparse.ArgumentParser(description="BaroBill SOAP smoke test")
     parser.add_argument("--issue", action="store_true", help="Run test-server RegistAndIssueTaxInvoice after preflight")
     parser.add_argument("--service-url", default=os.environ.get("BAROBILL_SERVICE_TEST_URL", DEFAULT_TEST_URL))

@@ -1,0 +1,276 @@
+# 바로빌 전자세금계산서 n8n SOAP Webhook 개발계획
+
+작성일: 2026-04-29  
+대상 worktree: `n8n-barobill-tax-invoice-webhook`  
+대상 branch: `work/n8n/barobill-tax-invoice-webhook`  
+연결 CRM branch: `work/offline-crm/barobill-tax-invoice-ui`
+
+## 1. 최종 확정 결론
+
+바로빌 전자세금계산서 실제 발급/상태조회는 CRM 브라우저가 아니라 n8n 서버 측 workflow에서 수행한다.
+
+이유:
+
+- 바로빌 API는 SOAP 형식이다.
+- 바로빌 연동인증키, 계정, 인증서 관련 정보는 브라우저에 노출하면 안 된다.
+- 바로빌은 중복발급 방지 기능을 제공하지 않는다.
+- 국세청 전송 결과는 웹훅이 아니라 상태조회 API로 polling해야 한다.
+
+이 branch의 1차 목적은 “테스트 인증키 기반 SOAP adapter + CRM webhook 계약”을 안전하게 구현하는 것이다. 운영 발급은 별도 승인 전까지 금지한다.
+
+## 2. 바로빌 확인사항
+
+- 국세청 표준인증 전자세금계산서 ASP 사업자
+- 인증번호: `41000022`
+- API 형식: SOAP
+- 정발행, 역발행, 위수탁발행, 수정발행, 대량발행, 취소, 상태조회, 승인번호 조회 지원
+- 국세청 결과 수신: 웹훅 없음, 상태조회 API 사용
+- 테스트 환경 제공, 무료 테스트 가능
+- 전자세금계산서: 월 3,000건 이내 건당 100원 + VAT
+- 메일 발송: 무료
+- 문자 발송: 별도 과금
+- 중복 발급 방지: 공급사 제공 없음
+- 공동인증서: 암호화 저장
+- 개인정보 처리위탁 계약 가능
+
+## 3. n8n workflow 분리
+
+### 3.1 발급 요청 webhook
+
+권장 workflow 이름:
+
+```text
+CRM - BaroBill TaxInvoice Issue Request
+```
+
+권장 endpoint:
+
+```text
+POST /webhook/crm/barobill/tax-invoices/issue
+```
+
+책임:
+
+1. CRM 요청 수신
+2. API key/auth 검증
+3. CRM fresh read
+   - invoice
+   - invoice items
+   - customer
+   - supplier/company settings
+4. 필수값 재검증
+5. idempotency check
+6. 바로빌 SOAP request 생성
+7. 테스트 서버 호출
+8. request log 저장
+9. CRM invoice meta 업데이트
+10. CRM에 결과 반환
+
+### 3.2 상태조회 webhook
+
+권장 workflow 이름:
+
+```text
+CRM - BaroBill TaxInvoice Status Sync
+```
+
+권장 endpoint:
+
+```text
+POST /webhook/crm/barobill/tax-invoices/sync-status
+```
+
+책임:
+
+1. invoice id 또는 provider management key 수신
+2. request log 조회
+3. 바로빌 상태조회 SOAP 호출
+4. 국세청 승인번호/상태/오류 메시지 추출
+5. CRM invoice meta 업데이트
+6. CRM에 결과 반환
+
+### 3.3 scheduled polling workflow
+
+권장 workflow 이름:
+
+```text
+CRM - BaroBill TaxInvoice Poll Pending Status
+```
+
+책임:
+
+- `requested`, `requesting`, 전송중, 재시도 가능 실패 상태를 주기 조회
+- 요청 후 2시간 이내: 10분마다
+- 요청 후 24시간 이내: 1시간마다
+- 7일 이후: 자동 polling 중단, 수동 상태조회만 허용
+
+## 4. CRM에서 받을 payload 계약 초안
+
+```json
+{
+  "requestId": "uuid",
+  "idempotencyKey": "barobill:tax-invoice:pressco21:123:INV-20260429-001",
+  "invoiceId": 123,
+  "invoiceNo": "INV-20260429-001",
+  "issueType": "normal",
+  "provider": "barobill",
+  "mode": "test",
+  "sendEmail": true,
+  "sendSms": false,
+  "supplier": {
+    "corpNum": "프레스코21 사업자번호",
+    "corpName": "프레스코21",
+    "ceoName": "대표자명",
+    "addr": "사업장 주소",
+    "bizType": "업태",
+    "bizClass": "종목",
+    "contactName": "담당자",
+    "email": "발신/담당 이메일"
+  },
+  "buyer": {
+    "corpNum": "공급받는자 사업자번호",
+    "corpName": "공급받는자 상호",
+    "ceoName": "대표자명",
+    "addr": "주소",
+    "bizType": "업태",
+    "bizClass": "종목",
+    "contactName": "담당자",
+    "email": "수신 이메일"
+  },
+  "amounts": {
+    "supplyAmount": 675909,
+    "taxAmount": 67591,
+    "totalAmount": 743500
+  },
+  "items": [
+    {
+      "name": "상품명",
+      "spec": "규격",
+      "quantity": 1,
+      "unitPrice": 743500,
+      "supplyAmount": 675909,
+      "taxAmount": 67591
+    }
+  ]
+}
+```
+
+주의:
+
+- 금액은 입금액이 아니라 명세표 품목 합계 기준이다.
+- 구례군처럼 1,000,000원 입금 후 743,500원 구매한 경우에도 `totalAmount`는 743,500원이다.
+- 차액 256,500원은 CRM 고객 예치금 로직에서 관리하고 바로빌 payload에는 포함하지 않는다.
+
+## 5. idempotency 설계
+
+중복발급 방지 key:
+
+```text
+barobill:tax-invoice:pressco21:<invoice.Id>:<invoice.invoice_no>
+```
+
+발급 요청 전 필수 검사:
+
+1. CRM invoice meta 상태가 `requesting`, `requested`, `issued`면 신규 SOAP 호출 금지
+2. n8n request log에 같은 `idempotencyKey`가 있으면 신규 SOAP 호출 금지
+3. 바로빌 상태조회에서 같은 management key가 있으면 기존 상태 반환
+4. 위 조건에 걸리지 않을 때만 SOAP 발급 요청
+
+## 6. request log 저장 설계
+
+NocoDB 또는 n8n data store에 다음 필드를 남긴다.
+
+- `request_id`
+- `idempotency_key`
+- `invoice_id`
+- `invoice_no`
+- `provider`: `barobill`
+- `provider_mgt_key`
+- `mode`: `test` 또는 `production`
+- `request_payload_hash`
+- `status`
+- `barobill_result_code`
+- `barobill_result_message`
+- `nts_confirm_num`
+- `error_code`
+- `error_message`
+- `created_at`
+- `updated_at`
+- `last_polled_at`
+- `poll_attempt_count`
+
+원문 SOAP request/response 전체 저장은 개인정보/인증정보 마스킹 후에만 허용한다.
+
+## 7. 필수 검증
+
+n8n에서 CRM 요청값을 그대로 믿지 말고 fresh read 기준으로 재검증한다.
+
+필수값:
+
+- supplier 사업자번호/상호/대표자
+- buyer 사업자번호/상호/대표자/이메일
+- invoice id/invoice no
+- 품목 1개 이상
+- 공급가액/세액/합계가 0보다 큼
+- items 합계와 invoice 합계 일치
+- idempotency key 존재
+
+## 8. 오류 처리
+
+| 상황 | 처리 |
+|---|---|
+| SOAP timeout | request log에 retryable error, CRM 상태는 요청됨/확인필요 유지 |
+| 바로빌 validation 오류 | CRM 상태 failed, 사용자 수정 필요 메시지 저장 |
+| 국세청 전송 실패 | failed, 오류 메시지와 상태코드 저장 |
+| 같은 key 재요청 | 신규 SOAP 호출 금지, 기존 request 상태 반환 |
+| CRM 업데이트 실패 | request log 유지, 재동기화 대상 표시 |
+
+## 9. 보안 원칙
+
+- API KEY, 바로빌 연동인증키, 계정, 인증서 관련 값은 출력/로그/문서/커밋 금지
+- `.secrets`, `.secrets.env`, `.env.local` 수정 금지
+- 운영 발급은 사용자 명시 승인 전 금지
+- 테스트 서버와 운영 서버 endpoint를 명확히 분리
+- SOAP 원문을 저장할 때는 사업자번호/이메일/전화/인증정보 마스킹
+
+## 10. 구현 전 참조
+
+n8n workflow JSON 생성/수정 전 반드시 확인:
+
+- `/Users/jangjiho/Desktop/n8n-main/packages/nodes-base/`
+- `/Users/jangjiho/Desktop/n8n-main/.claude/agents/n8n-workflow-builder.md`
+- `/Users/jangjiho/Desktop/n8n-main/.claude/agents/n8n-nodes-index.md`
+- 기존 패턴: `n8n-automation/workflows/`
+
+## 11. 작업 시작 명령
+
+```bash
+cd /Users/jangjiho/workspace/pressco21-worktrees/n8n-barobill-tax-invoice-webhook
+bash _tools/pressco21-check.sh
+```
+
+먼저 이 문서와 CRM branch의 다음 문서를 읽는다.
+
+- `offline-crm-v2/docs/barobill-tax-invoice-integration-plan-2026-04-29.md`
+- `offline-crm-v2/docs/barobill-tax-invoice-team-meeting-2026-04-29.md`
+
+단, n8n branch의 sparse checkout에는 CRM 문서가 보이지 않을 수 있으므로 필요하면 main/CRM branch에서 읽거나 handoff 내용을 참고한다.
+
+## 12. 완료 기준
+
+1차 완료 기준:
+
+- 테스트 인증키 기준 SOAP 발급 request adapter 작성
+- 상태조회 adapter 작성
+- idempotency duplicate test 통과
+- CRM webhook contract에 맞는 request/response fixture 작성
+- 실제 운영 발급 미실행
+- `bash _tools/pressco21-check.sh` 통과
+
+운영 전 완료 기준:
+
+- 개인정보 처리위탁 계약 완료
+- 공동인증서/운영 인증키 확인
+- 선불포인트 충전 확인
+- 테스트 서버 정발행/상태조회/승인번호 조회 성공
+- 운영 발급 1건은 사용자 별도 승인 후만 실행

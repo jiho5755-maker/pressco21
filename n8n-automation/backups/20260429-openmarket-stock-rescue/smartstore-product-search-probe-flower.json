@@ -1,0 +1,1039 @@
+[
+  {
+    "label": "keywordOnly",
+    "statusCode": 200,
+    "body": {
+      "contents": [
+        {
+          "originProductNo": 13398873235,
+          "channelProducts": [
+            {
+              "originProductNo": 13398873235,
+              "channelProductNo": 13457949160,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003465",
+              "name": "꽃레진/50g (실리콘레진)",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 2200,
+              "discountedPrice": 2200,
+              "mobileDiscountedPrice": 2200,
+              "stockQuantity": 998,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>공구>접착용품>접착제",
+              "wholeCategoryId": "50000008>50000165>50001033>50003465",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260427_24/1777266745420VAVCt_JPEG/92528080469482726_1661598687.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21협력업체",
+              "sellerTags": [],
+              "regDate": "2026-04-27T14:12:26.099+09:00",
+              "modifiedDate": "2026-04-27T14:19:58.032+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13387233931,
+          "channelProducts": [
+            {
+              "originProductNo": 13387233931,
+              "channelProductNo": 13446269028,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50002686",
+              "name": "건조제(6개1세트)",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 5000,
+              "discountedPrice": 5000,
+              "mobileDiscountedPrice": 5000,
+              "stockQuantity": 999,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>생활용품>제습/방향/탈취>제습제",
+              "wholeCategoryId": "50000008>50000078>50000913>50002686",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260424_188/1776996788244PBH7m_JPEG/19431154045143015_383288871.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21협력업체",
+              "regDate": "2026-04-24T11:13:08.731+09:00",
+              "modifiedDate": "2026-04-24T11:13:08.731+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13387225370,
+          "channelProducts": [
+            {
+              "originProductNo": 13387225370,
+              "channelProductNo": 13446260440,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50002686",
+              "name": "탈산소제/4개세트",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 1800,
+              "discountedPrice": 1800,
+              "mobileDiscountedPrice": 1800,
+              "stockQuantity": 999,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>생활용품>제습/방향/탈취>제습제",
+              "wholeCategoryId": "50000008>50000078>50000913>50002686",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260424_49/1776996276030jWS9l_JPEG/108561187833994503_66764984.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21협력업체",
+              "regDate": "2026-04-24T11:10:34.781+09:00",
+              "modifiedDate": "2026-04-24T11:18:36.280+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13354768763,
+          "channelProducts": [
+            {
+              "originProductNo": 13354768763,
+              "channelProductNo": 13413710600,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001796",
+              "name": "건조보드(M사이즈/L사이즈)",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 3600,
+              "discountedPrice": 3600,
+              "mobileDiscountedPrice": 3600,
+              "stockQuantity": 1996,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>정원/원예용품>원예부자재",
+              "wholeCategoryId": "50000008>50000080>50001796",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260417_232/1776412596362umqdJ_JPEG/748514498772682_357157952.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21협력업체",
+              "regDate": "2026-04-17T16:56:36.970+09:00",
+              "modifiedDate": "2026-04-17T16:56:36.970+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13338259798,
+          "channelProducts": [
+            {
+              "originProductNo": 13338259798,
+              "channelProductNo": 13397154383,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50004029",
+              "name": "프리저브드플라워/카네이션/로즈/1인용/DIY세트",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 9600,
+              "discountedPrice": 9600,
+              "mobileDiscountedPrice": 9600,
+              "stockQuantity": 1998,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "패션잡화>패션소품>브로치>카네이션브로치",
+              "wholeCategoryId": "50000001>50000185>50001485>50004029",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260414_98/1776136446949vWqVP_JPEG/110269252012560949_458046487.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21 협력업체",
+              "regDate": "2026-04-14T12:14:07.518+09:00",
+              "modifiedDate": "2026-04-14T12:14:07.518+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13338089631,
+          "channelProducts": [
+            {
+              "originProductNo": 13338089631,
+              "channelProductNo": 13396983472,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001807",
+              "name": "프리저브드/카네이션/레드/대8송이/소12송이",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 34000,
+              "discountedPrice": 34000,
+              "mobileDiscountedPrice": 34000,
+              "stockQuantity": 1998,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>원예/식물>보존화",
+              "wholeCategoryId": "50000008>50000079>50001807",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260414_281/1776133320632DQnhH_JPEG/102607209443269194_504159088.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21 협력업체",
+              "regDate": "2026-04-14T11:22:01.209+09:00",
+              "modifiedDate": "2026-04-14T11:40:05.156+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13288851527,
+          "channelProducts": [
+            {
+              "originProductNo": 13288851527,
+              "channelProductNo": 13347593874,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50006910",
+              "name": "팔찌/오픈프레임/원형",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 3500,
+              "discountedPrice": 3500,
+              "mobileDiscountedPrice": 3500,
+              "stockQuantity": 1998,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "패션잡화>주얼리>주얼리소품>기타주얼리소품",
+              "wholeCategoryId": "50000001>50000189>50001494>50006910",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260403_170/1775199900955e9ppB_JPEG/4585475438057967_138793277.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21협력업체",
+              "regDate": "2026-04-03T16:10:15.581+09:00",
+              "modifiedDate": "2026-04-03T17:01:02.689+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13288535606,
+          "channelProducts": [
+            {
+              "originProductNo": 13288535606,
+              "channelProductNo": 13347276038,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001807",
+              "name": "미니 안개",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 5000,
+              "discountedPrice": 5000,
+              "mobileDiscountedPrice": 5000,
+              "stockQuantity": 998,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>원예/식물>보존화",
+              "wholeCategoryId": "50000008>50000079>50001807",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260403_271/1775201733891SWtvf_JPEG/3101727069524321_103737946.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21 협력업체",
+              "regDate": "2026-04-03T14:55:25.081+09:00",
+              "modifiedDate": "2026-04-03T16:54:08.117+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13175875450,
+          "channelProducts": [
+            {
+              "originProductNo": 13175875450,
+              "channelProductNo": 13234292068,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001806",
+              "name": "좁쌀풀",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 4000,
+              "discountedPrice": 4000,
+              "mobileDiscountedPrice": 4000,
+              "stockQuantity": 999,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>원예/식물>조화",
+              "wholeCategoryId": "50000008>50000079>50001806",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260320_122/17739366137793638q_JPEG/108069570016557818_1130207546.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21 협력업체",
+              "regDate": "2026-03-11T20:36:21.629+09:00",
+              "modifiedDate": "2026-04-03T16:59:22.212+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 13175850427,
+          "channelProducts": [
+            {
+              "originProductNo": 13175850427,
+              "channelProductNo": 13234266963,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001806",
+              "name": "녹수구(초록털공)",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 3400,
+              "discountedPrice": 3400,
+              "mobileDiscountedPrice": 3400,
+              "stockQuantity": 997,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "NORMAL",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "생활/건강>원예/식물>조화",
+              "wholeCategoryId": "50000008>50000079>50001806",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20260320_209/1773936684388dXBr4_JPEG/16773042903709853_288289441.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21 협력업체",
+              "regDate": "2026-03-11T20:30:12.121+09:00",
+              "modifiedDate": "2026-04-03T16:58:16.725+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12680067424,
+          "channelProducts": [
+            {
+              "originProductNo": 12680067424,
+              "channelProductNo": 12737234810,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003240",
+              "name": "프레스코21 압화 만들기 거울키링",
+              "sellerManagementCode": "1014",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 1700,
+              "discountedPrice": 1700,
+              "mobileDiscountedPrice": 1700,
+              "stockQuantity": 69979,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "wholeCategoryName": "가구/인테리어>침실가구>거울>손거울",
+              "wholeCategoryId": "50000004>50000100>50001232>50003240",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251126_9/1764134678710mwlPz_JPEG/18661661480889252_721911247.jpg"
+              },
+              "modelName": "꽃손거울",
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 380873,
+                  "text": "공주손거울"
+                },
+                {
+                  "code": 448072,
+                  "text": "손잡이거울"
+                }
+              ],
+              "regDate": "2025-11-26T14:26:50.339+09:00",
+              "modifiedDate": "2026-01-09T12:39:50.937+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12676210328,
+          "channelProducts": [
+            {
+              "originProductNo": 12676210328,
+              "channelProductNo": 12733368322,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003417",
+              "name": "레진 교반기 무선 레진 믹서 프레스코21",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 49000,
+              "discountedPrice": 49000,
+              "mobileDiscountedPrice": 49000,
+              "stockQuantity": 9985,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>공구>전동공구>기타전동공구",
+              "wholeCategoryId": "50000008>50000165>50001027>50003417",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20250507_172/17465918577090jvDM_JPEG/1175913086173671_907540016.jpg"
+              },
+              "modelName": "레진믹서",
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 169142,
+                  "text": "액자만들기"
+                },
+                {
+                  "code": 311649,
+                  "text": "압화액자"
+                },
+                {
+                  "code": 10980,
+                  "text": "인테리어액자"
+                }
+              ],
+              "regDate": "2025-11-25T17:40:34.160+09:00",
+              "modifiedDate": "2025-11-25T17:40:34.160+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12676156413,
+          "channelProducts": [
+            {
+              "originProductNo": 12676156413,
+              "channelProductNo": 12733314245,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001993",
+              "name": "레지너스 UV램프",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 39000,
+              "discountedPrice": 39000,
+              "mobileDiscountedPrice": 39000,
+              "stockQuantity": 9989,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "디지털/가전>이미용가전>손발톱정리기",
+              "wholeCategoryId": "50000003>50000211>50001993",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_173/1761789583868JQ7CB_JPEG/95922547002312647_1394600184.jpg"
+              },
+              "modelName": "레지너스",
+              "brandName": "프레스코21",
+              "manufacturerName": "레지너스",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-25T17:30:22.382+09:00",
+              "modifiedDate": "2025-11-28T15:58:54.973+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12644126233,
+          "channelProducts": [
+            {
+              "originProductNo": 12644126233,
+              "channelProductNo": 12701198369,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50001807",
+              "name": "솔리드 글루 용액 용기 만들기 부케 기프트 100G+100G",
+              "sellerManagementCode": "1171",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 15000,
+              "discountedPrice": 15000,
+              "mobileDiscountedPrice": 15000,
+              "stockQuantity": 29392,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 100,
+              "photoVideoReviewPoint": 200,
+              "regularCustomerPoint": 100,
+              "wholeCategoryName": "생활/건강>원예/식물>보존화",
+              "wholeCategoryId": "50000008>50000079>50001807",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251118_207/1763442364577DoPMl_JPEG/97575249990409818_433403001.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 1915357,
+                  "text": "부케플라워디퓨져"
+                },
+                {
+                  "code": 1157285,
+                  "text": "프리저브드플라워선물"
+                },
+                {
+                  "code": 81027,
+                  "text": "프리저브드플라워"
+                },
+                {
+                  "code": 1037381,
+                  "text": "식물성분오일"
+                },
+                {
+                  "code": 554,
+                  "text": "DIY"
+                },
+                {
+                  "code": 113178,
+                  "text": "압화"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                },
+                {
+                  "code": 11514,
+                  "text": "드라이플라워"
+                },
+                {
+                  "code": 338825,
+                  "text": "드라이플라워인테리어"
+                },
+                {
+                  "code": 661267,
+                  "text": "식물인테리어"
+                }
+              ],
+              "regDate": "2025-11-18T14:00:37.985+09:00",
+              "modifiedDate": "2025-11-18T14:06:07.519+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12576867723,
+          "channelProducts": [
+            {
+              "originProductNo": 12576867723,
+              "channelProductNo": 12633757048,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003386",
+              "name": "레지너스 탈포기 일반",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 189000,
+              "discountedPrice": 189000,
+              "mobileDiscountedPrice": 189000,
+              "stockQuantity": 9996,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>공구>에어공구>기타에어공구",
+              "wholeCategoryId": "50000008>50000165>50001025>50003386",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_43/1761789217541p7ufI_JPEG/79875705383618185_1903662267.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-04T15:58:12.980+09:00",
+              "modifiedDate": "2025-11-25T15:41:01.224+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12576866335,
+          "channelProducts": [
+            {
+              "originProductNo": 12576866335,
+              "channelProductNo": 12633755657,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003386",
+              "name": "레지너스 탈포기 프로",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 259000,
+              "discountedPrice": 259000,
+              "mobileDiscountedPrice": 259000,
+              "stockQuantity": 9982,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>공구>에어공구>기타에어공구",
+              "wholeCategoryId": "50000008>50000165>50001025>50003386",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_275/1761789390985ipmAG_JPEG/95922293134969277_577749653.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-04T15:57:54.779+09:00",
+              "modifiedDate": "2025-11-25T15:40:34.252+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12576862044,
+          "channelProducts": [
+            {
+              "originProductNo": 12576862044,
+              "channelProductNo": 12633751354,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50003910",
+              "name": "레지너스 듀얼 헤드 레진 믹서",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 99000,
+              "discountedPrice": 99000,
+              "mobileDiscountedPrice": 99000,
+              "stockQuantity": 9990,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>자동차용품>DIY용품>레진",
+              "wholeCategoryId": "50000008>50000055>50000933>50003910",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_260/1761794344275Eblkx_JPEG/36356278406143051_301410605.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-04T15:56:59.034+09:00",
+              "modifiedDate": "2025-11-25T15:40:06.614+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12576854020,
+          "channelProducts": [
+            {
+              "originProductNo": 12576854020,
+              "channelProductNo": 12633743293,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50002543",
+              "name": "레지너스 레진 유해 가스 청정기",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 444000,
+              "discountedPrice": 299000,
+              "mobileDiscountedPrice": 299000,
+              "stockQuantity": 19985,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "디지털/가전>계절가전>공기정화기>공기청정기",
+              "wholeCategoryId": "50000003>50000212>50001426>50002543",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_192/1761794368102wUSw1_JPEG/95927176172353197_86020609.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-04T15:55:13.834+09:00",
+              "modifiedDate": "2026-01-15T10:53:34.596+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12576851017,
+          "channelProducts": [
+            {
+              "originProductNo": 12576851017,
+              "channelProductNo": 12633740282,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50000375",
+              "name": "레지너스 큐어링 머신",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 179000,
+              "discountedPrice": 179000,
+              "mobileDiscountedPrice": 179000,
+              "stockQuantity": 9977,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>수집품>공예품",
+              "wholeCategoryId": "50000008>50000056>50000375",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251030_213/1761789744092BQQPs_JPEG/86050968501860408_1434731723.jpg"
+              },
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-11-04T15:54:35.126+09:00",
+              "modifiedDate": "2025-11-25T15:38:19.605+09:00"
+            }
+          ]
+        },
+        {
+          "originProductNo": 12513108652,
+          "channelProducts": [
+            {
+              "originProductNo": 12513108652,
+              "channelProductNo": 12569812358,
+              "channelServiceType": "STOREFARM",
+              "categoryId": "50000375",
+              "name": "이니셜 숫자 스티커 꾸미기용 스티커",
+              "statusType": "SALE",
+              "channelProductDisplayStatusType": "ON",
+              "salePrice": 900,
+              "discountedPrice": 900,
+              "mobileDiscountedPrice": 900,
+              "stockQuantity": 79974,
+              "knowledgeShoppingProductRegistration": true,
+              "deliveryAttributeType": "TODAY",
+              "deliveryFee": 3000,
+              "returnFee": 3000,
+              "exchangeFee": 6000,
+              "managerPurchasePoint": 1,
+              "textReviewPoint": 10,
+              "photoVideoReviewPoint": 10,
+              "wholeCategoryName": "생활/건강>수집품>공예품",
+              "wholeCategoryId": "50000008>50000056>50000375",
+              "representativeImage": {
+                "url": "https://shop-phinf.pstatic.net/20251021_173/17610194956690MfES_JPEG/95152334789628877_1418878839.jpg"
+              },
+              "modelName": "스티커",
+              "brandName": "프레스코21",
+              "manufacturerName": "프레스코21",
+              "sellerTags": [
+                {
+                  "code": 496867,
+                  "text": "압화재료"
+                },
+                {
+                  "code": 459589,
+                  "text": "만들기교구"
+                },
+                {
+                  "code": 752293,
+                  "text": "수업용"
+                },
+                {
+                  "code": 1836185,
+                  "text": "어린이만들기재료"
+                },
+                {
+                  "code": 520837,
+                  "text": "어린이만들기놀이"
+                },
+                {
+                  "code": 3687288,
+                  "text": "학생만들기재료"
+                },
+                {
+                  "code": 697652,
+                  "text": "레진아트"
+                },
+                {
+                  "code": 333088,
+                  "text": "레진공예"
+                }
+              ],
+              "regDate": "2025-10-21T13:05:20.701+09:00",
+              "modifiedDate": "2025-10-21T13:05:20.701+09:00"
+            }
+          ]
+        }
+      ],
+      "page": 1,
+      "size": 20,
+      "totalElements": 1121,
+      "totalPages": 57,
+      "sort": {
+        "sorted": true,
+        "fields": [
+          {
+            "name": "regDate",
+            "direction": "DESC"
+          },
+          {
+            "name": "productNo",
+            "direction": "DESC"
+          }
+        ]
+      },
+      "first": true,
+      "last": false
+    }
+  }
+]

@@ -1,0 +1,36 @@
+{
+  "status_code": 200,
+  "root": "ProductStocks",
+  "stocks": [
+    {
+      "addPrc": "0",
+      "mixDtlOptNm": "미포함",
+      "mixOptNm": "건전지여부",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236627825",
+      "prdStckNo": "39437268024",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "99229"
+    },
+    {
+      "addPrc": "900",
+      "mixDtlOptNm": "포함",
+      "mixOptNm": "건전지여부",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236627825",
+      "prdStckNo": "39437268025",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "99881"
+    }
+  ],
+  "request": {
+    "method": "GET",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/8236627825"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "status_code": 200,
+  "root": "ProductStocks",
+  "stocks": [
+    {
+      "addPrc": "0",
+      "mixOptNo": "0",
+      "optWght": "0",
+      "prdNo": "1895022811",
+      "prdStckNo": "7261661356",
+      "prdStckStatCd": "01",
+      "selQty": "1454",
+      "sellerStockCd": "",
+      "stckQty": "8546"
+    }
+  ],
+  "request": {
+    "method": "GET",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/1895022811"
+  }
+}

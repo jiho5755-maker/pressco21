@@ -1,0 +1,8 @@
+{
+  "execute": false,
+  "request": {
+    "method": "PUT",
+    "path": "/rest/prodservices/stockqty/45323749173",
+    "body": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?>\n<ProductStock>\n  <prdNo>8236628513</prdNo>\n  <prdStckNo>45323749173</prdStckNo>\n  <stckQty>1000</stckQty>\n  <optWght>0</optWght>\n</ProductStock>"
+  }
+}

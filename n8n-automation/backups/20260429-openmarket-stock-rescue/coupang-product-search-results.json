@@ -1,0 +1,68 @@
+[
+  {
+    "term": "꽃레진/50g",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423193577,
+      "status": 403
+    }
+  },
+  {
+    "term": "꽃레진",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423193836,
+      "status": 403
+    }
+  },
+  {
+    "term": "하바리움 LED 원목",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423194117,
+      "status": 403
+    }
+  },
+  {
+    "term": "하바리움 원목 무드등",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423194401,
+      "status": 403
+    }
+  },
+  {
+    "term": "원목 무드등",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423194653,
+      "status": 403
+    }
+  },
+  {
+    "term": "하바리움",
+    "statusCode": 403,
+    "body": {
+      "path": "/api/v1/marketplace/seller-products",
+      "error": "FORBIDDEN",
+      "message": "Your ip address [IP_REDACTED] is not allowed for this request. If you need service access, please contact the Coupang seller call center. (Tel: +82-1600-9879, Email: openapisupport@coupang.com)",
+      "timestamp": 1777423194921,
+      "status": 403
+    }
+  }
+]

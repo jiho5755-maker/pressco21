@@ -1,0 +1,62 @@
+{
+  "status_code": 200,
+  "root": "ProductStocks",
+  "stocks": [
+    {
+      "addPrc": "900",
+      "mixDtlOptNm": "단색,포함",
+      "mixOptNm": "무드등,건전지여부",
+      "mixOptNo": "1,2",
+      "optWght": "0",
+      "prdNo": "8236627454",
+      "prdStckNo": "39437266537",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "99899"
+    },
+    {
+      "addPrc": "0",
+      "mixDtlOptNm": "단색,미포함",
+      "mixOptNm": "무드등,건전지여부",
+      "mixOptNo": "1,2",
+      "optWght": "0",
+      "prdNo": "8236627454",
+      "prdStckNo": "39437266541",
+      "prdStckStatCd": "01",
+      "selQty": "3",
+      "sellerStockCd": "",
+      "stckQty": "99442"
+    },
+    {
+      "addPrc": "900",
+      "mixDtlOptNm": "7색,포함",
+      "mixOptNm": "무드등,건전지여부",
+      "mixOptNo": "1,2",
+      "optWght": "0",
+      "prdNo": "8236627454",
+      "prdStckNo": "39437266544",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "99897"
+    },
+    {
+      "addPrc": "0",
+      "mixDtlOptNm": "7색,미포함",
+      "mixOptNm": "무드등,건전지여부",
+      "mixOptNo": "1,2",
+      "optWght": "0",
+      "prdNo": "8236627454",
+      "prdStckNo": "39437266545",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "99869"
+    }
+  ],
+  "request": {
+    "method": "GET",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/8236627454"
+  }
+}

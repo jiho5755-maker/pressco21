@@ -1,0 +1,171 @@
+{
+  "channel": "makeshop",
+  "total_products": 5805,
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "target_keys": [
+        "flower-resin-50g"
+      ],
+      "uid": "12195529",
+      "product_name": "꽃레진/50g (실리콘레진)",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "1000",
+      "category_name": "강사공간 < 반제품 < 부재료,마감재",
+      "sellprice": "1980",
+      "basic_total": 1,
+      "basic_soldout_like": 0,
+      "basic_sale": 1,
+      "basic_other": 0,
+      "soldout_like_options": [],
+      "sale_options": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "1000",
+          "unlimit": "N"
+        }
+      ],
+      "other_options": [],
+      "option_defs": [],
+      "addition_count": 0,
+      "addition_rows_sample": []
+    },
+    {
+      "target_keys": [
+        "habarium-led-wood-lamp"
+      ],
+      "uid": "11700208",
+      "product_name": "하바리움 LED 원목 무드등",
+      "display": "N",
+      "sell_accept": "N",
+      "quantity": "Unlimited",
+      "category_name": "강사공간 < 반제품 < 생활소품",
+      "sellprice": "1800",
+      "basic_total": 1,
+      "basic_soldout_like": 0,
+      "basic_sale": 1,
+      "basic_other": 0,
+      "soldout_like_options": [],
+      "sale_options": [
+        {
+          "sto_id": "11",
+          "values": "유선_소",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "other_options": [],
+      "option_defs": [
+        {
+          "opt_id": "1",
+          "opt_type": "SELECT",
+          "opt_name": "우드 무드등",
+          "opt_value": "유선_소,유선_중,유선_대,무선_기본형,무선_고급형",
+          "opt_use": "Y"
+        }
+      ],
+      "addition_count": 0,
+      "addition_rows_sample": []
+    },
+    {
+      "target_keys": [
+        "habarium-led-wood-lamp"
+      ],
+      "uid": "11700206",
+      "product_name": "하바리움 LED 원목 무드등",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "category_name": "하바리움 < 반재료 < 기타",
+      "sellprice": "2000",
+      "basic_total": 5,
+      "basic_soldout_like": 0,
+      "basic_sale": 5,
+      "basic_other": 0,
+      "soldout_like_options": [],
+      "sale_options": [
+        {
+          "sto_id": "11",
+          "values": "유선_소",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "12",
+          "values": "유선_중",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "13",
+          "values": "유선_대",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "9",
+          "values": "무선_기본형",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        },
+        {
+          "sto_id": "10",
+          "values": "무선_고급형",
+          "state": "SALE",
+          "real_stock": "1000000000",
+          "unlimit": "Y"
+        }
+      ],
+      "other_options": [],
+      "option_defs": [
+        {
+          "opt_id": "1",
+          "opt_type": "SELECT",
+          "opt_name": "우드 무드등",
+          "opt_value": "유선_소,유선_중,유선_대,무선_기본형,무선_고급형",
+          "opt_use": "Y"
+        }
+      ],
+      "addition_count": 0,
+      "addition_rows_sample": []
+    },
+    {
+      "target_keys": [
+        "flower-resin-50g"
+      ],
+      "uid": "184",
+      "product_name": "꽃레진/50g (실리콘레진)",
+      "display": "Y",
+      "sell_accept": "Y",
+      "quantity": "Unlimited",
+      "category_name": "압화 < 압화재료(마감재) < 코팅·마감제",
+      "sellprice": "2200",
+      "basic_total": 1,
+      "basic_soldout_like": 0,
+      "basic_sale": 1,
+      "basic_other": 0,
+      "soldout_like_options": [],
+      "sale_options": [
+        {
+          "sto_id": "1",
+          "values": null,
+          "state": "SALE",
+          "real_stock": "999",
+          "unlimit": "N"
+        }
+      ],
+      "other_options": [],
+      "option_defs": [],
+      "addition_count": 0,
+      "addition_rows_sample": []
+    }
+  ]
+}

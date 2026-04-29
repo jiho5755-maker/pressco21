@@ -1,0 +1,75 @@
+{
+  "status_code": 200,
+  "root": "ProductStocks",
+  "stocks": [
+    {
+      "addPrc": "0",
+      "mixDtlOptNm": "유선_소",
+      "mixOptNm": "우드 무드등",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236628513",
+      "prdStckNo": "39437270235",
+      "prdStckStatCd": "01",
+      "selQty": "90",
+      "sellerStockCd": "",
+      "stckQty": "999"
+    },
+    {
+      "addPrc": "200",
+      "mixDtlOptNm": "유선_중",
+      "mixOptNm": "우드 무드등",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236628513",
+      "prdStckNo": "39437270237",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "999"
+    },
+    {
+      "addPrc": "400",
+      "mixDtlOptNm": "유선_대",
+      "mixOptNm": "우드 무드등",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236628513",
+      "prdStckNo": "39437270241",
+      "prdStckStatCd": "01",
+      "selQty": "34",
+      "sellerStockCd": "",
+      "stckQty": "999"
+    },
+    {
+      "addPrc": "3900",
+      "mixDtlOptNm": "무선_기본형",
+      "mixOptNm": "우드 무드등",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236628513",
+      "prdStckNo": "45323749172",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "999"
+    },
+    {
+      "addPrc": "4500",
+      "mixDtlOptNm": "무선_고급형",
+      "mixOptNm": "우드 무드등",
+      "mixOptNo": "1",
+      "optWght": "0",
+      "prdNo": "8236628513",
+      "prdStckNo": "45323749173",
+      "prdStckStatCd": "01",
+      "selQty": "0",
+      "sellerStockCd": "",
+      "stckQty": "1000"
+    }
+  ],
+  "request": {
+    "method": "GET",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket/stck/8236628513"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "status_code": 200,
+  "root": "products",
+  "request": {
+    "method": "POST",
+    "url": "https://api.11st.co.kr/rest/prodmarketservice/prodmarket",
+    "body": "<?xml version=\"1.0\" encoding=\"euc-kr\" standalone=\"yes\"?>\n<SearchProduct>\n  <prdNm>하바리움 LED 원목 무드등</prdNm>\n  <limit>20</limit>\n  <start>1</start>\n  <end>20</end>\n</SearchProduct>"
+  }
+}

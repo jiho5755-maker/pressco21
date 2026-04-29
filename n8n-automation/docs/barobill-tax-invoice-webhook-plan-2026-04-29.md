@@ -309,6 +309,7 @@ POST /webhook/crm/barobill/tax-invoices/sync-status
 - `CRM_PROXY_URL` (없으면 `http://127.0.0.1:5678/webhook/crm-proxy`)
 - `BAROBILL_CERTKEY`
 - `BAROBILL_CORP_NUM` (상태조회 fallback)
+- `BAROBILL_CONTACT_ID` (공급자 담당자/바로빌 사용자 ID)
 - `BAROBILL_ALLOW_PRODUCTION` (기본 false, 운영 호출 차단)
 - 선택: `BAROBILL_SERVICE_TEST_URL`, `BAROBILL_SERVICE_PROD_URL`
 
@@ -319,6 +320,7 @@ POST /webhook/crm/barobill/tax-invoices/sync-status
 - request log에는 SOAP 원문을 저장하지 않고 `request_payload_hash`, 상태, 결과코드만 남긴다.
 - `mode=production`은 `BAROBILL_ALLOW_PRODUCTION=true`가 아니면 발급/상태조회 모두 차단한다.
 - 발급 전 CRM fresh read로 명세표, 품목, 고객, 회사 설정을 다시 조회한다.
+- `InvoicerParty.ContactID`는 필수라서 `BAROBILL_CONTACT_ID` 또는 요청 payload `supplier.contactId`가 없으면 발급을 차단한다.
 - CRM meta 또는 static request log에 `requesting`, `requested`, `issued`가 있으면 신규 SOAP 발급을 차단한다.
 
 로컬 검증:
@@ -339,3 +341,28 @@ node n8n-automation/_tools/barobill/test-adapter-contract.js
 - n8n 운영 서버 배포
 - 실제 바로빌 테스트 인증키 호출
 - 운영 발급 호출
+
+### 13.1 테스트 서버 smoke 결과 (2026-04-29)
+
+사용 도구:
+
+```bash
+BAROBILL_CERTKEY=... BAROBILL_CORP_NUM=2150552221 \
+  python3 n8n-automation/_tools/barobill/soap-smoke-test.py --issue
+```
+
+결과 요약:
+
+- 테스트 서버 URL: `https://testws.baroservice.com/TI.asmx`
+- `CheckCorpIsMember`: `1` — 회원사 확인 성공
+- `GetBalanceCostAmount`: `10000` — 테스트 잔액 확인
+- `GetCorpMemberContacts`: 담당자 1명 확인, ContactID 필요 조건 확인
+- `CheckCERTIsValid`: `-26003` — 등록 공동인증서 검증 실패
+- `RegistAndIssueTaxInvoice`: `-26001` — 발행에 필요한 공동인증서가 등록되어 있지 않아 테스트 발급 실패
+- `GetTaxInvoiceStateEX`: 미등록 관리번호 상태로 조회됨 (`BarobillState=-21002`)
+
+판단:
+
+- 테스트 인증키와 사업자번호는 SOAP 서버에서 인식된다.
+- 실제 테스트 정발급 성공을 위해서는 테스트 서버에 해당 사업자 공동인증서 등록/재등록이 먼저 필요하다.
+- 운영 발급 금지는 유지한다.

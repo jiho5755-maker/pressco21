@@ -274,3 +274,68 @@ bash _tools/pressco21-check.sh
 - 선불포인트 충전 확인
 - 테스트 서버 정발행/상태조회/승인번호 조회 성공
 - 운영 발급 1건은 사용자 별도 승인 후만 실행
+
+## 13. 2026-04-29 구현 메모
+
+1차 구현 파일:
+
+- `n8n-automation/workflows/accounting/CRM-BaroBill-TaxInvoice-Webhook-Adapter.json`
+- `n8n-automation/fixtures/barobill/*.fixture.json`
+- `n8n-automation/fixtures/barobill/*.sample.xml`
+- `n8n-automation/_tools/barobill/test-adapter-contract.js`
+
+구현 방식:
+
+- 하나의 n8n workflow 안에 발급 webhook, 상태조회 webhook, 10분 polling trigger를 함께 둔다.
+- 이유: 1차 MVP request/idempotency log를 n8n workflow static data에 저장하므로 발급/상태조회/polling이 같은 workflow static scope를 공유해야 한다.
+- 운영 배포 전 NocoDB 전용 request log 테이블이 준비되면 3개 workflow로 분리해도 된다.
+
+구현된 endpoint:
+
+```text
+POST /webhook/crm/barobill/tax-invoices/issue
+POST /webhook/crm/barobill/tax-invoices/sync-status
+```
+
+구현된 바로빌 SOAP action:
+
+- `CheckMgtNumIsExists`: provider management key 사전 중복 확인
+- `RegistAndIssueTaxInvoice`: 일반 세금계산서 저장 + 발급
+- `GetTaxInvoiceStateEX`: 확장 상태조회 및 국세청 승인번호 확인
+
+필수 runtime 환경변수:
+
+- `CRM_API_KEY`
+- `CRM_PROXY_URL` (없으면 `http://127.0.0.1:5678/webhook/crm-proxy`)
+- `BAROBILL_CERTKEY`
+- `BAROBILL_CORP_NUM` (상태조회 fallback)
+- `BAROBILL_ALLOW_PRODUCTION` (기본 false, 운영 호출 차단)
+- 선택: `BAROBILL_SERVICE_TEST_URL`, `BAROBILL_SERVICE_PROD_URL`
+
+보안/운영 guard:
+
+- workflow 기본값은 `active=false`.
+- 성공/오류 실행 데이터 저장은 `saveDataSuccessExecution=none`, `saveDataErrorExecution=none`으로 줄였다.
+- request log에는 SOAP 원문을 저장하지 않고 `request_payload_hash`, 상태, 결과코드만 남긴다.
+- `mode=production`은 `BAROBILL_ALLOW_PRODUCTION=true`가 아니면 발급/상태조회 모두 차단한다.
+- 발급 전 CRM fresh read로 명세표, 품목, 고객, 회사 설정을 다시 조회한다.
+- CRM meta 또는 static request log에 `requesting`, `requested`, `issued`가 있으면 신규 SOAP 발급을 차단한다.
+
+로컬 검증:
+
+```bash
+node n8n-automation/_tools/barobill/test-adapter-contract.js
+```
+
+검증 항목:
+
+- workflow JSON 구조
+- Code 노드 JavaScript 문법
+- idempotency duplicate 차단
+- SOAP 발급/상태조회 sample response parser
+
+아직 하지 않은 것:
+
+- n8n 운영 서버 배포
+- 실제 바로빌 테스트 인증키 호출
+- 운영 발급 호출

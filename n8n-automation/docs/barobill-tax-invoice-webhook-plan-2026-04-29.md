@@ -104,6 +104,27 @@ CRM - BaroBill TaxInvoice Poll Pending Status
 - 요청 후 24시간 이내: 1시간마다
 - 7일 이후: 자동 polling 중단, 수동 상태조회만 허용
 
+
+### 3.4 취소/수정세금계산서 webhook
+
+구현 endpoint:
+
+```text
+POST /webhook/crm/barobill/tax-invoices/cancel
+```
+
+공식문서 기준 처리 순서:
+
+1. CRM 요청 수신 후 `x-crm-key` 검증
+2. CRM invoice/items/customer/settings fresh read
+3. `GetTaxInvoiceStateEX`로 원본 세금계산서 최신 상태 확인
+4. 국세청 전송 전(`BarobillState=3014`, `NTSSendState=1/2`, 승인번호 없음): `ProcTaxInvoice` + `ISSUE_CANCEL` 실행
+5. 국세청 전송중: CRM 상태를 `cancel_requested`로 유지하고 polling 대기
+6. 국세청 전송완료(`NTSSendState=4`, 승인번호 있음): `ModifyCode=6` 음수 수정세금계산서를 발급해 상쇄
+7. CRM invoice memo meta에 취소방식, 수정세금계산서 관리번호, 처리시각, 오류코드를 저장
+
+주의: 발급완료 건에 `DeleteTaxInvoice`를 먼저 호출하지 않는다. 삭제는 공식문서상 임시저장/취소/거부 상태에서만 가능하므로 자동화 MVP에서는 보관 감사성을 위해 호출하지 않는다.
+
 ## 4. CRM에서 받을 payload 계약 초안
 
 ```json
@@ -511,3 +532,14 @@ GetBaroBillURL 방식이 PC 보안모듈/브라우저 문제로 막히면 아래
 - 바로빌 FAQ `공동인증서 등록 절차`: https://www.barobill.co.kr/csc/faq_v.asp?DocSEQ=14763
 - 바로빌 공지 `모바일 승인 전 PC 공동인증서 등록 필요`: https://www.barobill.co.kr/csc/notice_v.asp?DocSEQ=13302
 - 바로빌 공동인증센터: https://cert.barobill.co.kr/
+
+
+## 14. 2026-04-29 운영 반영 결과
+
+- 운영 workflow `CRM - BaroBill TaxInvoice Webhook Adapter`에 취소/수정 endpoint를 추가 배포했다.
+- 신규 endpoint: `POST /webhook/crm/barobill/tax-invoices/cancel`
+- 공식 분기:
+  - 국세청 전송 전: `ProcTaxInvoice(ISSUE_CANCEL)`
+  - 국세청 전송중: `cancel_requested` 대기 저장
+  - 국세청 전송완료: `ModifyCode=6` 음수 수정세금계산서 상쇄 발급
+- 운영 테스트 발급 1건은 수정세금계산서 상쇄 완료 상태로 CRM meta에 반영했다. 인증키, ContactID, 등록 URL 토큰, 승인번호 전체값은 기록하지 않았다.

@@ -114,14 +114,18 @@ function testWorkflowShape(workflow) {
   assert(workflow.settings?.saveDataErrorExecution === 'none', '오류 실행 데이터 저장은 none이어야 함');
   const nodes = workflow.nodes || [];
   const byName = new Map(nodes.map((node) => [node.name, node]));
-  for (const name of ['발급 요청 웹훅', '상태조회 웹훅', '10분 polling 스케줄', '발급 SOAP 호출', '상태 SOAP 호출', '관리번호 존재 SOAP 호출']) {
+  for (const name of ['발급 요청 웹훅', '상태조회 웹훅', '취소/수정 요청 웹훅', '10분 polling 스케줄', '발급 SOAP 호출', '상태 SOAP 호출', '관리번호 존재 SOAP 호출', '취소/수정 처리']) {
     assert(byName.has(name), `필수 노드 누락: ${name}`);
   }
   assert(byName.get('발급 요청 웹훅').parameters.path === 'crm/barobill/tax-invoices/issue', '발급 webhook path 불일치');
   assert(byName.get('상태조회 웹훅').parameters.path === 'crm/barobill/tax-invoices/sync-status', '상태 webhook path 불일치');
+  assert(byName.get('취소/수정 요청 웹훅').parameters.path === 'crm/barobill/tax-invoices/cancel', '취소/수정 webhook path 불일치');
   assert(JSON.stringify(workflow).includes('RegistAndIssueTaxInvoice'), 'RegistAndIssueTaxInvoice SOAP action 누락');
   assert(JSON.stringify(workflow).includes('GetTaxInvoiceStateEX'), 'GetTaxInvoiceStateEX SOAP action 누락');
   assert(JSON.stringify(workflow).includes('CheckMgtNumIsExists'), 'CheckMgtNumIsExists SOAP action 누락');
+  assert(JSON.stringify(workflow).includes('ProcTaxInvoice'), 'ProcTaxInvoice SOAP action 누락');
+  assert(JSON.stringify(workflow).includes('ISSUE_CANCEL'), 'ISSUE_CANCEL 처리코드 누락');
+  assert(JSON.stringify(workflow).includes('ModifyCode>6'), '수정세금계산서 ModifyCode=6 템플릿 누락');
   assert(!JSON.stringify(workflow).match(/(SIxKK9|YWQ0ZT|N8N_API_KEY=|BAROBILL_CERTKEY=)/), 'workflow에 비밀값으로 보이는 문자열이 포함됨');
 
   const nodeNames = new Set(nodes.map((node) => node.name));

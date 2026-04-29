@@ -172,7 +172,7 @@ put_body = {
     "name": wf["name"],
     "nodes": wf["nodes"],
     "connections": wf["connections"],
-    "settings": {"executionOrder": "v1"}
+    "settings": {**wf.get("settings", {}), "executionOrder": "v1"}
 }
 
 with open('${TMP_FILE}', 'w', encoding='utf-8') as f:

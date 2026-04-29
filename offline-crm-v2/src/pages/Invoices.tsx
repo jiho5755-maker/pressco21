@@ -126,6 +126,10 @@ function isTaxInvoiceCancelAvailable(status: InvoiceTaxInvoiceStatus): boolean {
   return status === 'requested' || status === 'issued' || status === 'cancel_requested'
 }
 
+function isTaxInvoiceTerminalCancellationStatus(status: InvoiceTaxInvoiceStatus): boolean {
+  return status === 'cancelled' || status === 'amended'
+}
+
 function getTaxInvoiceCancelLabel(invoice: Invoice): string {
   const meta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
   const taxInvoice = meta.taxInvoice
@@ -829,11 +833,14 @@ export function Invoices() {
         providerMgtKey: latestMeta.taxInvoice?.mgtKey,
         currentStatus,
       })
+      const preserveTerminalCancellation = isTaxInvoiceTerminalCancellationStatus(currentStatus) &&
+        (result.status === 'requested' || result.status === 'issued')
+      const nextTaxInvoiceStatus = preserveTerminalCancellation ? currentStatus : result.status
       const statusCode = result.statusCode ??
-        (result.barobillState != null ? String(result.barobillState) : result.status)
+        (result.barobillState != null ? String(result.barobillState) : nextTaxInvoiceStatus)
       const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
         ...latestMeta,
-        taxInvoiceStatus: result.status,
+        taxInvoiceStatus: nextTaxInvoiceStatus,
         taxInvoice: {
           ...latestMeta.taxInvoice,
           provider: 'barobill',
@@ -844,15 +851,17 @@ export function Invoices() {
           requestId: latestMeta.taxInvoice?.requestId ?? result.requestId,
           lastStatusSyncedAt: result.syncedAt,
           ntsConfirmNum: result.ntsConfirmNum ?? latestMeta.taxInvoice?.ntsConfirmNum,
-          issuedAt: result.status === 'issued'
+          issuedAt: nextTaxInvoiceStatus === 'issued'
             ? result.issuedAt ?? latestMeta.taxInvoice?.issuedAt ?? result.syncedAt
             : latestMeta.taxInvoice?.issuedAt,
           statusCode,
           barobillState: result.barobillState,
           ntsSendState: result.ntsSendState,
-          statusMessage: result.message,
-          errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
-          errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
+          statusMessage: preserveTerminalCancellation
+            ? latestMeta.taxInvoice?.statusMessage ?? result.message
+            : result.message,
+          errorCode: nextTaxInvoiceStatus === 'failed' ? result.errorCode ?? statusCode : undefined,
+          errorMessage: nextTaxInvoiceStatus === 'failed' ? result.errorMessage ?? result.message : undefined,
         },
       })
       const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })

@@ -6,6 +6,9 @@
 
 ## 1. 결론
 
+
+> 2026-04-29 공식문서 크롤링 후속 기준: 취소/삭제/수정세금계산서의 세부 구현은 `barobill-tax-invoice-official-development-playbook-2026-04-29.md`를 우선한다. 특히 발급완료 건은 `DeleteTaxInvoice`를 먼저 호출하지 않고, 국세청 전송 전에는 `ProcTaxInvoice(ISSUE_CANCEL)`, 국세청 전송 후에는 수정세금계산서로 처리한다.
+
 바로빌은 PRESSCO21 CRM의 전자세금계산서 자동발급 후보로 사용 가능하다. 다만 바로빌은 중복발급 방지 기능을 제공하지 않고, 국세청 전송 결과도 웹훅이 아니라 상태조회 API로 확인해야 하므로, CRM/n8n 쪽에서 다음 2가지를 반드시 책임져야 한다.
 
 1. 내부 중복발급 방지: `invoice_id + invoice_no + provider_mgt_key` 기준의 idempotency lock

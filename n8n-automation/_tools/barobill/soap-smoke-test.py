@@ -431,10 +431,57 @@ def run_issue(client: BaroBillClient, buyer_corp_num: str, contact_id: str = "")
     }
 
 
+def run_certificate_registration_url(client: BaroBillClient, contact_id: str = "") -> dict[str, Any]:
+    """짧게 유효한 바로빌 공동인증서 등록 URL을 반환한다.
+
+    반환 URL은 지정된 바로빌 회원 ID로 로그인된 상태이므로
+    사업자 공동인증서가 있는 PC에서만 즉시 열어야 한다.
+    """
+    contacts, contacts_row = get_contacts(client)
+    resolved_contact_id = (contact_id or "").strip() or next((contact.get("ID", "") for contact in contacts if contact.get("ID")), "")
+    if not resolved_contact_id:
+        return {"certificateUrlBlocked": True, "reason": "CONTACT_ID_REQUIRED", "contacts": contacts_row}
+
+    row = add_error_string(
+        client,
+        client.simple(
+            "GetBaroBillURL",
+            {
+                "CERTKEY": client.certkey,
+                "CorpNum": client.corp_num,
+                "ID": resolved_contact_id,
+                "PWD": "",
+                "TOGO": "CERT",
+            },
+        ),
+    )
+    result = str(row.get("result") or "").strip()
+    if result.lower().startswith(("http://", "https://")):
+        return {
+            "method": "GetBaroBillURL",
+            "togo": "CERT",
+            "loginIdUsed": mask_text(resolved_contact_id),
+            "url": result,
+            "expiresInSeconds": 60,
+            "openOn": "공동인증서가 설치된 PC 또는 인증서 저장매체가 연결된 PC",
+            "notice": "URL은 로그인 상태를 포함하므로 공유하지 말고 즉시 사용하세요.",
+        }
+    return {
+        "certificateUrlBlocked": True,
+        "method": "GetBaroBillURL",
+        "togo": "CERT",
+        "loginIdUsed": mask_text(resolved_contact_id),
+        "result": result,
+        "fault": row.get("fault", ""),
+        "errString": row.get("errString", ""),
+    }
+
+
 def main() -> int:
     load_env_file()
     parser = argparse.ArgumentParser(description="BaroBill SOAP smoke test")
     parser.add_argument("--issue", action="store_true", help="Run test-server RegistAndIssueTaxInvoice after preflight")
+    parser.add_argument("--cert-url", action="store_true", help="Generate GetBaroBillURL CERT registration URL after preflight")
     parser.add_argument("--service-url", default=os.environ.get("BAROBILL_SERVICE_TEST_URL", DEFAULT_TEST_URL))
     parser.add_argument("--buyer-corp-num", default=os.environ.get("BAROBILL_TEST_BUYER_CORP_NUM", "2150552221"))
     parser.add_argument("--contact-id", default=os.environ.get("BAROBILL_CONTACT_ID", ""))
@@ -447,6 +494,9 @@ def main() -> int:
     print("Preflight:")
     for row in run_preflight(client):
         print_result(row)
+    if args.cert_url:
+        print("Certificate registration URL:")
+        print_result(run_certificate_registration_url(client, args.contact_id))
     if args.issue:
         print("Issue test:")
         print_result(run_issue(client, args.buyer_corp_num, args.contact_id))

@@ -409,23 +409,60 @@ BAROBILL_ALLOW_PRODUCTION=false
 
 현재 테스트 발급 실패 원인은 바로빌 테스트 서버가 인증키와 사업자번호는 인식하지만, 발행에 필요한 공동인증서가 등록되어 있지 않기 때문이다.
 
-공식 안내 기준 등록 위치:
+### 15.1 권장 방식: GetBaroBillURL API로 등록 URL 생성
 
-```text
-바로빌 사이트 로그인 → 공동인증서 → 공동인증서 등록 → MY 인증서 조회하기 → 인증서 (재)등록
+바로빌 공식 문서는 공동인증서 등록 방법을 2가지로 안내한다.
+
+1. 바로빌 사이트의 공동인증서 등록 페이지에서 직접 등록
+2. `GetBaroBillURL` API에서 `TOGO=CERT`로 받은 등록 URL을 브라우저에서 열어 등록
+
+이 branch에서는 2번 방식을 기본으로 사용한다. 이유는 바로빌 아이디/비밀번호를 운영자가 직접 알지 못해도, API가 반환한 단기 URL을 통해 “로그인 된 상태”로 등록 화면을 열 수 있기 때문이다.
+
+바로빌 공통 API 기준:
+
+- method: `GetBaroBillURL`
+- `CorpNum`: 하이픈 없는 사업자번호 10자리
+- `ID`: 바로빌 회원 아이디. 로컬 테스트 환경에서는 `BAROBILL_CONTACT_ID` 사용
+- `PWD`: 더 이상 사용되지 않으므로 빈 문자열
+- `TOGO`: `CERT`
+- 성공 반환값: URL
+- 실패 반환값: 음수 문자열
+- 반환 URL 유효시간: 60초
+
+로컬 URL 생성 명령:
+
+```bash
+python3 n8n-automation/_tools/barobill/soap-smoke-test.py --cert-url
 ```
 
 운영자가 해야 할 일:
 
-1. PC에서 `https://www.barobill.co.kr`에 로그인한다.
-2. 상단/좌측 메뉴에서 `공동인증서 > 공동인증서 등록`으로 이동한다.
-3. `MY 인증서 조회하기` 또는 `등록가능 인증서 확인`으로 현재 PC/저장매체의 인증서를 확인한다.
-4. 목록에 인증서가 보이면 반드시 하단의 `인증서 (재)등록` 버튼까지 눌러 등록을 완료한다.
-5. 가능하면 같은 화면에서 `간편발급 설정`을 `허용`으로 저장한다.
-6. 등록 후 로컬에서 다시 다음을 실행한다.
+1. 공동인증서가 설치된 PC 또는 인증서 저장매체가 연결된 PC를 준비한다.
+2. Mac 개발 환경에서 위 명령으로 등록 URL을 생성한다.
+3. 출력된 URL을 60초 안에 인증서가 있는 PC의 브라우저에서 연다.
+4. 바로빌 인증서 등록 화면에서 보안 모듈 설치 안내가 나오면 설치한다.
+5. 인증서 목록에서 전자세금용/사업자범용/바로빌 특목용 공동인증서를 선택한다.
+6. 인증서 비밀번호를 입력하고 등록을 완료한다.
+7. 등록 후 로컬에서 다시 다음을 실행한다.
 
 ```bash
 python3 n8n-automation/_tools/barobill/soap-smoke-test.py --issue
+```
+
+### 15.2 PC/맥북 사용 기준
+
+- 2번 방식이어도 “인증서 선택과 비밀번호 입력”은 공동인증서가 있는 PC에서 해야 한다.
+- MacBook은 URL 생성과 개발/검증만 담당해도 된다.
+- URL은 60초짜리 로그인 URL이므로 메신저/문서에 보관하지 않는다.
+- URL이 만료되면 같은 명령으로 새 URL을 다시 생성하면 된다.
+- 테스트환경과 운영환경은 별도 DB이므로 운영 전환 시 운영 바로빌 환경에 공동인증서를 다시 등록해야 한다.
+
+### 15.3 사이트 직접 등록 fallback
+
+GetBaroBillURL 방식이 PC 보안모듈/브라우저 문제로 막히면 아래 직접 등록 경로를 fallback으로 사용한다.
+
+```text
+바로빌 사이트 로그인 → 공동인증서 → 공동인증서 등록 → MY 인증서 조회하기 → 인증서 (재)등록
 ```
 
 등록 가능한 인증서:
@@ -441,6 +478,9 @@ python3 n8n-automation/_tools/barobill/soap-smoke-test.py --issue
 
 공식 참고:
 
+- 바로빌 개발자센터 `공동인증서 등록 기능 개발하기`: https://dev.barobill.co.kr/docs/guides/%EA%B3%B5%EB%8F%99%EC%9D%B8%EC%A6%9D%EC%84%9C-%EB%93%B1%EB%A1%9D-%EA%B8%B0%EB%8A%A5-%EA%B0%9C%EB%B0%9C%ED%95%98%EA%B8%B0
+- 바로빌 공통 API `GetBaroBillURL`: https://dev.barobill.co.kr/docs/references/%EB%B0%94%EB%A1%9C%EB%B9%8C-%EA%B3%B5%ED%86%B5-API#GetBaroBillURL
+- 바로빌 테스트 SOAP `GetBaroBillURL`: https://testws.baroservice.com/TI.asmx?op=GetBaroBillURL
 - 바로빌 FAQ `공동인증서 등록 절차`: https://www.barobill.co.kr/csc/faq_v.asp?DocSEQ=14763
 - 바로빌 공지 `모바일 승인 전 PC 공동인증서 등록 필요`: https://www.barobill.co.kr/csc/notice_v.asp?DocSEQ=13302
 - 바로빌 공동인증센터: https://cert.barobill.co.kr/

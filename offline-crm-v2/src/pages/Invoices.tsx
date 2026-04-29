@@ -18,6 +18,13 @@ import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
 import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized, parseInvoiceAccountingMeta, serializeInvoiceAccountingMeta, type InvoiceTaxInvoiceMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
+import {
+  buildHistoricalPaidShipmentDryRun,
+  buildStatusBadgeRows,
+  getTradeGovernanceState,
+  type HistoricalPaidShipmentDryRun,
+  type ShipmentDryRunExclusionReason,
+} from '@/lib/tradeGovernance'
 
 const PAGE_SIZE = 25
 
@@ -102,6 +109,15 @@ const TAX_INVOICE_BADGE: Record<InvoiceTaxInvoiceStatus, { label: string; cls: s
   amended: { label: '상쇄완료', cls: 'border-slate-300 bg-slate-100 text-slate-700' },
 }
 
+const SHIPMENT_DRY_RUN_EXCLUSION_LABELS: Record<ShipmentDryRunExclusionReason, string> = {
+  missing_invoice_id: '명세표 ID 없음',
+  already_shipment_confirmed: '이미 출고확정',
+  voided_or_adjusted: '취소/조정 상태',
+  not_paid: '완납 아님',
+  remaining_balance: '잔액 남음',
+  zero_or_negative_total: '금액 없음',
+}
+
 function getInvoiceTaxInvoiceStatus(invoice: Invoice): InvoiceTaxInvoiceStatus {
   return parseInvoiceAccountingMeta(invoice.memo as string | undefined).taxInvoiceStatus ?? 'not_requested'
 }
@@ -164,12 +180,6 @@ function getTaxInvoiceSummary(invoice: Invoice): { status: InvoiceTaxInvoiceStat
 function formatAmount(value?: number | null) {
   if (value == null) return '-'
   return `${value.toLocaleString()}원`
-}
-
-function getOutstandingAmount(invoice: Invoice) {
-  const totalAmount = Number(invoice.total_amount ?? 0)
-  const paidAmount = Number(invoice.paid_amount ?? 0)
-  return Math.max(totalAmount - paidAmount, 0)
 }
 
 function isShipmentConfirmable(invoice: Invoice): boolean {
@@ -306,6 +316,7 @@ export function Invoices() {
   const [confirmingShipmentId, setConfirmingShipmentId] = useState<number | null>(null)
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<number>>(() => new Set())
   const [isBulkShipmentConfirming, setIsBulkShipmentConfirming] = useState(false)
+  const [historicalShipmentDryRun, setHistoricalShipmentDryRun] = useState<HistoricalPaidShipmentDryRun | null>(null)
   const didInitDateSyncRef = useRef(false)
 
   const debouncedSearch = useDebounce(search, 400)
@@ -1004,6 +1015,16 @@ export function Invoices() {
     setSelectedShipmentIds(new Set())
   }
 
+  function openHistoricalShipmentDryRun() {
+    const dryRun = buildHistoricalPaidShipmentDryRun(filteredInvoices)
+    setHistoricalShipmentDryRun(dryRun)
+    if (dryRun.candidateCount === 0) {
+      toast.info('현재 필터에서 정리할 완납 미확정 건이 없습니다')
+    } else {
+      toast.success(`완납 미확정 후보 ${dryRun.candidateCount.toLocaleString()}건을 찾았습니다`)
+    }
+  }
+
   function invalidateRevenueViews() {
     void refetch()
     qc.invalidateQueries({ queryKey: ['transactions'] })
@@ -1017,7 +1038,12 @@ export function Invoices() {
     })
   }
 
-  async function confirmShipmentInvoice(inv: Invoice, confirmedAt: string, revenueDate: string) {
+  async function confirmShipmentInvoice(
+    inv: Invoice,
+    confirmedAt: string,
+    revenueDate: string,
+    action: 'shipment_confirm' | 'bulk_shipment_confirm' = 'shipment_confirm',
+  ) {
     const latestInvoice = await getInvoice(inv.Id)
     const latestStatus = getInvoiceFulfillmentStatus(latestInvoice.memo as string | undefined)
     const customerId = typeof latestInvoice.customer_id === 'number' && Number.isFinite(latestInvoice.customer_id)
@@ -1035,6 +1061,9 @@ export function Invoices() {
         confirmedAt,
         revenueDate,
         taxInvoiceStatus: 'not_requested',
+        actor: 'crm-admin',
+        action,
+        reason: action === 'bulk_shipment_confirm' ? 'CRM 일괄 출고완료 처리' : 'CRM 단건 출고완료 처리',
       },
     )
     await updateInvoice(inv.Id, { memo: confirmedMemo })
@@ -1048,7 +1077,7 @@ export function Invoices() {
       return
     }
     const ok = window.confirm(
-      `포장·출고확정 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n금액: ${formatAmount(inv.total_amount)}\n\n확정 후 이 건은 매출 자동화 대상이 됩니다.`,
+      `포장·출고완료 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n명세표: ${inv.invoice_no ?? inv.Id}\n명세표 합계: ${formatAmount(inv.total_amount)}\n\n처리 후 이 건은 “출고완료 매출”과 “월말점검”에 포함됩니다.\n아직 입금되지 않았다면 “출고완료 미수” 업무함에 표시됩니다.`,
     )
     if (!ok) return
 
@@ -1087,7 +1116,7 @@ export function Invoices() {
     }
 
     const ok = window.confirm(
-      `선택한 ${targets.length.toLocaleString()}건을 포장·출고확정 처리할까요?\n\n합계: ${formatAmount(selectedShipmentAmount)}\n\n확정 후 선택 건은 매출 자동화 대상이 됩니다.`,
+      `선택한 ${targets.length.toLocaleString()}건을 출고완료 처리할까요?\n\n합계: ${formatAmount(selectedShipmentAmount)}\n이미 출고완료된 건은 자동 제외됩니다.\n\n처리 후 선택 건은 월말 매출 점검 대상이 됩니다.\n입금이 안 된 건은 “출고완료 미수”로 남습니다.`,
     )
     if (!ok) return
 
@@ -1103,7 +1132,7 @@ export function Invoices() {
       for (const target of targets) {
         setConfirmingShipmentId(target.Id)
         try {
-          const result = await confirmShipmentInvoice(target, confirmedAt, revenueDate)
+          const result = await confirmShipmentInvoice(target, confirmedAt, revenueDate, 'bulk_shipment_confirm')
           if (result.status === 'confirmed') confirmedCount += 1
           else skippedCount += 1
           if (typeof result.customerId === 'number' && Number.isFinite(result.customerId)) {
@@ -1368,6 +1397,17 @@ export function Invoices() {
               type="button"
               variant="outline"
               size="sm"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              disabled={filteredInvoices.length === 0 || isBulkShipmentConfirming}
+              onClick={openHistoricalShipmentDryRun}
+            >
+              <Search className="h-4 w-4" />
+              완납 미확정 점검
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               className="border-[#d8e4d6] text-[#3d6b4a]"
               disabled={currentPageConfirmableInvoices.length === 0 || isBulkShipmentConfirming}
               onClick={() => toggleCurrentPageShipmentSelection(!allCurrentPageShipmentSelected)}
@@ -1416,12 +1456,14 @@ export function Invoices() {
         {!isLoading && !isError && invoices.map((inv) => {
           const st = STATUS_LABEL[inv.payment_status ?? '']
           const isDeleting = deletingId === inv.Id
-          const outstandingAmount = getOutstandingAmount(inv)
           const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
           const invoiceName = inv.customer_name?.trim()
           const masterName = linkedCustomer?.name?.trim()
           const masterBookName = linkedCustomer?.book_name?.trim()
           const fulfillment = getFulfillmentBadge(inv)
+          const governanceState = getTradeGovernanceState(inv, { today })
+          const statusRows = buildStatusBadgeRows(governanceState)
+          const outstandingAmount = governanceState.remainingAmount
           const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
           const isConfirmingShipment = confirmingShipmentId === inv.Id
           const taxInvoiceSummary = getTaxInvoiceSummary(inv)
@@ -1484,6 +1526,20 @@ export function Invoices() {
                   <div className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${taxInvoiceSummary.cls}`}>
                     세금계산서 {taxInvoiceSummary.label}
                   </div>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-1 rounded-lg border border-[#d8e4d6] bg-white px-3 py-2 text-[11px]">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">업무 단계</span>
+                  <span className="font-medium text-foreground">{statusRows[0]}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">돈 상태</span>
+                  <span className="font-medium text-foreground">{statusRows[1]}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">예외/증빙</span>
+                  <span className="font-medium text-foreground">{statusRows[2]}</span>
                 </div>
               </div>
               {taxInvoiceSummary.detail ? (
@@ -1663,7 +1719,9 @@ export function Invoices() {
             {invoices.map((inv) => {
               const st = STATUS_LABEL[inv.payment_status ?? '']
               const isDeleting = deletingId === inv.Id
-              const outstandingAmount = getOutstandingAmount(inv)
+              const governanceState = getTradeGovernanceState(inv, { today })
+              const statusRows = buildStatusBadgeRows(governanceState)
+              const outstandingAmount = governanceState.remainingAmount
               const fulfillment = getFulfillmentBadge(inv)
               const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
               const isConfirmingShipment = confirmingShipmentId === inv.Id
@@ -1753,6 +1811,20 @@ export function Invoices() {
                     </div>
                     <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${taxInvoiceSummary.cls}`}>
                       세금계산서 {taxInvoiceSummary.label}
+                    </div>
+                    <div className="mt-2 grid gap-1 rounded-lg border border-[#d8e4d6] bg-[#f8faf7] px-3 py-2 text-[11px]">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">업무</span>
+                        <span className="font-medium text-foreground">{statusRows[0]}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">돈</span>
+                        <span className="font-medium text-foreground">{statusRows[1]}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">예외</span>
+                        <span className="font-medium text-foreground">{statusRows[2]}</span>
+                      </div>
                     </div>
                     {taxInvoiceSummary.detail ? (
                       <div className="mt-1 max-w-[220px] truncate text-xs text-muted-foreground">
@@ -1899,6 +1971,136 @@ export function Invoices() {
           </div>
         </div>
       )}
+
+      {historicalShipmentDryRun && (() => {
+        const exclusionSummary = historicalShipmentDryRun.exclusions.reduce((summary, exclusion) => {
+          summary.set(exclusion.reason, (summary.get(exclusion.reason) ?? 0) + 1)
+          return summary
+        }, new Map<ShipmentDryRunExclusionReason, number>())
+        const previewCandidates = historicalShipmentDryRun.candidates.slice(0, 10)
+        const customerPreview = historicalShipmentDryRun.byCustomer.slice(0, 8)
+        return (
+          <Dialog open={!!historicalShipmentDryRun} onOpenChange={(open) => {
+            if (!open) setHistoricalShipmentDryRun(null)
+          }}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>완납 미확정 출고 점검</DialogTitle>
+                <DialogDescription>
+                  현재 필터 결과를 기준으로 완납됐지만 출고확정 메타가 없는 건을 dry-run으로 확인합니다. 이 화면만으로 운영 데이터는 바뀌지 않습니다.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-xl border bg-[#f8faf7] p-3">
+                  <div className="text-xs text-muted-foreground">출고확정 후보</div>
+                  <div className="mt-1 text-xl font-bold text-[#3d6b4a]">{historicalShipmentDryRun.candidateCount.toLocaleString()}건</div>
+                </div>
+                <div className="rounded-xl border bg-white p-3">
+                  <div className="text-xs text-muted-foreground">후보 합계</div>
+                  <div className="mt-1 text-xl font-bold text-foreground">{formatAmount(historicalShipmentDryRun.candidateTotalAmount)}</div>
+                </div>
+                <div className="rounded-xl border bg-white p-3">
+                  <div className="text-xs text-muted-foreground">세금계산서 영향</div>
+                  <div className="mt-1 text-xl font-bold text-blue-700">{historicalShipmentDryRun.taxInvoiceImpactCount.toLocaleString()}건</div>
+                </div>
+                <div className="rounded-xl border bg-white p-3">
+                  <div className="text-xs text-muted-foreground">제외</div>
+                  <div className="mt-1 text-xl font-bold text-slate-700">{historicalShipmentDryRun.excludedCount.toLocaleString()}건</div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border bg-white p-3">
+                  <div className="mb-2 text-sm font-semibold">고객별 후보 요약</div>
+                  {customerPreview.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">후보가 없습니다.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {customerPreview.map((row) => (
+                        <div key={`${row.customerId ?? 'none'}-${row.customerName}`} className="flex items-center justify-between gap-3 text-sm">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">{row.customerName}</div>
+                            <div className="text-xs text-muted-foreground">{row.count.toLocaleString()}건</div>
+                          </div>
+                          <div className="shrink-0 font-semibold">{formatAmount(row.totalAmount)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border bg-white p-3">
+                  <div className="mb-2 text-sm font-semibold">제외 사유</div>
+                  {exclusionSummary.size === 0 ? (
+                    <div className="text-sm text-muted-foreground">제외된 건이 없습니다.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {Array.from(exclusionSummary.entries()).map(([reason, count]) => (
+                        <div key={reason} className="flex items-center justify-between gap-3 text-sm">
+                          <span>{SHIPMENT_DRY_RUN_EXCLUSION_LABELS[reason]}</span>
+                          <span className="font-semibold">{count.toLocaleString()}건</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-white p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold">후보 미리보기</div>
+                  <div className="text-xs text-muted-foreground">상위 {previewCandidates.length.toLocaleString()}건 표시</div>
+                </div>
+                {previewCandidates.length === 0 ? (
+                  <div className="rounded-lg bg-slate-50 px-3 py-6 text-center text-sm text-muted-foreground">
+                    현재 필터에는 출고확정 정리 후보가 없습니다.
+                  </div>
+                ) : (
+                  <div className="max-h-[280px] overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50 text-xs text-muted-foreground">
+                          <th className="px-2 py-2 text-left font-medium">거래처</th>
+                          <th className="px-2 py-2 text-left font-medium">명세표</th>
+                          <th className="px-2 py-2 text-right font-medium">합계</th>
+                          <th className="px-2 py-2 text-right font-medium">입금</th>
+                          <th className="px-2 py-2 text-left font-medium">세금계산서</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewCandidates.map((candidate) => (
+                          <tr key={candidate.invoiceId} className="border-b last:border-b-0">
+                            <td className="px-2 py-2">{candidate.customerName}</td>
+                            <td className="px-2 py-2">
+                              <div className="font-mono text-xs">{candidate.invoiceNo ?? '-'}</div>
+                              <div className="text-xs text-muted-foreground">{candidate.invoiceDate?.slice(0, 10) ?? '-'}</div>
+                            </td>
+                            <td className="px-2 py-2 text-right font-medium">{formatAmount(candidate.totalAmount)}</td>
+                            <td className="px-2 py-2 text-right">{formatAmount(candidate.paidAmount)}</td>
+                            <td className="px-2 py-2">{TAX_INVOICE_BADGE[candidate.taxInvoiceStatus].label}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                실제 출고확정 적용은 dry-run 결과를 검토한 뒤 별도 승인 절차에서만 진행합니다. 적용 시에는 각 명세표를 fresh read 후 처리하고 verify 리포트를 남겨야 합니다.
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setHistoricalShipmentDryRun(null)}>닫기</Button>
+                <Button disabled className="bg-[#7d9675] text-white">
+                  승인 후 적용 예정
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       <Dialog open={!!printDialogInvoice} onOpenChange={(open) => {
         if (!open) setPrintDialogInvoice(null)

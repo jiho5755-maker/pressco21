@@ -29,6 +29,7 @@ const LOCKED_TAX_INVOICE_STATUSES: InvoiceTaxInvoiceStatus[] = [
   'issued',
   'cancel_requested',
   'cancelled',
+  'amended',
 ]
 
 const BAROBILL_TAX_INVOICE_MODE =
@@ -182,6 +183,9 @@ export function TaxInvoiceRequestDialog({
     if (LOCKED_TAX_INVOICE_STATUSES.includes(status)) {
       errors.push('이미 발급 요청 또는 발급 완료된 명세표입니다')
     }
+    if (fulfillmentStatus !== 'shipment_confirmed') {
+      errors.push('출고확정 후 세금계산서를 발급할 수 있습니다')
+    }
     if (!normalizeBizNo(customerParty.corpNum)) errors.push('공급받는자 사업자번호가 없습니다')
     else if (normalizeBizNo(customerParty.corpNum).length !== 10) errors.push('공급받는자 사업자번호는 숫자 10자리여야 합니다')
     if (!customerParty.corpName) errors.push('공급받는자 상호가 없습니다')
@@ -197,7 +201,7 @@ export function TaxInvoiceRequestDialog({
       errors.push('품목명과 수량이 없는 품목이 있습니다')
     }
     return errors
-  }, [customerParty, idempotencyKey, invoice, itemPayloads, status, taxInvoiceAmounts])
+  }, [customerParty, fulfillmentStatus, idempotencyKey, invoice, itemPayloads, status, taxInvoiceAmounts])
 
   async function handleSubmit() {
     if (!invoice || !customerParty || validationErrors.length > 0) return
@@ -256,7 +260,7 @@ export function TaxInvoiceRequestDialog({
               <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  아직 포장·출고확정 전입니다. MVP에서는 요청을 막지 않지만, 운영 전환 시 출고확정 후 발급으로 강화할 수 있습니다.
+                  아직 포장·출고확정 전입니다. 출고확정 후 세금계산서를 발급할 수 있습니다.
                 </div>
               </div>
             )}

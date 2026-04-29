@@ -110,6 +110,10 @@ function isTaxInvoiceRequestAvailable(status: InvoiceTaxInvoiceStatus): boolean 
   return status === 'not_requested' || status === 'failed'
 }
 
+function isTaxInvoiceShipmentConfirmed(invoice: Invoice): boolean {
+  return getInvoiceFulfillmentStatus(invoice.memo as string | undefined) === 'shipment_confirmed'
+}
+
 function buildTaxInvoiceIdempotencyKey(invoice: Invoice): string | undefined {
   const invoiceNo = typeof invoice.invoice_no === 'string' ? invoice.invoice_no.trim() : ''
   if (!invoice.Id || !invoiceNo) return undefined
@@ -735,6 +739,10 @@ export function Invoices() {
       toast.info('이미 요청된 세금계산서입니다. 발급내역을 확인해주세요.')
       return
     }
+    if (!isTaxInvoiceShipmentConfirmed(inv)) {
+      toast.info('출고확정 후 세금계산서를 발급할 수 있습니다')
+      return
+    }
 
     setLoadingTaxInvoiceId(inv.Id)
     try {
@@ -743,6 +751,10 @@ export function Invoices() {
       if (!isTaxInvoiceRequestAvailable(latestStatus)) {
         setTaxInvoiceDetailInvoice(dialogData.invoice)
         toast.info('최신 상태 기준으로 이미 요청된 세금계산서입니다')
+        return
+      }
+      if (!isTaxInvoiceShipmentConfirmed(dialogData.invoice)) {
+        toast.info('최신 명세표 기준으로 출고확정 후 세금계산서를 발급할 수 있습니다')
         return
       }
       setTaxInvoiceDialogData(dialogData)
@@ -766,6 +778,11 @@ export function Invoices() {
         toast.error('최신 상태 기준으로 이미 발급 요청된 명세표입니다')
         setTaxInvoiceDialogData(null)
         setTaxInvoiceDetailInvoice(latestInvoice)
+        return
+      }
+      if (!isTaxInvoiceShipmentConfirmed(latestInvoice)) {
+        toast.error('출고확정 전 명세표는 세금계산서를 발급할 수 없습니다')
+        setTaxInvoiceDialogData(null)
         return
       }
 
@@ -1410,6 +1427,8 @@ export function Invoices() {
           const taxInvoiceSummary = getTaxInvoiceSummary(inv)
           const isTaxInvoiceLoading = loadingTaxInvoiceId === inv.Id
           const isTaxInvoiceSyncing = syncingTaxInvoiceId === inv.Id
+          const canRequestTaxInvoice = isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
+          const isTaxInvoiceShipmentBlocked = canRequestTaxInvoice && !isShipmentConfirmed
 
           return (
             <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
@@ -1529,10 +1548,11 @@ export function Invoices() {
                     variant="outline"
                     size="sm"
                     className="h-9 border-blue-200 text-xs text-blue-700 hover:bg-blue-50"
-                    disabled={isTaxInvoiceLoading}
+                    title={isTaxInvoiceShipmentBlocked ? '출고확정 후 세금계산서 발급 가능' : canRequestTaxInvoice ? '세금계산서 발급' : '발급내역 보기'}
+                    disabled={isTaxInvoiceLoading || isTaxInvoiceShipmentBlocked}
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)) void openTaxInvoiceRequest(inv)
+                      if (canRequestTaxInvoice) void openTaxInvoiceRequest(inv)
                       else setTaxInvoiceDetailInvoice(inv)
                     }}
                   >
@@ -1540,8 +1560,8 @@ export function Invoices() {
                     <span className="ml-1">
                       {isTaxInvoiceLoading
                         ? '불러오는 중...'
-                        : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
-                          ? '세금계산서 발급'
+                        : canRequestTaxInvoice
+                          ? isTaxInvoiceShipmentBlocked ? '출고확정 후 발급' : '세금계산서 발급'
                           : '발급내역 보기'}
                     </span>
                   </Button>
@@ -1650,6 +1670,8 @@ export function Invoices() {
               const taxInvoiceSummary = getTaxInvoiceSummary(inv)
               const isTaxInvoiceLoading = loadingTaxInvoiceId === inv.Id
               const isTaxInvoiceSyncing = syncingTaxInvoiceId === inv.Id
+              const canRequestTaxInvoice = isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
+              const isTaxInvoiceShipmentBlocked = canRequestTaxInvoice && !isShipmentConfirmed
               return (
                 <tr
                   key={inv.Id}
@@ -1748,11 +1770,11 @@ export function Invoices() {
                             variant="outline"
                             size="sm"
                             className="h-8 border-blue-200 px-3 text-xs text-blue-700 hover:bg-blue-50"
-                            title={isTaxInvoiceRequestAvailable(taxInvoiceSummary.status) ? '세금계산서 발급' : '발급내역 보기'}
-                            disabled={isTaxInvoiceLoading}
+                            title={isTaxInvoiceShipmentBlocked ? '출고확정 후 세금계산서 발급 가능' : canRequestTaxInvoice ? '세금계산서 발급' : '발급내역 보기'}
+                            disabled={isTaxInvoiceLoading || isTaxInvoiceShipmentBlocked}
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)) void openTaxInvoiceRequest(inv)
+                              if (canRequestTaxInvoice) void openTaxInvoiceRequest(inv)
                               else setTaxInvoiceDetailInvoice(inv)
                             }}
                           >
@@ -1760,8 +1782,8 @@ export function Invoices() {
                             <span className="ml-1">
                               {isTaxInvoiceLoading
                                 ? '로딩'
-                                : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
-                                  ? '세금계산서 발급'
+                                : canRequestTaxInvoice
+                                  ? isTaxInvoiceShipmentBlocked ? '출고확정 후 발급' : '세금계산서 발급'
                                   : '내역 보기'}
                             </span>
                           </Button>

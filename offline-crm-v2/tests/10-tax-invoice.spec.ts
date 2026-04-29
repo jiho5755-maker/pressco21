@@ -43,10 +43,10 @@ async function seedTaxInvoiceTarget(
     previous_balance: 0,
     paid_amount: 0,
     payment_method: '현금',
-    supply_amount: 10000,
-    tax_amount: 1000,
-    total_amount: 11000,
-    current_balance: 11000,
+    supply_amount: 9091,
+    tax_amount: 909,
+    total_amount: 10000,
+    current_balance: 10000,
     payment_status: 'unpaid',
     status: 'unpaid',
     memo: params.memo,
@@ -57,8 +57,8 @@ async function seedTaxInvoiceTarget(
     unit: '개',
     quantity: 1,
     unit_price: 10000,
-    supply_amount: 10000,
-    tax_amount: 1000,
+    supply_amount: 9091,
+    tax_amount: 909,
     taxable: '과세',
   })
   return { customer, invoice }
@@ -167,6 +167,17 @@ test('T10-03: 발급/상태 새로고침 버튼이 바로빌 n8n 테스트 webho
     expect(providerMgtKey).toMatch(/^PC/)
     expect(body.sendEmail).toBe(true)
     expect(body.sendSms).toBe(false)
+    expect(body.amounts).toMatchObject({
+      supplyAmount: 9091,
+      taxAmount: 909,
+      totalAmount: 10000,
+    })
+    expect(Array.isArray(body.items)).toBe(true)
+    expect((body.items as Array<Record<string, unknown>>)[0]).toMatchObject({
+      unitPrice: 9091,
+      supplyAmount: 9091,
+      taxAmount: 909,
+    })
 
     await route.fulfill({
       status: 200,

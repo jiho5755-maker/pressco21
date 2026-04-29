@@ -3,6 +3,7 @@ import { AlertTriangle, Mail, MessageSquare, ReceiptText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getInvoiceFulfillmentStatus, parseInvoiceAccountingMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
+import { getVatIncludedLineTotal, splitVatIncludedAmount } from '@/lib/vatIncluded'
 import type {
   BarobillTaxInvoiceItemPayload,
   BarobillTaxInvoicePartyPayload,
@@ -103,19 +104,25 @@ function buildCustomerParty(invoice: Invoice, customer: Customer | null): Barobi
   }
 }
 
+function isTaxableInvoiceItem(item: InvoiceItem): boolean {
+  const taxable = normalizeText(item.taxable).toLowerCase()
+  return !['n', 'no', 'false', '0', '면세', '비과세'].includes(taxable)
+}
+
 function buildInvoiceItems(items: InvoiceItem[]): BarobillTaxInvoiceItemPayload[] {
   return items.map((item) => {
     const quantity = Math.max(0, Number(item.quantity ?? 0))
-    const supplyAmount = Math.max(0, Number(item.supply_amount ?? 0))
-    const taxAmount = Math.max(0, Number(item.tax_amount ?? 0))
-    const unitPrice = Number(item.unit_price ?? (quantity > 0 ? Math.round(supplyAmount / quantity) : 0))
+    const fallbackTotal = Math.max(0, Number(item.supply_amount ?? 0)) + Math.max(0, Number(item.tax_amount ?? 0))
+    const vatIncludedTotal = getVatIncludedLineTotal(item.unit_price, quantity) || fallbackTotal
+    const split = splitVatIncludedAmount(vatIncludedTotal, isTaxableInvoiceItem(item))
+    const supplyUnitPrice = quantity > 0 ? Math.round(split.supplyAmount / quantity) : 0
     return {
       name: normalizeText(item.product_name),
       spec: normalizeText(item.unit) || undefined,
       quantity,
-      unitPrice: Number.isFinite(unitPrice) ? Math.max(0, unitPrice) : 0,
-      supplyAmount,
-      taxAmount,
+      unitPrice: supplyUnitPrice,
+      supplyAmount: split.supplyAmount,
+      taxAmount: split.taxAmount,
     }
   })
 }
@@ -148,6 +155,11 @@ export function TaxInvoiceRequestDialog({
     [customer, invoice],
   )
   const itemPayloads = useMemo(() => buildInvoiceItems(items), [items])
+  const taxInvoiceAmounts = useMemo(() => {
+    const supplyAmount = itemPayloads.reduce((sum, item) => sum + item.supplyAmount, 0)
+    const taxAmount = itemPayloads.reduce((sum, item) => sum + item.taxAmount, 0)
+    return { supplyAmount, taxAmount, totalAmount: supplyAmount + taxAmount }
+  }, [itemPayloads])
   const status = getTaxInvoiceStatus(invoice)
   const fulfillmentStatus = invoice ? getInvoiceFulfillmentStatus(invoice.memo as string | undefined) : undefined
   const issueDate = invoice?.invoice_date?.slice(0, 10) || new Date().toISOString().slice(0, 10)
@@ -170,15 +182,15 @@ export function TaxInvoiceRequestDialog({
     if (!customerParty.email) errors.push('전자세금계산서 수신 이메일이 없습니다')
     else if (!isValidEmail(customerParty.email)) errors.push('전자세금계산서 수신 이메일 형식이 올바르지 않습니다')
     if (!idempotencyKey) errors.push('중복발급 방지 키를 만들 수 없습니다')
-    if (Number(invoice.supply_amount ?? 0) <= 0) errors.push('공급가액이 0원입니다')
-    if (Number(invoice.tax_amount ?? 0) < 0) errors.push('세액을 확인해주세요')
-    if (Number(invoice.total_amount ?? 0) <= 0) errors.push('합계금액이 0원입니다')
+    if (taxInvoiceAmounts.supplyAmount <= 0) errors.push('공급가액이 0원입니다')
+    if (taxInvoiceAmounts.taxAmount < 0) errors.push('세액을 확인해주세요')
+    if (taxInvoiceAmounts.totalAmount <= 0) errors.push('합계금액이 0원입니다')
     if (itemPayloads.length === 0) errors.push('품목이 없습니다')
     if (itemPayloads.some((item) => !item.name || item.quantity <= 0)) {
       errors.push('품목명과 수량이 없는 품목이 있습니다')
     }
     return errors
-  }, [customerParty, idempotencyKey, invoice, itemPayloads, status])
+  }, [customerParty, idempotencyKey, invoice, itemPayloads, status, taxInvoiceAmounts])
 
   async function handleSubmit() {
     if (!invoice || !customerParty || validationErrors.length > 0) return
@@ -204,11 +216,7 @@ export function TaxInvoiceRequestDialog({
         ...customerParty,
         corpNum: normalizeBizNo(customerParty.corpNum),
       },
-      amounts: {
-        supplyAmount: Math.max(0, Number(invoice.supply_amount ?? 0)),
-        taxAmount: Math.max(0, Number(invoice.tax_amount ?? 0)),
-        totalAmount: Math.max(0, Number(invoice.total_amount ?? 0)),
-      },
+      amounts: taxInvoiceAmounts,
       items: itemPayloads,
       requestedBy: 'crm-admin',
     })
@@ -291,7 +299,7 @@ export function TaxInvoiceRequestDialog({
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">발급 금액</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    입금액이 아니라 명세표 품목 합계 기준으로 발급합니다.
+                    입력 단가를 부가세 포함가로 보고 공급가액/세액을 자동 분리해 발급합니다.
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -301,15 +309,15 @@ export function TaxInvoiceRequestDialog({
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg bg-white px-3 py-2">
                   <div className="text-xs text-muted-foreground">공급가액</div>
-                  <div className="mt-1 font-semibold">{formatAmount(invoice.supply_amount)}</div>
+                  <div className="mt-1 font-semibold">{formatAmount(taxInvoiceAmounts.supplyAmount)}</div>
                 </div>
                 <div className="rounded-lg bg-white px-3 py-2">
                   <div className="text-xs text-muted-foreground">세액</div>
-                  <div className="mt-1 font-semibold">{formatAmount(invoice.tax_amount)}</div>
+                  <div className="mt-1 font-semibold">{formatAmount(taxInvoiceAmounts.taxAmount)}</div>
                 </div>
                 <div className="rounded-lg bg-white px-3 py-2">
                   <div className="text-xs text-muted-foreground">합계금액</div>
-                  <div className="mt-1 font-semibold">{formatAmount(invoice.total_amount)}</div>
+                  <div className="mt-1 font-semibold">{formatAmount(taxInvoiceAmounts.totalAmount)}</div>
                 </div>
               </div>
             </section>

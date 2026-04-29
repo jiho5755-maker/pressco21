@@ -173,7 +173,7 @@ test('T2-06: 품목 "행 추가" 버튼 동작', async ({ page }) => {
   await expect(tbody.locator('tr')).toHaveCount(3)
 })
 
-test('T2-07: 품목 단가 입력 시 공급가액/세액 자동 계산', async ({ page }) => {
+test('T2-07: 부가세 포함 단가 입력 시 공급가액/세액 자동 분리', async ({ page }) => {
   await page.getByRole('button', { name: /새 명세표/ }).click()
   await waitForDialog(page, '새 명세표')
 
@@ -191,13 +191,13 @@ test('T2-07: 품목 단가 입력 시 공급가액/세액 자동 계산', async 
   await priceInput.fill('10000')
   await priceInput.press('Tab')  // blur 발생 → calcRow 실행
 
-  // 공급가액 = 수량(1) × 단가(10000) = 10,000
+  // 공급가액 = 부가세 포함 단가 10,000원 - 세액 909원 = 9,091원
   const supplyCell = firstRow.locator('td.text-right.text-xs').first()
-  await expect(supplyCell).toContainText('10,000')
+  await expect(supplyCell).toContainText('9,091')
 
-  // 세액 = floor(10000 / 10) = 1,000 (과세 체크됨)
+  // 세액 = round(10,000 / 11) = 909원
   const taxCell = firstRow.locator('td.text-right.text-xs').nth(1)
-  await expect(taxCell).toContainText('1,000')
+  await expect(taxCell).toContainText('909')
 
   // 합계 요약 (Dialog 하단) 업데이트 확인 (Dialog 스코프로 strict mode 충돌 방지)
   const dialog = page.getByRole('dialog')
@@ -432,15 +432,15 @@ test('T2-15: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async 
   await firstRow.locator('input[type="number"]').nth(1).press('Tab')
 
   await expect(dialog.getByText('고객 기본 할인율 10%가 자동 반영됩니다.')).toBeVisible()
-  await expect(dialog.getByText('- 1,100원').first()).toBeVisible()
-  await expect(dialog.getByText('9,900원').first()).toBeVisible()
+  await expect(dialog.getByText('- 1,000원').first()).toBeVisible()
+  await expect(dialog.getByText('9,000원').first()).toBeVisible()
 
   const discountInput = dialog.getByLabel('DC 할인 금액')
   await discountInput.fill('500')
 
   await expect(dialog.getByText('고객 기본 할인율 10%에서 건별 DC로 조정 중입니다.')).toBeVisible()
   await expect(dialog.getByText('- 500원').first()).toBeVisible()
-  await expect(dialog.getByText('10,500원').first()).toBeVisible()
+  await expect(dialog.getByText('9,500원').first()).toBeVisible()
 })
 
 

@@ -1,0 +1,1336 @@
+{
+  "name": "CRM - BaroBill TaxInvoice Webhook Adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm/barobill/tax-invoices/issue",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "barobill-issue-webhook",
+      "name": "발급 요청 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        120
+      ],
+      "webhookId": "crm-barobill-tax-invoices-issue"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $input.first().json || {};\nconst headers = request.headers || {};\nconst incomingKey = String(headers['x-crm-key'] || headers['X-Crm-Key'] || headers['X-CRM-KEY'] || '').trim();\nconst expectedKey = String($env.CRM_API_KEY || '').trim();\nif (!expectedKey || incomingKey !== expectedKey) {\n  return [{ json: { success: false, ok: false, shouldContinue: false, httpStatus: 401, error: { code: 'UNAUTHORIZED', message: 'unauthorized' } } }];\n}\nconst body = request.body && typeof request.body === 'object' ? request.body : request;\nconst invoiceId = Math.trunc(Number(body.invoiceId || 0));\nconst mode = String(body.mode || 'test').trim().toLowerCase() === 'production' ? 'production' : 'test';\nconst idempotencyKey = String(body.idempotencyKey || '').trim();\nconst requestId = String(body.requestId || '').trim() || `barobill-${Date.now()}`;\nif (!invoiceId || !idempotencyKey) {\n  return [{ json: { success: false, ok: false, shouldContinue: false, httpStatus: 400, requestId, invoiceId, idempotencyKey, error: { code: 'INVALID_REQUEST', message: 'invoiceId와 idempotencyKey가 필요합니다.' } } }];\n}\nreturn [{ json: { success: true, ok: true, shouldContinue: true, httpStatus: 200, requestId, invoiceId, idempotencyKey, mode, body } }];"
+      },
+      "id": "barobill-issue-guard",
+      "name": "발급 요청 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "issue-should-continue",
+              "leftValue": "={{ $json.shouldContinue }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-issue-if-auth",
+      "name": "발급 인증/요청 계속?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'invoices', method: 'GET', recordId: $json.invoiceId }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-issue-read-invoice",
+      "name": "CRM 명세표 fresh read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'items', method: 'GET', params: { where: '(invoice_id,eq,' + $('발급 요청 검증').item.json.invoiceId + ')', limit: 200, sort: 'Id' } }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-issue-read-items",
+      "name": "CRM 품목 fresh read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'customers', method: 'GET', recordId: Number(($json.data || ($json.body && $json.body.data) || $json.body || $json).customer_id || 0) }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-issue-read-customer",
+      "name": "CRM 고객 fresh read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'settings', method: 'GET', params: { limit: 1 } }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-issue-read-settings",
+      "name": "CRM 회사 설정 fresh read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('발급 요청 검증').item.json;\nconst body = source.body || {};\nconst invoiceResponse = $('CRM 명세표 fresh read').item.json || {};\nconst itemsResponse = $('CRM 품목 fresh read').item.json || {};\nconst customerResponse = $('CRM 고객 fresh read').item.json || {};\nconst settingsResponse = $('CRM 회사 설정 fresh read').item.json || {};\n\nfunction unwrapProxyBody(response) {\n  if (response && typeof response === 'object' && response.body && typeof response.body === 'object') return response.body;\n  return response || {};\n}\nfunction unwrapProxyData(response) {\n  const body = unwrapProxyBody(response);\n  return body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'data') ? body.data : body;\n}\nfunction unwrapProxyList(response) {\n  const data = unwrapProxyData(response);\n  if (data && Array.isArray(data.list)) return data.list;\n  if (Array.isArray(data)) return data;\n  return [];\n}\n\nlet invoice = unwrapProxyData(invoiceResponse);\nlet itemList = unwrapProxyList(itemsResponse);\nlet customer = unwrapProxyData(customerResponse) || {};\nlet settingsList = unwrapProxyList(settingsResponse);\nlet settings = settingsList[0] || unwrapProxyData(settingsResponse) || {};\n\nfunction hasCrmRecord(record) {\n  return record && typeof record === 'object' && Number(record.Id || record.id || 0) > 0;\n}\nfunction hasSettingRecord(record) {\n  return record && typeof record === 'object' && Object.keys(record).some((key) => !['success', 'ok', 'timestamp'].includes(key));\n}\nasync function crmProxyRequest(payload) {\n  const url = String($env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy').trim();\n  const key = String($env.CRM_API_KEY || '').trim();\n  if (!url || !key) return {};\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url,\n      headers: { 'Content-Type': 'application/json', 'x-crm-key': key },\n      body: payload,\n      json: true,\n      timeout: 20000,\n    });\n    return unwrapProxyBody(response);\n  } catch (error) {\n    return { success: false, error: { code: 'CRM_PROXY_FALLBACK_FAILED', message: error.message } };\n  }\n}\n\n// 일부 n8n HTTP Request 실행에서 프록시 응답 대신 Node.js response 객체가 전달되는 경우가 있어\n// 발급 직전 Code 노드에서 같은 CRM proxy를 한 번 더 안전하게 조회한다.\nif (!hasCrmRecord(invoice)) {\n  const fallback = await crmProxyRequest({ table: 'invoices', method: 'GET', recordId: source.invoiceId });\n  invoice = unwrapProxyData(fallback);\n}\nif (!Array.isArray(itemList) || itemList.length === 0) {\n  const fallback = await crmProxyRequest({ table: 'items', method: 'GET', params: { where: `(invoice_id,eq,${source.invoiceId})`, limit: 200, sort: 'Id' } });\n  itemList = unwrapProxyList(fallback);\n}\nif (!hasCrmRecord(customer)) {\n  const customerId = Number(invoice?.customer_id || invoice?.customerId || body.customerId || 0);\n  if (customerId > 0) {\n    const fallback = await crmProxyRequest({ table: 'customers', method: 'GET', recordId: customerId });\n    customer = unwrapProxyData(fallback) || {};\n  }\n}\nif (!hasSettingRecord(settings) || (!settings.bizno && !settings.company)) {\n  const fallback = await crmProxyRequest({ table: 'settings', method: 'GET', params: { limit: 1 } });\n  const fallbackList = unwrapProxyList(fallback);\n  settings = fallbackList[0] || unwrapProxyData(fallback) || settings || {};\n}\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.barobillTaxInvoiceRequestLog = staticData.barobillTaxInvoiceRequestLog || {};\nstaticData.barobillTaxInvoiceMgtLog = staticData.barobillTaxInvoiceMgtLog || {};\nconst requestLog = staticData.barobillTaxInvoiceRequestLog;\nconst mgtLog = staticData.barobillTaxInvoiceMgtLog;\nconst now = new Date().toISOString();\nconst prefix = '[ACCOUNTING_INVOICE_META]';\n\nfunction parseInteger(value) {\n  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : 0;\n  const parsed = Number(String(value ?? '').replace(/,/g, '').replace(/원/g, '').trim());\n  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;\n}\nfunction normalizeText(value) { return String(value ?? '').trim(); }\nfunction digitsOnly(value) { return normalizeText(value).replace(/\\D/g, ''); }\nfunction normalizeDate(value) {\n  const raw = normalizeText(value);\n  const digits = raw.replace(/\\D/g, '');\n  if (digits.length >= 8) return digits.slice(0, 8);\n  const d = new Date();\n  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);\n  return `${kst.getUTCFullYear()}${String(kst.getUTCMonth() + 1).padStart(2, '0')}${String(kst.getUTCDate()).padStart(2, '0')}`;\n}\nfunction xmlEscape(value) {\n  return normalizeText(value)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&apos;');\n}\nfunction fnv1a(value) {\n  let h = 0x811c9dc5;\n  const text = String(value);\n  for (let i = 0; i < text.length; i += 1) {\n    h ^= text.charCodeAt(i);\n    h = Math.imul(h, 0x01000193) >>> 0;\n  }\n  return h.toString(16).padStart(8, '0');\n}\nfunction parseMeta(memo) {\n  const line = normalizeText(memo).split('\\n').map((entry) => entry.trim()).find((entry) => entry.startsWith(prefix));\n  if (!line) return {};\n  try { return JSON.parse(line.slice(prefix.length).trim()) || {}; } catch (error) { return {}; }\n}\nfunction serializeMeta(memo, nextMeta) {\n  const visible = normalizeText(memo).replace(/\\r\\n/g, '\\n').split('\\n').filter((line) => line.trim() && !line.trim().startsWith(prefix));\n  return [...visible, `${prefix} ${JSON.stringify(nextMeta)}`].join('\\n').trim();\n}\nfunction fail(httpStatus, code, message, extra = {}) {\n  return [{ json: { success: false, ok: false, shouldCallProvider: false, httpStatus, requestId: source.requestId, invoiceId: source.invoiceId, idempotencyKey: source.idempotencyKey, provider: 'barobill', mode: source.mode, error: { code, message }, ...extra } }];\n}\nfunction coalesce(...values) {\n  for (const value of values) {\n    const text = normalizeText(value);\n    if (text) return text;\n  }\n  return '';\n}\nfunction makeProviderMgtKey(invoiceId, invoiceNo, idempotencyKey) {\n  const idPart = String(invoiceId).replace(/\\D/g, '').slice(-7) || '0';\n  const noPart = normalizeText(invoiceNo).replace(/[^0-9A-Za-z]/g, '').slice(-6) || 'INV';\n  const hash = fnv1a(idempotencyKey).slice(0, 8).toUpperCase();\n  return `PC${idPart}-${noPart}-${hash}`.slice(0, 24);\n}\nfunction lineAmount(item) {\n  const supply = parseInteger(item.supply_amount ?? item.supplyAmount);\n  const tax = parseInteger(item.tax_amount ?? item.taxAmount);\n  if (supply || tax) return { supply, tax, total: supply + tax };\n  const quantity = Math.max(1, parseInteger(item.quantity));\n  const unitPrice = parseInteger(item.unit_price ?? item.unitPrice);\n  const total = Math.max(0, quantity * unitPrice);\n  const derivedSupply = Math.round(total / 1.1);\n  return { supply: derivedSupply, tax: total - derivedSupply, total };\n}\nfunction buildItemRows(items, writeDate) {\n  return items.map((item) => {\n    const amount = lineAmount(item);\n    const quantity = Math.max(1, parseInteger(item.quantity));\n    const unitPrice = parseInteger(item.unit_price ?? item.unitPrice) || Math.round(amount.total / quantity);\n    return {\n      purchaseExpiry: writeDate,\n      name: coalesce(item.product_name, item.name, item.itemName, '품목'),\n      information: coalesce(item.unit, item.spec, item.information),\n      chargeableUnit: String(quantity),\n      unitPrice: String(unitPrice),\n      amount: String(amount.supply),\n      tax: String(amount.tax),\n      description: coalesce(item.description, item.memo),\n      _amount: amount,\n    };\n  });\n}\nfunction buildPartyXml(name, party) {\n  return [\n    `<${name}>`,\n    `<ContactID>${xmlEscape(party.contactId || '')}</ContactID>`,\n    `<CorpNum>${xmlEscape(party.corpNum || '')}</CorpNum>`,\n    `<MgtNum>${xmlEscape(party.mgtNum || '')}</MgtNum>`,\n    `<CorpName>${xmlEscape(party.corpName || '')}</CorpName>`,\n    `<TaxRegID>${xmlEscape(party.taxRegId || '')}</TaxRegID>`,\n    `<CEOName>${xmlEscape(party.ceoName || '')}</CEOName>`,\n    `<Addr>${xmlEscape(party.addr || '')}</Addr>`,\n    `<BizClass>${xmlEscape(party.bizClass || '')}</BizClass>`,\n    `<BizType>${xmlEscape(party.bizType || '')}</BizType>`,\n    `<ContactName>${xmlEscape(party.contactName || '')}</ContactName>`,\n    `<TEL>${xmlEscape(party.tel || '')}</TEL>`,\n    `<HP>${xmlEscape(party.hp || '')}</HP>`,\n    `<Email>${xmlEscape(party.email || '')}</Email>`,\n    `</${name}>`,\n  ].join('');\n}\nfunction buildIssueSoapTemplate({ corpNum, providerMgtKey, supplier, buyer, writeDate, amounts, itemRows, sendSms, mailTitle, sendEmail, purposeType }) {\n  const itemXml = itemRows.map((item) => [\n    '<TaxInvoiceTradeLineItem>',\n    `<PurchaseExpiry>${xmlEscape(item.purchaseExpiry)}</PurchaseExpiry>`,\n    `<Name>${xmlEscape(item.name)}</Name>`,\n    `<Information>${xmlEscape(item.information)}</Information>`,\n    `<ChargeableUnit>${xmlEscape(item.chargeableUnit)}</ChargeableUnit>`,\n    `<UnitPrice>${xmlEscape(item.unitPrice)}</UnitPrice>`,\n    `<Amount>${xmlEscape(item.amount)}</Amount>`,\n    `<Tax>${xmlEscape(item.tax)}</Tax>`,\n    `<Description>${xmlEscape(item.description)}</Description>`,\n    '</TaxInvoiceTradeLineItem>',\n  ].join('')).join('');\n  const invoicer = { ...supplier, mgtNum: providerMgtKey };\n  const invoicee = { ...buyer, mgtNum: '' };\n  return `<?xml version=\"1.0\" encoding=\"utf-8\"?>` +\n    `<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">` +\n    `<soap:Body>` +\n    `<RegistAndIssueTaxInvoice xmlns=\"http://ws.baroservice.com/\">` +\n    `<CERTKEY>__BAROBILL_CERTKEY__</CERTKEY>` +\n    `<CorpNum>${xmlEscape(corpNum)}</CorpNum>` +\n    `<Invoice>` +\n    `<InvoiceKey></InvoiceKey>` +\n    buildPartyXml('InvoicerParty', invoicer) +\n    buildPartyXml('InvoiceeParty', invoicee) +\n    buildPartyXml('BrokerParty', {}) +\n    `<InvoiceeASPEmail>${sendEmail ? xmlEscape(buyer.email || '') : ''}</InvoiceeASPEmail>` +\n    `<IssueDirection>1</IssueDirection>` +\n    `<TaxInvoiceType>1</TaxInvoiceType>` +\n    `<TaxType>1</TaxType>` +\n    `<TaxCalcType>1</TaxCalcType>` +\n    `<PurposeType>${xmlEscape(purposeType || '2')}</PurposeType>` +\n    `<ModifyCode></ModifyCode><Kwon></Kwon><Ho></Ho><SerialNum></SerialNum>` +\n    `<Cash></Cash><ChkBill></ChkBill><Note></Note><Credit></Credit>` +\n    `<WriteDate>${xmlEscape(writeDate)}</WriteDate>` +\n    `<AmountTotal>${xmlEscape(String(amounts.supplyAmount))}</AmountTotal>` +\n    `<TaxTotal>${xmlEscape(String(amounts.taxAmount))}</TaxTotal>` +\n    `<TotalAmount>${xmlEscape(String(amounts.totalAmount))}</TotalAmount>` +\n    `<Remark1>${xmlEscape(body.invoiceNo || invoice.invoice_no || '')}</Remark1>` +\n    `<Remark2>${xmlEscape(source.idempotencyKey)}</Remark2>` +\n    `<Remark3>PRESSCO21 CRM</Remark3>` +\n    `<TaxInvoiceTradeLineItems>${itemXml}</TaxInvoiceTradeLineItems>` +\n    `</Invoice>` +\n    `<SendSMS>${sendSms ? 'true' : 'false'}</SendSMS>` +\n    `<ForceIssue>false</ForceIssue>` +\n    `<MailTitle>${xmlEscape(mailTitle || '프레스코21 전자세금계산서')}</MailTitle>` +\n    `</RegistAndIssueTaxInvoice>` +\n    `</soap:Body></soap:Envelope>`;\n}\nfunction buildMgtCheckSoapTemplate(corpNum, providerMgtKey) {\n  return `<?xml version=\"1.0\" encoding=\"utf-8\"?>` +\n    `<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">` +\n    `<soap:Body><CheckMgtNumIsExists xmlns=\"http://ws.baroservice.com/\">` +\n    `<CERTKEY>__BAROBILL_CERTKEY__</CERTKEY>` +\n    `<CorpNum>${xmlEscape(corpNum)}</CorpNum>` +\n    `<MgtKey>${xmlEscape(providerMgtKey)}</MgtKey>` +\n    `</CheckMgtNumIsExists></soap:Body></soap:Envelope>`;\n}\n\nif (source.mode === 'production' && String($env.BAROBILL_ALLOW_PRODUCTION || '').trim() !== 'true') {\n  return fail(403, 'PRODUCTION_DISABLED', '운영 발급은 BAROBILL_ALLOW_PRODUCTION=true와 별도 승인 전까지 차단됩니다.');\n}\nif (!String($env.BAROBILL_CERTKEY || '').trim()) {\n  return fail(500, 'BAROBILL_CERTKEY_MISSING', 'BAROBILL_CERTKEY runtime 환경변수가 설정되지 않았습니다.');\n}\nif (!invoice || !Number(invoice.Id || invoice.id)) return fail(404, 'INVOICE_NOT_FOUND', 'CRM에서 명세표를 찾지 못했습니다.');\n\nconst invoiceId = Math.trunc(Number(invoice.Id || invoice.id));\nconst invoiceNo = coalesce(invoice.invoice_no, body.invoiceNo);\nif (invoiceId !== source.invoiceId) return fail(409, 'INVOICE_MISMATCH', 'CRM fresh read 명세표 ID가 요청과 다릅니다.');\nif (!invoiceNo) return fail(400, 'INVOICE_NO_REQUIRED', '명세표 번호가 필요합니다.');\n\nconst meta = parseMeta(invoice.memo);\nconst taxInvoiceMeta = meta.taxInvoice && typeof meta.taxInvoice === 'object' ? meta.taxInvoice : {};\nconst blockedStatuses = new Set(['requesting', 'requested', 'issued']);\nif (blockedStatuses.has(String(meta.taxInvoiceStatus || taxInvoiceMeta.status || '').trim())) {\n  return fail(200, 'DUPLICATE_CRM_META', '이미 세금계산서 발급 요청 또는 발급이 기록된 명세표입니다.', {\n    duplicate: true,\n    providerMgtKey: taxInvoiceMeta.mgtKey || taxInvoiceMeta.providerMgtKey || '',\n    status: meta.taxInvoiceStatus || taxInvoiceMeta.status,\n  });\n}\n\nconst existingLog = requestLog[source.idempotencyKey];\nif (existingLog && ['requesting', 'requested', 'issued', 'provider_existing'].includes(String(existingLog.status || ''))) {\n  return fail(200, 'DUPLICATE_IDEMPOTENCY_KEY', '같은 idempotencyKey 발급 요청 이력이 있어 신규 SOAP 발급을 차단했습니다.', {\n    duplicate: true,\n    providerMgtKey: existingLog.provider_mgt_key,\n    status: existingLog.status,\n    existingRequest: {\n      requestId: existingLog.request_id,\n      createdAt: existingLog.created_at,\n      updatedAt: existingLog.updated_at,\n    },\n  });\n}\n\nconst itemRows = buildItemRows(itemList, normalizeDate(invoice.invoice_date || body.writeDate));\nif (itemRows.length === 0) return fail(400, 'ITEMS_REQUIRED', '세금계산서 품목이 1개 이상 필요합니다.');\nconst itemSupplyTotal = itemRows.reduce((sum, item) => sum + item._amount.supply, 0);\nconst itemTaxTotal = itemRows.reduce((sum, item) => sum + item._amount.tax, 0);\nconst itemTotal = itemRows.reduce((sum, item) => sum + item._amount.total, 0);\nconst amounts = {\n  supplyAmount: parseInteger(invoice.supply_amount ?? body.amounts?.supplyAmount) || itemSupplyTotal,\n  taxAmount: parseInteger(invoice.tax_amount ?? body.amounts?.taxAmount) || itemTaxTotal,\n  totalAmount: parseInteger(invoice.total_amount ?? body.amounts?.totalAmount) || itemTotal,\n};\nif (amounts.supplyAmount <= 0 || amounts.taxAmount < 0 || amounts.totalAmount <= 0) return fail(400, 'AMOUNT_REQUIRED', '공급가액/세액/합계금액이 올바르지 않습니다.');\nif (Math.abs(itemSupplyTotal - amounts.supplyAmount) > 2 || Math.abs(itemTaxTotal - amounts.taxAmount) > 2 || Math.abs(itemTotal - amounts.totalAmount) > 2) {\n  return fail(409, 'AMOUNT_MISMATCH', 'CRM 품목 합계와 명세표 금액이 일치하지 않습니다.', { itemSupplyTotal, itemTaxTotal, itemTotal, amounts });\n}\n\nconst supplier = {\n  corpNum: digitsOnly(settings.bizno || body.supplier?.corpNum),\n  corpName: coalesce(settings.company, body.supplier?.corpName),\n  ceoName: coalesce(settings.ceo, body.supplier?.ceoName),\n  addr: coalesce(settings.address, body.supplier?.addr),\n  bizType: coalesce(settings.bizType, body.supplier?.bizType),\n  bizClass: coalesce(settings.bizItem, body.supplier?.bizClass),\n  contactId: coalesce(body.supplier?.contactId, $env.BAROBILL_CONTACT_ID),\n  contactName: coalesce(body.supplier?.contactName, settings.ceo),\n  tel: coalesce(settings.phone, body.supplier?.tel),\n  hp: coalesce(body.supplier?.hp),\n  email: coalesce(settings.email, body.supplier?.email),\n};\nconst buyer = {\n  corpNum: digitsOnly(invoice.customer_bizno || customer.business_no || customer.biz_no || body.buyer?.corpNum),\n  corpName: coalesce(invoice.customer_name, customer.name, body.buyer?.corpName),\n  ceoName: coalesce(invoice.customer_ceo_name, customer.ceo_name, body.buyer?.ceoName),\n  addr: coalesce(invoice.customer_address, customer.business_address, customer.address1, body.buyer?.addr),\n  bizType: coalesce(invoice.customer_biz_type, customer.business_type, customer.biz_type, body.buyer?.bizType),\n  bizClass: coalesce(invoice.customer_biz_item, customer.business_item, customer.biz_item, body.buyer?.bizClass),\n  contactName: coalesce(customer.name, invoice.customer_name, body.buyer?.contactName),\n  tel: coalesce(customer.phone1, invoice.customer_phone, body.buyer?.tel),\n  hp: coalesce(customer.mobile, body.buyer?.hp),\n  email: coalesce(customer.email, body.buyer?.email),\n};\nconst missing = [];\nif (supplier.corpNum.length !== 10) missing.push('supplier.corpNum');\nif (!supplier.contactId) missing.push('supplier.contactId');\nif (!supplier.corpName) missing.push('supplier.corpName');\nif (!supplier.ceoName) missing.push('supplier.ceoName');\nif (buyer.corpNum.length !== 10) missing.push('buyer.corpNum');\nif (!buyer.corpName) missing.push('buyer.corpName');\nif (!buyer.ceoName) missing.push('buyer.ceoName');\nif (!buyer.email || !buyer.email.includes('@')) missing.push('buyer.email');\nif (missing.length) return fail(400, 'REQUIRED_FIELD_MISSING', '세금계산서 필수값이 누락되었습니다.', { missing });\n\nconst providerMgtKey = coalesce(body.providerMgtKey, taxInvoiceMeta.mgtKey, makeProviderMgtKey(invoiceId, invoiceNo, source.idempotencyKey));\nconst writeDate = normalizeDate(invoice.invoice_date || body.writeDate);\nconst serviceUrl = source.mode === 'production'\n  ? String($env.BAROBILL_SERVICE_PROD_URL || 'https://ws.baroservice.com/TI.asmx').trim()\n  : String($env.BAROBILL_SERVICE_TEST_URL || 'https://testws.baroservice.com/TI.asmx').trim();\nconst payloadHash = fnv1a(JSON.stringify({ invoiceId, invoiceNo, amounts, itemRows: itemRows.map(({ _amount, ...item }) => item), supplierCorpNum: supplier.corpNum, buyerCorpNum: buyer.corpNum }));\nconst crmPatchMeta = {\n  ...meta,\n  taxInvoiceStatus: 'requesting',\n  taxInvoice: {\n    ...taxInvoiceMeta,\n    provider: 'barobill',\n    issueType: 'normal',\n    mgtKey: providerMgtKey,\n    requestId: source.requestId,\n    requestedAt: now,\n    requestedBy: normalizeText(body.requestedBy) || 'crm',\n    mailSent: body.sendEmail !== false,\n    smsRequested: body.sendSms === true,\n    statusCode: 'requesting',\n    statusMessage: '바로빌 테스트 SOAP 발급 요청 준비됨',\n  },\n};\nconst logEntry = {\n  request_id: source.requestId,\n  idempotency_key: source.idempotencyKey,\n  invoice_id: invoiceId,\n  invoice_no: invoiceNo,\n  provider: 'barobill',\n  provider_mgt_key: providerMgtKey,\n  mode: source.mode,\n  supplier_corp_num: supplier.corpNum,\n  request_payload_hash: payloadHash,\n  status: 'requesting',\n  created_at: existingLog?.created_at || now,\n  updated_at: now,\n  poll_attempt_count: existingLog?.poll_attempt_count || 0,\n};\nrequestLog[source.idempotencyKey] = logEntry;\nmgtLog[providerMgtKey] = source.idempotencyKey;\n\nconst issueSoapEnvelopeTemplate = buildIssueSoapTemplate({\n  corpNum: supplier.corpNum,\n  providerMgtKey,\n  supplier,\n  buyer,\n  writeDate,\n  amounts,\n  itemRows,\n  sendSms: body.sendSms === true,\n  sendEmail: body.sendEmail !== false,\n  mailTitle: body.mailTitle,\n  purposeType: body.purposeType,\n});\nconst mgtCheckSoapEnvelopeTemplate = buildMgtCheckSoapTemplate(supplier.corpNum, providerMgtKey);\nreturn [{\n  json: {\n    success: true,\n    ok: true,\n    shouldCallProvider: true,\n    httpStatus: 200,\n    operation: 'issue',\n    requestId: source.requestId,\n    invoiceId,\n    invoiceNo,\n    idempotencyKey: source.idempotencyKey,\n    provider: 'barobill',\n    providerMgtKey,\n    mode: source.mode,\n    serviceUrl,\n    supplierCorpNum: supplier.corpNum,\n    amounts,\n    sendEmail: body.sendEmail !== false,\n    sendSms: body.sendSms === true,\n    payloadHash,\n    mgtCheckSoapEnvelopeTemplate,\n    issueSoapEnvelopeTemplate,\n    crmPatch: { memo: serializeMeta(invoice.memo, crmPatchMeta) },\n  },\n}];"
+      },
+      "id": "barobill-issue-prepare",
+      "name": "발급 SOAP 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "issue-provider-needed",
+              "leftValue": "={{ $json.shouldCallProvider }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-issue-if-provider",
+      "name": "발급 provider 호출 필요?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { skippedHttpRequestNode: true } }];"
+      },
+      "id": "barobill-mgt-check-http",
+      "name": "관리번호 존재 SOAP 호출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        -40
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepared = $('발급 SOAP 준비').item.json;\nconst response = $input.first().json || {};\nfunction responseText(value, depth = 0) {\n  if (value == null || depth > 5) return '';\n  if (typeof value === 'string') return value;\n  if (typeof value === 'number' || typeof value === 'boolean') return String(value);\n  if (Array.isArray(value)) {\n    if (value.every((entry) => typeof entry === 'number')) {\n      try { return String.fromCharCode(...value); } catch (error) { return ''; }\n    }\n    return value.map((entry) => responseText(entry, depth + 1)).find((entry) => entry.includes('<')) || '';\n  }\n  if (typeof value === 'object') {\n    if (value.type === 'Buffer' && Array.isArray(value.data)) return responseText(value.data, depth + 1);\n    for (const key of ['body', 'data', 'response', 'rawBody', 'result']) {\n      const text = responseText(value[key], depth + 1);\n      if (text) return text;\n    }\n    try {\n      const json = JSON.stringify(value);\n      const unescaped = json.replace(/\\\\u003c/g, '<').replace(/\\\\u003e/g, '>').replace(/\\\\n/g, '\\n').replace(/\\\\r/g, '');\n      return unescaped.includes('<') ? unescaped : '';\n    } catch (error) {\n      return '';\n    }\n  }\n  return '';\n}\nlet rawXml = responseText(response);\nlet statusCode = Number(response.statusCode || response.status || response.response?.statusCode || 0);\nfunction extract(tag) {\n  const match = rawXml.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)</${tag}>`, 'i'));\n  return match ? match[1].trim() : '';\n}\nfunction stripTags(value) { return String(value || '').replace(/<[^>]+>/g, '').trim(); }\nasync function barobillSoap(action, envelopeTemplate, timeout) {\n  const certkey = String($env.BAROBILL_CERTKEY || '').trim();\n  const envelope = String(envelopeTemplate || '').replace('__BAROBILL_CERTKEY__', certkey);\n  if (!prepared.serviceUrl || !certkey || !envelope) return '';\n  try {\n    const soapResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: prepared.serviceUrl,\n      headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `http://ws.baroservice.com/${action}` },\n      body: envelope,\n      timeout,\n    });\n    return responseText(soapResponse);\n  } catch (error) {\n    return '';\n  }\n}\nif (!rawXml || response.error) {\n  const fallbackXml = await barobillSoap('CheckMgtNumIsExists', prepared.mgtCheckSoapEnvelopeTemplate, 30000);\n  if (fallbackXml) { rawXml = fallbackXml; statusCode = 200; }\n}\nconst resultText = stripTags(extract('CheckMgtNumIsExistsResult'));\nconst resultCode = Number(resultText || 0);\nconst fault = stripTags(extract('faultstring'));\nif (fault || statusCode >= 400 || resultCode < 0) {\n  const staticData = $getWorkflowStaticData('global');\n  const requestLog = staticData.barobillTaxInvoiceRequestLog || {};\n  const log = requestLog[prepared.idempotencyKey] || {};\n  requestLog[prepared.idempotencyKey] = { ...log, status: 'preflight_failed', updated_at: new Date().toISOString(), error_code: resultText || String(statusCode || ''), error_message: fault || 'BaroBill management key preflight failed' };\n  staticData.barobillTaxInvoiceRequestLog = requestLog;\n  return [{ json: { ...prepared, shouldIssueProvider: false, shouldSyncExistingStatus: false, success: false, ok: false, httpStatus: 502, error: { code: 'BAROBILL_MGT_CHECK_FAILED', message: fault || `바로빌 관리번호 사전확인 실패: ${resultText || statusCode}` } } }];\n}\nconst exists = resultCode === 1;\nif (!exists) {\n  return [{ json: { ...prepared, shouldIssueProvider: true, shouldSyncExistingStatus: false } }];\n}\nconst staticData = $getWorkflowStaticData('global');\nconst requestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst log = requestLog[prepared.idempotencyKey] || {};\nrequestLog[prepared.idempotencyKey] = { ...log, status: 'provider_existing', updated_at: new Date().toISOString(), barobill_result_code: resultCode, barobill_result_message: 'provider management key already exists' };\nstaticData.barobillTaxInvoiceRequestLog = requestLog;\nreturn [{ json: { ...prepared, operation: 'issue_existing_status', shouldIssueProvider: false, shouldSyncExistingStatus: true, needsWebhookResponse: true } }];"
+      },
+      "id": "barobill-mgt-check-parse",
+      "name": "관리번호 존재 결과 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "mgt-exists",
+              "leftValue": "={{ $json.shouldSyncExistingStatus }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-mgt-if-exists",
+      "name": "관리번호 이미 존재?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { skippedHttpRequestNode: true } }];"
+      },
+      "id": "barobill-issue-http",
+      "name": "발급 SOAP 호출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        120
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepared = $('관리번호 존재 결과 정리').item.json;\nconst response = $input.first().json || {};\nfunction responseText(value, depth = 0) {\n  if (value == null || depth > 5) return '';\n  if (typeof value === 'string') return value;\n  if (typeof value === 'number' || typeof value === 'boolean') return String(value);\n  if (Array.isArray(value)) {\n    if (value.every((entry) => typeof entry === 'number')) {\n      try { return String.fromCharCode(...value); } catch (error) { return ''; }\n    }\n    return value.map((entry) => responseText(entry, depth + 1)).find((entry) => entry.includes('<')) || '';\n  }\n  if (typeof value === 'object') {\n    if (value.type === 'Buffer' && Array.isArray(value.data)) return responseText(value.data, depth + 1);\n    for (const key of ['body', 'data', 'response', 'rawBody', 'result']) {\n      const text = responseText(value[key], depth + 1);\n      if (text) return text;\n    }\n    try {\n      const json = JSON.stringify(value);\n      const unescaped = json.replace(/\\\\u003c/g, '<').replace(/\\\\u003e/g, '>').replace(/\\\\n/g, '\\n').replace(/\\\\r/g, '');\n      return unescaped.includes('<') ? unescaped : '';\n    } catch (error) {\n      return '';\n    }\n  }\n  return '';\n}\nlet rawXml = responseText(response);\nlet statusCode = Number(response.statusCode || response.status || response.response?.statusCode || 0);\nconst now = new Date().toISOString();\nfunction extract(tag) {\n  const match = rawXml.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)</${tag}>`, 'i'));\n  return match ? match[1].trim() : '';\n}\nfunction stripTags(value) { return String(value || '').replace(/<[^>]+>/g, '').trim(); }\nfunction parseMetaFromPatch(memo) {\n  const prefix = '[ACCOUNTING_INVOICE_META]';\n  const line = String(memo || '').split('\\n').map((entry) => entry.trim()).find((entry) => entry.startsWith(prefix));\n  if (!line) return {};\n  try { return JSON.parse(line.slice(prefix.length).trim()) || {}; } catch (error) { return {}; }\n}\nfunction serializeMetaFromPatch(memo, nextMeta) {\n  const prefix = '[ACCOUNTING_INVOICE_META]';\n  const visible = String(memo || '').replace(/\\r\\n/g, '\\n').split('\\n').filter((line) => line.trim() && !line.trim().startsWith(prefix));\n  return [...visible, `${prefix} ${JSON.stringify(nextMeta)}`].join('\\n').trim();\n}\nfunction extractFromXml(xml, tag) {\n  const match = String(xml || '').match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));\n  return match ? match[1].trim() : '';\n}\nasync function barobillSoap(action, envelopeTemplate, timeout) {\n  const certkey = String($env.BAROBILL_CERTKEY || '').trim();\n  const envelope = String(envelopeTemplate || '').replace('__BAROBILL_CERTKEY__', certkey);\n  if (!prepared.serviceUrl || !certkey || !envelope) return '';\n  try {\n    const soapResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: prepared.serviceUrl,\n      headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `http://ws.baroservice.com/${action}` },\n      body: envelope,\n      timeout,\n    });\n    return responseText(soapResponse);\n  } catch (error) {\n    return '';\n  }\n}\nif (!rawXml || response.error) {\n  const checkXml = await barobillSoap('CheckMgtNumIsExists', prepared.mgtCheckSoapEnvelopeTemplate, 30000);\n  const checkCode = Number(stripTags(extractFromXml(checkXml, 'CheckMgtNumIsExistsResult')) || 0);\n  if (checkCode === 1) {\n    rawXml = '<RegistAndIssueTaxInvoiceResult>1</RegistAndIssueTaxInvoiceResult>';\n    statusCode = 200;\n  } else {\n    const fallbackXml = await barobillSoap('RegistAndIssueTaxInvoice', prepared.issueSoapEnvelopeTemplate, 45000);\n    if (fallbackXml) { rawXml = fallbackXml; statusCode = 200; }\n  }\n}\nconst resultText = stripTags(extract('RegistAndIssueTaxInvoiceResult'));\nconst fault = stripTags(extract('faultstring'));\nconst resultCode = Number(resultText || (fault ? -1 : 0));\nconst isHttpFailed = statusCode >= 400 || Boolean(response.error);\nconst isProviderMgtDuplicate = resultCode === -11024;\nconst success = !fault && !isHttpFailed && (resultCode > 0 || isProviderMgtDuplicate);\nconst status = success ? 'requested' : 'failed';\nconst message = success\n  ? (isProviderMgtDuplicate ? '바로빌 관리번호 중복으로 기존 발급 건을 연결했습니다' : '바로빌 테스트 SOAP 발급 요청 완료')\n  : (fault || `바로빌 발급 요청 실패: ${resultText || statusCode || 'unknown'}`);\nconst staticData = $getWorkflowStaticData('global');\nstaticData.barobillTaxInvoiceRequestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst prevLog = staticData.barobillTaxInvoiceRequestLog[prepared.idempotencyKey] || {};\nstaticData.barobillTaxInvoiceRequestLog[prepared.idempotencyKey] = {\n  ...prevLog,\n  status,\n  updated_at: now,\n  barobill_result_code: resultCode,\n  barobill_result_message: message,\n  error_code: success ? '' : String(resultText || statusCode || 'SOAP_ERROR'),\n  error_message: success ? '' : message,\n};\nconst currentMeta = parseMetaFromPatch(prepared.crmPatch?.memo || '');\nconst taxInvoice = currentMeta.taxInvoice && typeof currentMeta.taxInvoice === 'object' ? currentMeta.taxInvoice : {};\nconst nextMeta = {\n  ...currentMeta,\n  taxInvoiceStatus: status,\n  taxInvoice: {\n    ...taxInvoice,\n    provider: 'barobill',\n    mgtKey: prepared.providerMgtKey,\n    requestId: prepared.requestId,\n    requestedAt: taxInvoice.requestedAt || now,\n    lastStatusSyncedAt: now,\n    statusCode: success ? String(resultCode) : 'failed',\n    statusMessage: message,\n    errorCode: success ? '' : String(resultText || statusCode || 'SOAP_ERROR'),\n    errorMessage: success ? '' : message,\n    mailSent: prepared.sendEmail,\n    smsRequested: prepared.sendSms,\n  },\n};\nreturn [{\n  json: {\n    success,\n    ok: success,\n    httpStatus: success ? 200 : 502,\n    requestId: prepared.requestId,\n    invoiceId: prepared.invoiceId,\n    invoiceNo: prepared.invoiceNo,\n    idempotencyKey: prepared.idempotencyKey,\n    provider: 'barobill',\n    providerMgtKey: prepared.providerMgtKey,\n    mode: prepared.mode,\n    status,\n    barobillResultCode: resultCode,\n    message,\n    amounts: prepared.amounts,\n    crmPatch: { memo: serializeMetaFromPatch(prepared.crmPatch?.memo || '', nextMeta) },\n    duplicate: isProviderMgtDuplicate || undefined,\n    error: success ? undefined : { code: 'BAROBILL_ISSUE_FAILED', message },\n  },\n}];"
+      },
+      "id": "barobill-issue-parse",
+      "name": "발급 결과 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'invoices', method: 'PATCH', recordId: $json.invoiceId, payload: $json.crmPatch }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-issue-update-crm",
+      "name": "발급 CRM meta 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3540,
+        120
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $('발급 결과 정리').item.json;\nconst update = $input.first().json || {};\nconst updateBody = update.body && typeof update.body === 'object' ? update.body : update;\nreturn [{ json: { ...result, crmUpdated: updateBody.success !== false, crmUpdateStatus: updateBody.success === false ? updateBody.error || updateBody.message || 'unknown' : 'ok', crmPatch: undefined } }];"
+      },
+      "id": "barobill-issue-final",
+      "name": "발급 응답 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst { crmPatch, issueSoapEnvelopeTemplate, mgtCheckSoapEnvelopeTemplate, ...safe } = input;\nreturn [{ json: safe }];"
+      },
+      "id": "barobill-issue-immediate",
+      "name": "발급 즉시 응답 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.httpStatus || 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "barobill-issue-response",
+      "name": "발급 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4020,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.httpStatus || 401 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "barobill-issue-deny-response",
+      "name": "발급 거부 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm/barobill/tax-invoices/sync-status",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "barobill-status-webhook",
+      "name": "상태조회 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        620
+      ],
+      "webhookId": "crm-barobill-tax-invoices-sync-status"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $input.first().json || {};\nconst headers = request.headers || {};\nconst incomingKey = String(headers['x-crm-key'] || headers['X-Crm-Key'] || headers['X-CRM-KEY'] || '').trim();\nconst expectedKey = String($env.CRM_API_KEY || '').trim();\nif (!expectedKey || incomingKey !== expectedKey) {\n  return [{ json: { success: false, ok: false, shouldSyncStatus: false, needsWebhookResponse: true, httpStatus: 401, error: { code: 'UNAUTHORIZED', message: 'unauthorized' } } }];\n}\nconst body = request.body && typeof request.body === 'object' ? request.body : request;\nconst invoiceId = Math.trunc(Number(body.invoiceId || 0));\nconst idempotencyKey = String(body.idempotencyKey || '').trim();\nconst providerMgtKey = String(body.providerMgtKey || body.mgtKey || '').trim();\nconst mode = String(body.mode || 'test').trim().toLowerCase() === 'production' ? 'production' : 'test';\nif (!invoiceId && !idempotencyKey && !providerMgtKey) {\n  return [{ json: { success: false, ok: false, shouldSyncStatus: false, needsWebhookResponse: true, httpStatus: 400, error: { code: 'INVALID_REQUEST', message: 'invoiceId, idempotencyKey 또는 providerMgtKey가 필요합니다.' } } }];\n}\nreturn [{ json: { success: true, ok: true, shouldSyncStatus: true, needsWebhookResponse: true, httpStatus: 200, operation: 'manual_status', requestId: String(body.requestId || `barobill-status-${Date.now()}`), invoiceId, idempotencyKey, providerMgtKey, mode, body } }];"
+      },
+      "id": "barobill-status-guard",
+      "name": "상태조회 요청 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-should-continue",
+              "leftValue": "={{ $json.shouldSyncStatus }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-status-if",
+      "name": "상태조회 계속?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "barobill-poll-schedule",
+      "name": "10분 polling 스케줄",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst requestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst now = Date.now();\nconst out = [];\nfunction minutes(ms) { return ms / 60000; }\nfor (const log of Object.values(requestLog)) {\n  if (!log || typeof log !== 'object') continue;\n  const status = String(log.status || '').trim();\n  if (!['requesting', 'requested', 'provider_existing', 'retryable_error', 'sync_failed'].includes(status)) continue;\n  const createdAt = new Date(log.created_at || log.updated_at || 0).getTime();\n  if (!createdAt || Number.isNaN(createdAt)) continue;\n  const ageMinutes = minutes(now - createdAt);\n  if (ageMinutes > 7 * 24 * 60) continue;\n  const lastPolledAt = new Date(log.last_polled_at || 0).getTime();\n  const sinceLast = lastPolledAt ? minutes(now - lastPolledAt) : Infinity;\n  const intervalMinutes = ageMinutes <= 120 ? 10 : ageMinutes <= 24 * 60 ? 60 : 360;\n  if (sinceLast < intervalMinutes) continue;\n  out.push({ json: {\n    success: true,\n    ok: true,\n    shouldSyncStatus: true,\n    needsWebhookResponse: false,\n    operation: 'scheduled_poll',\n    requestId: `barobill-poll-${Date.now()}`,\n    invoiceId: Number(log.invoice_id || 0),\n    invoiceNo: String(log.invoice_no || ''),\n    idempotencyKey: String(log.idempotency_key || ''),\n    providerMgtKey: String(log.provider_mgt_key || ''),\n    supplierCorpNum: String(log.supplier_corp_num || ''),\n    mode: String(log.mode || 'test'),\n    pollAttemptCount: Number(log.poll_attempt_count || 0),\n  } });\n}\nif (!out.length) {\n  return [{ json: { success: true, ok: true, shouldSyncStatus: false, needsWebhookResponse: false, skipped: true, reason: 'NO_DUE_POLL_TARGETS' } }];\n}\nreturn out;"
+      },
+      "id": "barobill-poll-targets",
+      "name": "Polling 대상 선정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "poll-has-targets",
+              "leftValue": "={{ $json.shouldSyncStatus }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-poll-if",
+      "name": "Polling 대상 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let input = $input.first().json || {};\nlet invoiceMemo = '';\nlet hasInvoiceMemo = false;\ntry {\n  const context = $('상태 컨텍스트 보강').item.json;\n  if (context && typeof context === 'object') {\n    input = context;\n    const invoicePayload = $input.first().json || {};\n    const invoiceBody = invoicePayload.body && typeof invoicePayload.body === 'object' ? invoicePayload.body : invoicePayload;\n    const invoice = invoiceBody.data || invoiceBody;\n    if (invoice && Number(invoice.Id || invoice.id || 0) === Number(context.invoiceId || 0)) {\n      invoiceMemo = String(invoice.memo || '');\n      hasInvoiceMemo = true;\n    }\n  }\n} catch (error) {\n  input = $input.first().json || {};\n}\nconst staticData = $getWorkflowStaticData('global');\nconst requestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst mgtLog = staticData.barobillTaxInvoiceMgtLog || {};\nfunction normalizeText(value) { return String(value ?? '').trim(); }\nfunction digitsOnly(value) { return normalizeText(value).replace(/\\D/g, ''); }\nfunction xmlEscape(value) {\n  return normalizeText(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\\"/g, '&quot;').replace(/'/g, '&apos;');\n}\nfunction buildStatusSoapTemplate(corpNum, providerMgtKey) {\n  return `<?xml version=\"1.0\" encoding=\"utf-8\"?>` +\n    `<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">` +\n    `<soap:Body><GetTaxInvoiceStateEX xmlns=\"http://ws.baroservice.com/\">` +\n    `<CERTKEY>__BAROBILL_CERTKEY__</CERTKEY>` +\n    `<CorpNum>${xmlEscape(corpNum)}</CorpNum>` +\n    `<MgtKey>${xmlEscape(providerMgtKey)}</MgtKey>` +\n    `</GetTaxInvoiceStateEX></soap:Body></soap:Envelope>`;\n}\nlet idempotencyKey = normalizeText(input.idempotencyKey);\nlet providerMgtKey = normalizeText(input.providerMgtKey);\nlet log = idempotencyKey ? requestLog[idempotencyKey] : null;\nif (!log && providerMgtKey && mgtLog[providerMgtKey]) {\n  idempotencyKey = mgtLog[providerMgtKey];\n  log = requestLog[idempotencyKey];\n}\nif (!providerMgtKey && log) providerMgtKey = normalizeText(log.provider_mgt_key);\nconst invoiceId = Number(input.invoiceId || log?.invoice_id || 0);\nasync function crmProxyRequest(payload) {\n  const url = String($env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy').trim();\n  const key = String($env.CRM_API_KEY || '').trim();\n  if (!url || !key) return {};\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url,\n      headers: { 'Content-Type': 'application/json', 'x-crm-key': key },\n      body: payload,\n      json: true,\n      timeout: 20000,\n    });\n    return response && typeof response === 'object' && response.body && typeof response.body === 'object' ? response.body : response;\n  } catch (error) {\n    return {};\n  }\n}\nif (!hasInvoiceMemo && invoiceId > 0) {\n  const fallback = await crmProxyRequest({ table: 'invoices', method: 'GET', recordId: invoiceId });\n  const fallbackInvoice = fallback && typeof fallback === 'object' && Object.prototype.hasOwnProperty.call(fallback, 'data') ? fallback.data : fallback;\n  if (fallbackInvoice && Number(fallbackInvoice.Id || fallbackInvoice.id || 0) === invoiceId) {\n    invoiceMemo = String(fallbackInvoice.memo || '');\n    hasInvoiceMemo = true;\n  }\n}\nconst invoiceNo = normalizeText(input.invoiceNo || log?.invoice_no || '');\nconst mode = normalizeText(input.mode || log?.mode || 'test') === 'production' ? 'production' : 'test';\nif (mode === 'production' && String($env.BAROBILL_ALLOW_PRODUCTION || '').trim() !== 'true') {\n  return [{ json: { ...input, success: false, ok: false, shouldCallStatusProvider: false, needsWebhookResponse: input.needsWebhookResponse === true, httpStatus: 403, error: { code: 'PRODUCTION_DISABLED', message: '운영 상태조회는 별도 승인 전까지 차단됩니다.' } } }];\n}\nif (!String($env.BAROBILL_CERTKEY || '').trim()) {\n  return [{ json: { ...input, success: false, ok: false, shouldCallStatusProvider: false, needsWebhookResponse: input.needsWebhookResponse === true, httpStatus: 500, error: { code: 'BAROBILL_CERTKEY_MISSING', message: 'BAROBILL_CERTKEY runtime 환경변수가 설정되지 않았습니다.' } } }];\n}\nif (!providerMgtKey) {\n  return [{ json: { ...input, success: false, ok: false, shouldCallStatusProvider: false, needsWebhookResponse: input.needsWebhookResponse === true, httpStatus: 400, error: { code: 'MGT_KEY_REQUIRED', message: '상태조회용 providerMgtKey를 찾지 못했습니다.' } } }];\n}\nconst corpNum = digitsOnly(input.supplierCorpNum || log?.supplier_corp_num || $env.BAROBILL_CORP_NUM || input.body?.supplierCorpNum || input.body?.supplier?.corpNum);\nif (corpNum.length !== 10) {\n  return [{ json: { ...input, success: false, ok: false, shouldCallStatusProvider: false, needsWebhookResponse: input.needsWebhookResponse === true, httpStatus: 400, error: { code: 'SUPPLIER_CORP_NUM_REQUIRED', message: '상태조회용 공급자 사업자번호가 필요합니다.' } } }];\n}\nconst serviceUrl = mode === 'production'\n  ? String($env.BAROBILL_SERVICE_PROD_URL || 'https://ws.baroservice.com/TI.asmx').trim()\n  : String($env.BAROBILL_SERVICE_TEST_URL || 'https://testws.baroservice.com/TI.asmx').trim();\nreturn [{ json: { ...input, success: true, ok: true, shouldCallStatusProvider: true, httpStatus: 200, invoiceId, invoiceNo, idempotencyKey, providerMgtKey, supplierCorpNum: corpNum, mode, serviceUrl, needsWebhookResponse: input.needsWebhookResponse === true, crmSourceMemo: invoiceMemo, hasInvoiceMemo, statusSoapEnvelopeTemplate: buildStatusSoapTemplate(corpNum, providerMgtKey) } }];"
+      },
+      "id": "barobill-status-prepare",
+      "name": "상태 SOAP 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-provider-callable",
+              "leftValue": "={{ $json.shouldCallStatusProvider }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-status-call-if",
+      "name": "상태 provider 호출 가능?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { skippedHttpRequestNode: true } }];"
+      },
+      "id": "barobill-status-http",
+      "name": "상태 SOAP 호출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3540,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepared = $('상태 SOAP 준비').item.json;\nconst response = $input.first().json || {};\nfunction responseText(value, depth = 0) {\n  if (value == null || depth > 5) return '';\n  if (typeof value === 'string') return value;\n  if (typeof value === 'number' || typeof value === 'boolean') return String(value);\n  if (Array.isArray(value)) {\n    if (value.every((entry) => typeof entry === 'number')) {\n      try { return String.fromCharCode(...value); } catch (error) { return ''; }\n    }\n    return value.map((entry) => responseText(entry, depth + 1)).find((entry) => entry.includes('<')) || '';\n  }\n  if (typeof value === 'object') {\n    if (value.type === 'Buffer' && Array.isArray(value.data)) return responseText(value.data, depth + 1);\n    for (const key of ['body', 'data', 'response', 'rawBody', 'result']) {\n      const text = responseText(value[key], depth + 1);\n      if (text) return text;\n    }\n    try {\n      const json = JSON.stringify(value);\n      const unescaped = json.replace(/\\\\u003c/g, '<').replace(/\\\\u003e/g, '>').replace(/\\\\n/g, '\\n').replace(/\\\\r/g, '');\n      return unescaped.includes('<') ? unescaped : '';\n    } catch (error) {\n      return '';\n    }\n  }\n  return '';\n}\nlet rawXml = responseText(response);\nlet statusCode = Number(response.statusCode || response.status || response.response?.statusCode || 0);\nconst now = new Date().toISOString();\nfunction extract(tag) {\n  const match = rawXml.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)</${tag}>`, 'i'));\n  return match ? match[1].trim() : '';\n}\nfunction stripTags(value) { return String(value || '').replace(/<[^>]+>/g, '').trim(); }\nfunction decodeXml(value) {\n  return String(value || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '\"').replace(/&apos;/g, \"'\");\n}\nfunction parseIntSafe(value) {\n  const n = Number(String(value ?? '').trim());\n  return Number.isFinite(n) ? Math.trunc(n) : 0;\n}\nfunction parseMeta(memo) {\n  const prefix = '[ACCOUNTING_INVOICE_META]';\n  const line = String(memo || '').split('\\n').map((entry) => entry.trim()).find((entry) => entry.startsWith(prefix));\n  if (!line) return {};\n  try { return JSON.parse(line.slice(prefix.length).trim()) || {}; } catch (error) { return {}; }\n}\nfunction serializeMeta(memo, nextMeta) {\n  const prefix = '[ACCOUNTING_INVOICE_META]';\n  const visible = String(memo || '').replace(/\\r\\n/g, '\\n').split('\\n').filter((line) => line.trim() && !line.trim().startsWith(prefix));\n  return [...visible, `${prefix} ${JSON.stringify(nextMeta)}`].join('\\n').trim();\n}\nasync function barobillSoap(action, envelopeTemplate, timeout) {\n  const certkey = String($env.BAROBILL_CERTKEY || '').trim();\n  const envelope = String(envelopeTemplate || '').replace('__BAROBILL_CERTKEY__', certkey);\n  if (!prepared.serviceUrl || !certkey || !envelope) return '';\n  try {\n    const soapResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: prepared.serviceUrl,\n      headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `http://ws.baroservice.com/${action}` },\n      body: envelope,\n      timeout,\n    });\n    return responseText(soapResponse);\n  } catch (error) {\n    return '';\n  }\n}\nif (!rawXml || response.error) {\n  const fallbackXml = await barobillSoap('GetTaxInvoiceStateEX', prepared.statusSoapEnvelopeTemplate, 30000);\n  if (fallbackXml) { rawXml = fallbackXml; statusCode = 200; }\n}\nfunction mapCrmStatus(barobillState, ntsSendState, ntsSendKey, ntsSendResult, fault, isHttpFailed) {\n  if (fault || isHttpFailed) return 'requested';\n  const resultText = String(ntsSendResult || '').trim();\n  if (resultText.includes('실패') || resultText.toLowerCase().includes('fail')) return 'failed';\n  if (String(ntsSendKey || '').trim()) return 'issued';\n  if (ntsSendState < 0 || barobillState < 0) return 'failed';\n  return 'requested';\n}\nconst fault = stripTags(extract('faultstring'));\nconst resultBlock = extract('GetTaxInvoiceStateEXResult');\nconst isHttpFailed = statusCode >= 400 || Boolean(response.error);\nconst field = (name) => decodeXml(stripTags(extract(name)) || (resultBlock.match(new RegExp(`<${name}[^>]*>([\\\\s\\\\S]*?)</${name}>`, 'i')) || [])[1] || '');\nconst barobillState = parseIntSafe(field('BarobillState'));\nconst ntsSendState = parseIntSafe(field('NTSSendState'));\nconst ntsSendKey = field('NTSSendKey');\nconst ntsSendResult = field('NTSSendResult');\nconst issueDT = field('IssueDT');\nconst ntsSendDT = field('NTSSendDT');\nconst ntsResultDT = field('NTSResultDT');\nconst crmStatus = mapCrmStatus(barobillState, ntsSendState, ntsSendKey, ntsSendResult, fault, isHttpFailed);\nconst message = fault || ntsSendResult || (crmStatus === 'issued' ? '국세청 승인번호 확인' : '상태조회 완료');\nconst staticData = $getWorkflowStaticData('global');\nstaticData.barobillTaxInvoiceRequestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst prev = prepared.idempotencyKey ? staticData.barobillTaxInvoiceRequestLog[prepared.idempotencyKey] || {} : {};\nif (prepared.idempotencyKey) {\n  staticData.barobillTaxInvoiceRequestLog[prepared.idempotencyKey] = {\n    ...prev,\n    idempotency_key: prepared.idempotencyKey,\n    invoice_id: prepared.invoiceId || prev.invoice_id,\n    invoice_no: prepared.invoiceNo || prev.invoice_no,\n    provider: 'barobill',\n    provider_mgt_key: prepared.providerMgtKey,\n    mode: prepared.mode,\n    supplier_corp_num: prepared.supplierCorpNum || prev.supplier_corp_num,\n    status: crmStatus,\n    barobill_state: barobillState,\n    nts_send_state: ntsSendState,\n    nts_confirm_num: ntsSendKey,\n    barobill_result_message: message,\n    error_code: crmStatus === 'failed' ? String(ntsSendState || barobillState || statusCode || 'STATUS_FAILED') : '',\n    error_message: crmStatus === 'failed' ? message : '',\n    updated_at: now,\n    last_polled_at: now,\n    poll_attempt_count: Number(prev.poll_attempt_count || prepared.pollAttemptCount || 0) + 1,\n  };\n}\nlet crmPatch;\nif (prepared.hasInvoiceMemo && prepared.invoiceId) {\n  const meta = parseMeta(prepared.crmSourceMemo || '');\n  const taxInvoice = meta.taxInvoice && typeof meta.taxInvoice === 'object' ? meta.taxInvoice : {};\n  const nextMeta = {\n    ...meta,\n    taxInvoiceStatus: crmStatus,\n    taxInvoice: {\n      ...taxInvoice,\n      provider: 'barobill',\n      mgtKey: prepared.providerMgtKey,\n      requestId: taxInvoice.requestId || prepared.requestId,\n      lastStatusSyncedAt: now,\n      ntsConfirmNum: ntsSendKey || taxInvoice.ntsConfirmNum || '',\n      issuedAt: crmStatus === 'issued' ? (issueDT || taxInvoice.issuedAt || now) : taxInvoice.issuedAt,\n      statusCode: String(barobillState || ntsSendState || ''),\n      statusMessage: message,\n      errorCode: crmStatus === 'failed' ? String(ntsSendState || barobillState || '') : '',\n      errorMessage: crmStatus === 'failed' ? message : '',\n      ntsSendState,\n      ntsSendResult,\n      ntsSendDT,\n      ntsResultDT,\n    },\n  };\n  crmPatch = { memo: serializeMeta(prepared.crmSourceMemo || '', nextMeta) };\n}\nconst success = !fault && !isHttpFailed;\nreturn [{ json: {\n  success,\n  ok: success,\n  httpStatus: success ? 200 : 502,\n  requestId: prepared.requestId,\n  invoiceId: prepared.invoiceId,\n  invoiceNo: prepared.invoiceNo,\n  idempotencyKey: prepared.idempotencyKey,\n  provider: 'barobill',\n  providerMgtKey: prepared.providerMgtKey,\n  mode: prepared.mode,\n  status: crmStatus,\n  barobillState,\n  ntsSendState,\n  ntsConfirmNum: ntsSendKey,\n  message,\n  needsWebhookResponse: prepared.needsWebhookResponse === true,\n  crmPatch,\n  error: success ? undefined : { code: 'BAROBILL_STATUS_SYNC_FAILED', message },\n} }];"
+      },
+      "id": "barobill-status-parse",
+      "name": "상태 결과 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.crmPatch ? JSON.stringify({ table: 'invoices', method: 'PATCH', recordId: $json.invoiceId, payload: $json.crmPatch }) : JSON.stringify({ table: 'invoices', method: 'GET', params: { limit: 0 } }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-status-update-crm",
+      "name": "상태 CRM meta 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4020,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $('상태 결과 정리').item.json;\nconst update = $input.first().json || {};\nconst updateBody = update.body && typeof update.body === 'object' ? update.body : update;\nreturn [{ json: { ...result, crmUpdated: result.crmPatch ? updateBody.success !== false : false, crmUpdateStatus: result.crmPatch ? (updateBody.success === false ? updateBody.error || updateBody.message || 'unknown' : 'ok') : 'skipped', crmPatch: undefined } }];"
+      },
+      "id": "barobill-status-final",
+      "name": "상태 응답 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4260,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst { crmPatch, issueSoapEnvelopeTemplate, mgtCheckSoapEnvelopeTemplate, ...safe } = input;\nreturn [{ json: safe }];"
+      },
+      "id": "barobill-status-immediate",
+      "name": "상태 즉시 응답 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3540,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-webhook-response",
+              "leftValue": "={{ $json.needsWebhookResponse }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-status-response-if",
+      "name": "상태 webhook 응답 필요?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4500,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.httpStatus || 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "barobill-status-response",
+      "name": "상태조회 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4740,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.httpStatus || 401 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "barobill-status-deny-response",
+      "name": "상태조회 거부 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst staticData = $getWorkflowStaticData('global');\nconst requestLog = staticData.barobillTaxInvoiceRequestLog || {};\nconst mgtLog = staticData.barobillTaxInvoiceMgtLog || {};\nfunction text(value) { return String(value ?? '').trim(); }\nlet idempotencyKey = text(input.idempotencyKey);\nlet providerMgtKey = text(input.providerMgtKey);\nlet log = idempotencyKey ? requestLog[idempotencyKey] : null;\nif (!log && providerMgtKey && mgtLog[providerMgtKey]) {\n  idempotencyKey = mgtLog[providerMgtKey];\n  log = requestLog[idempotencyKey];\n}\nif (!providerMgtKey && log) providerMgtKey = text(log.provider_mgt_key);\nconst invoiceId = Number(input.invoiceId || log?.invoice_id || 0);\nreturn [{ json: { ...input, idempotencyKey, providerMgtKey, invoiceId, invoiceNo: text(input.invoiceNo || log?.invoice_no || ''), supplierCorpNum: text(input.supplierCorpNum || log?.supplier_corp_num || ''), mode: text(input.mode || log?.mode || 'test') || 'test', canReadInvoice: Number.isFinite(invoiceId) && invoiceId > 0 } }];"
+      },
+      "id": "barobill-status-context",
+      "name": "상태 컨텍스트 보강",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-can-read-invoice",
+              "leftValue": "={{ $json.canReadInvoice }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "barobill-status-read-if",
+      "name": "상태 CRM fresh read 가능?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'https://n8n.pressco21.com/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-crm-key",
+              "value": "={{ $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ table: 'invoices', method: 'GET', recordId: $json.invoiceId }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "barobill-status-read-invoice",
+      "name": "상태 CRM 명세표 fresh read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        800
+      ],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "발급 요청 웹훅": {
+      "main": [
+        [
+          {
+            "node": "발급 요청 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 요청 검증": {
+      "main": [
+        [
+          {
+            "node": "발급 인증/요청 계속?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 인증/요청 계속?": {
+      "main": [
+        [
+          {
+            "node": "CRM 명세표 fresh read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "발급 거부 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM 명세표 fresh read": {
+      "main": [
+        [
+          {
+            "node": "CRM 품목 fresh read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM 품목 fresh read": {
+      "main": [
+        [
+          {
+            "node": "CRM 고객 fresh read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM 고객 fresh read": {
+      "main": [
+        [
+          {
+            "node": "CRM 회사 설정 fresh read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM 회사 설정 fresh read": {
+      "main": [
+        [
+          {
+            "node": "발급 SOAP 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 SOAP 준비": {
+      "main": [
+        [
+          {
+            "node": "발급 provider 호출 필요?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 provider 호출 필요?": {
+      "main": [
+        [
+          {
+            "node": "관리번호 존재 SOAP 호출",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "발급 즉시 응답 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리번호 존재 SOAP 호출": {
+      "main": [
+        [
+          {
+            "node": "관리번호 존재 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리번호 존재 결과 정리": {
+      "main": [
+        [
+          {
+            "node": "관리번호 이미 존재?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리번호 이미 존재?": {
+      "main": [
+        [
+          {
+            "node": "상태 컨텍스트 보강",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "발급 SOAP 호출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 SOAP 호출": {
+      "main": [
+        [
+          {
+            "node": "발급 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 결과 정리": {
+      "main": [
+        [
+          {
+            "node": "발급 CRM meta 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 CRM meta 업데이트": {
+      "main": [
+        [
+          {
+            "node": "발급 응답 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 응답 정리": {
+      "main": [
+        [
+          {
+            "node": "발급 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발급 즉시 응답 정리": {
+      "main": [
+        [
+          {
+            "node": "발급 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태조회 웹훅": {
+      "main": [
+        [
+          {
+            "node": "상태조회 요청 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태조회 요청 검증": {
+      "main": [
+        [
+          {
+            "node": "상태조회 계속?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태조회 계속?": {
+      "main": [
+        [
+          {
+            "node": "상태 컨텍스트 보강",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "상태조회 거부 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10분 polling 스케줄": {
+      "main": [
+        [
+          {
+            "node": "Polling 대상 선정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Polling 대상 선정": {
+      "main": [
+        [
+          {
+            "node": "Polling 대상 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Polling 대상 있음?": {
+      "main": [
+        [
+          {
+            "node": "상태 컨텍스트 보강",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "상태 SOAP 준비": {
+      "main": [
+        [
+          {
+            "node": "상태 provider 호출 가능?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 provider 호출 가능?": {
+      "main": [
+        [
+          {
+            "node": "상태 SOAP 호출",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "상태 즉시 응답 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 SOAP 호출": {
+      "main": [
+        [
+          {
+            "node": "상태 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 결과 정리": {
+      "main": [
+        [
+          {
+            "node": "상태 CRM meta 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 CRM meta 업데이트": {
+      "main": [
+        [
+          {
+            "node": "상태 응답 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 응답 정리": {
+      "main": [
+        [
+          {
+            "node": "상태 webhook 응답 필요?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 즉시 응답 정리": {
+      "main": [
+        [
+          {
+            "node": "상태 webhook 응답 필요?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 webhook 응답 필요?": {
+      "main": [
+        [
+          {
+            "node": "상태조회 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "상태 컨텍스트 보강": {
+      "main": [
+        [
+          {
+            "node": "상태 CRM fresh read 가능?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 CRM fresh read 가능?": {
+      "main": [
+        [
+          {
+            "node": "상태 CRM 명세표 fresh read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "상태 SOAP 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상태 CRM 명세표 fresh read": {
+      "main": [
+        [
+          {
+            "node": "상태 SOAP 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "active": false
+}

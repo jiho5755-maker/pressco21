@@ -34,13 +34,43 @@ export interface InvoiceAccountingMetaState {
   salesLedgerId?: string
   salesLedgerIdempotencyKey?: string
   taxInvoiceStatus?: InvoiceTaxInvoiceStatus
+  taxInvoice?: InvoiceTaxInvoiceMeta
   paymentReminder?: InvoicePaymentReminderState
   paymentHistory: InvoicePaymentHistoryEntry[]
 }
 
 export type InvoiceFulfillmentStatus = 'ordered' | 'preparing' | 'shipment_confirmed' | 'voided' | 'adjusted'
 export type InvoiceRevenuePostingStatus = 'pending' | 'posted' | 'reversed' | 'adjusted'
-export type InvoiceTaxInvoiceStatus = 'not_requested' | 'requested' | 'issued' | 'failed'
+export type InvoiceTaxInvoiceStatus =
+  | 'not_requested'
+  | 'requesting'
+  | 'requested'
+  | 'issued'
+  | 'failed'
+  | 'cancel_requested'
+  | 'cancelled'
+
+export type InvoiceTaxInvoiceProvider = 'barobill'
+export type InvoiceTaxInvoiceIssueType = 'normal' | 'reverse' | 'consignment' | 'amendment'
+
+export interface InvoiceTaxInvoiceMeta {
+  provider?: InvoiceTaxInvoiceProvider
+  issueType?: InvoiceTaxInvoiceIssueType
+  mgtKey?: string
+  idempotencyKey?: string
+  requestId?: string
+  requestedAt?: string
+  requestedBy?: string
+  lastStatusSyncedAt?: string
+  ntsConfirmNum?: string
+  issuedAt?: string
+  statusCode?: string
+  statusMessage?: string
+  errorCode?: string
+  errorMessage?: string
+  mailSent?: boolean
+  smsRequested?: boolean
+}
 
 export interface InvoicePaymentReminderState {
   dueDate?: string
@@ -178,9 +208,29 @@ function sanitizeRevenuePostingStatus(value: unknown): InvoiceRevenuePostingStat
 }
 
 function sanitizeTaxInvoiceStatus(value: unknown): InvoiceTaxInvoiceStatus | undefined {
-  return value === 'not_requested' || value === 'requested' || value === 'issued' || value === 'failed'
+  return value === 'not_requested' ||
+    value === 'requesting' ||
+    value === 'requested' ||
+    value === 'issued' ||
+    value === 'failed' ||
+    value === 'cancel_requested' ||
+    value === 'cancelled'
     ? value
     : undefined
+}
+
+function sanitizeTaxInvoiceProvider(value: unknown): InvoiceTaxInvoiceProvider | undefined {
+  return value === 'barobill' ? value : undefined
+}
+
+function sanitizeTaxInvoiceIssueType(value: unknown): InvoiceTaxInvoiceIssueType | undefined {
+  return value === 'normal' || value === 'reverse' || value === 'consignment' || value === 'amendment'
+    ? value
+    : undefined
+}
+
+function sanitizeOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
 }
 
 function sanitizeMultilineText(value: unknown, maxLength = 2000): string | undefined {
@@ -222,6 +272,32 @@ function sanitizeInvoicePaymentReminder(value: unknown): InvoicePaymentReminderS
     webhookStatus,
     webhookMessage,
   }
+}
+
+function sanitizeInvoiceTaxInvoiceMeta(value: unknown): InvoiceTaxInvoiceMeta | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const entry = value as Partial<InvoiceTaxInvoiceMeta>
+  const meta: InvoiceTaxInvoiceMeta = {
+    provider: sanitizeTaxInvoiceProvider(entry.provider),
+    issueType: sanitizeTaxInvoiceIssueType(entry.issueType),
+    mgtKey: sanitizeShortKey(entry.mgtKey, 80),
+    idempotencyKey: sanitizeShortKey(entry.idempotencyKey, 160),
+    requestId: sanitizeShortKey(entry.requestId, 120),
+    requestedAt: sanitizeIsoLike(entry.requestedAt),
+    requestedBy: sanitizeShortKey(entry.requestedBy, 80),
+    lastStatusSyncedAt: sanitizeIsoLike(entry.lastStatusSyncedAt),
+    ntsConfirmNum: sanitizeShortKey(entry.ntsConfirmNum, 80),
+    issuedAt: sanitizeIsoLike(entry.issuedAt),
+    statusCode: sanitizeShortKey(entry.statusCode, 80),
+    statusMessage: sanitizeMultilineText(entry.statusMessage, 300),
+    errorCode: sanitizeShortKey(entry.errorCode, 80),
+    errorMessage: sanitizeMultilineText(entry.errorMessage, 500),
+    mailSent: sanitizeOptionalBoolean(entry.mailSent),
+    smsRequested: sanitizeOptionalBoolean(entry.smsRequested),
+  }
+
+  const hasValue = Object.values(meta).some((field) => field !== undefined)
+  return hasValue ? meta : undefined
 }
 
 function sanitizeInvoicePaymentHistoryEntry(entry: Partial<InvoicePaymentHistoryEntry>): InvoicePaymentHistoryEntry | null {
@@ -427,6 +503,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       salesLedgerId?: string
       salesLedgerIdempotencyKey?: string
       taxInvoiceStatus?: string
+      taxInvoice?: Partial<InvoiceTaxInvoiceMeta>
       paymentReminder?: Partial<InvoicePaymentReminderState>
       paymentHistory?: Partial<InvoicePaymentHistoryEntry>[]
     }
@@ -434,6 +511,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       ? parsed.customerAddressKey.trim()
       : undefined
     const internalMemo = sanitizeMultilineText(parsed.internalMemo)
+    const taxInvoice = sanitizeInvoiceTaxInvoiceMeta(parsed.taxInvoice)
     const paymentReminder = sanitizeInvoicePaymentReminder(parsed.paymentReminder)
     const paymentHistory = Array.isArray(parsed.paymentHistory)
       ? parsed.paymentHistory
@@ -453,6 +531,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       salesLedgerId: sanitizeShortKey(parsed.salesLedgerId),
       salesLedgerIdempotencyKey: sanitizeShortKey(parsed.salesLedgerIdempotencyKey),
       taxInvoiceStatus: sanitizeTaxInvoiceStatus(parsed.taxInvoiceStatus),
+      taxInvoice,
       paymentReminder,
       paymentHistory,
     }
@@ -479,6 +558,7 @@ export function serializeInvoiceAccountingMeta(
   const salesLedgerId = sanitizeShortKey(nextState.salesLedgerId)
   const salesLedgerIdempotencyKey = sanitizeShortKey(nextState.salesLedgerIdempotencyKey)
   const taxInvoiceStatus = sanitizeTaxInvoiceStatus(nextState.taxInvoiceStatus)
+  const taxInvoice = sanitizeInvoiceTaxInvoiceMeta(nextState.taxInvoice)
   const paymentReminder = sanitizeInvoicePaymentReminder(nextState.paymentReminder)
   const paymentHistory = Array.isArray(nextState.paymentHistory)
     ? nextState.paymentHistory
@@ -497,7 +577,8 @@ export function serializeInvoiceAccountingMeta(
     !revenuePostingStatus &&
     !salesLedgerId &&
     !salesLedgerIdempotencyKey &&
-    !taxInvoiceStatus
+    !taxInvoiceStatus &&
+    !taxInvoice
   ) {
     if (!internalMemo && !paymentReminder && paymentHistory.length === 0) {
       return lines.join('\n').trim()
@@ -517,6 +598,7 @@ export function serializeInvoiceAccountingMeta(
   if (salesLedgerId) payload.salesLedgerId = salesLedgerId
   if (salesLedgerIdempotencyKey) payload.salesLedgerIdempotencyKey = salesLedgerIdempotencyKey
   if (taxInvoiceStatus) payload.taxInvoiceStatus = taxInvoiceStatus
+  if (taxInvoice) payload.taxInvoice = taxInvoice
   if (internalMemo) payload.internalMemo = internalMemo
   if (paymentReminder) payload.paymentReminder = paymentReminder
   if (paymentHistory.length > 0) payload.paymentHistory = paymentHistory

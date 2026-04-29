@@ -10,7 +10,7 @@
  */
 
 import { getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
-import { getInvoiceDepositUsedAmount, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
+import { getInvoiceDepositUsedAmount, isInvoiceRevenueRecognized, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
 import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 
 // n8n Webhook 프록시 URL
@@ -693,6 +693,130 @@ export const updateInvoice = (id: number, data: Partial<Invoice>) =>
     recordId: id,
     payload: serializeInvoicePayload(data),
   }).then(normalizeInvoiceRecord)
+
+// ─────────────────────────────────────────
+// 바로빌 전자세금계산서 dry-run 계약
+// ─────────────────────────────────────────
+export interface BarobillTaxInvoicePartyPayload {
+  bizNo: string
+  companyName: string
+  ceoName: string
+  address?: string
+  bizType?: string
+  bizItem?: string
+  email?: string
+}
+
+export interface BarobillTaxInvoiceItemPayload {
+  productName: string
+  unit?: string
+  quantity: number
+  unitPrice: number
+  supplyAmount: number
+  taxAmount: number
+  taxable?: string
+}
+
+export interface BarobillTaxInvoiceRequestPayload {
+  invoiceId: number
+  invoiceNo: string
+  issueDate: string
+  provider: 'barobill'
+  issueType: 'normal'
+  idempotencyKey: string
+  mgtKey: string
+  supplier: BarobillTaxInvoicePartyPayload
+  customer: BarobillTaxInvoicePartyPayload
+  amounts: {
+    supplyAmount: number
+    taxAmount: number
+    totalAmount: number
+  }
+  items: BarobillTaxInvoiceItemPayload[]
+  options: {
+    mailSent: boolean
+    smsRequested: boolean
+  }
+  dryRun: true
+}
+
+export interface BarobillTaxInvoiceRequestResult {
+  ok: true
+  provider: 'barobill'
+  dryRun: true
+  status: Extract<InvoiceTaxInvoiceStatus, 'requested'>
+  requestId: string
+  requestedAt: string
+  idempotencyKey: string
+  mgtKey: string
+  message: string
+}
+
+export interface BarobillTaxInvoiceStatusResult {
+  ok: true
+  provider: 'barobill'
+  dryRun: true
+  status: InvoiceTaxInvoiceStatus
+  syncedAt: string
+  statusCode: string
+  message: string
+}
+
+function requireBarobillField(value: string | undefined, label: string) {
+  if (!value?.trim()) {
+    throw new Error(`${label} 값이 없어 바로빌 발급 요청을 만들 수 없습니다`)
+  }
+}
+
+export async function requestBarobillTaxInvoice(
+  payload: BarobillTaxInvoiceRequestPayload,
+): Promise<BarobillTaxInvoiceRequestResult> {
+  requireBarobillField(payload.invoiceNo, '명세표 번호')
+  requireBarobillField(payload.idempotencyKey, '중복방지 키')
+  requireBarobillField(payload.mgtKey, '바로빌 관리번호')
+  requireBarobillField(payload.customer.bizNo, '공급받는자 사업자번호')
+  requireBarobillField(payload.customer.companyName, '공급받는자 상호')
+  requireBarobillField(payload.customer.ceoName, '공급받는자 대표자')
+  requireBarobillField(payload.customer.email, '공급받는자 이메일')
+
+  if (payload.amounts.supplyAmount <= 0 || payload.amounts.totalAmount <= 0 || payload.amounts.taxAmount < 0) {
+    throw new Error('공급가액/세액/합계금액을 확인해주세요')
+  }
+  if (payload.items.length === 0) {
+    throw new Error('세금계산서 품목이 없습니다')
+  }
+
+  const requestedAt = new Date().toISOString()
+  return {
+    ok: true,
+    provider: 'barobill',
+    dryRun: true,
+    status: 'requested',
+    requestId: `dryrun-${payload.invoiceId}-${Date.now()}`,
+    requestedAt,
+    idempotencyKey: payload.idempotencyKey,
+    mgtKey: payload.mgtKey,
+    message: 'CRM dry-run으로 발급 요청 계약만 저장했습니다. 실제 SOAP 호출은 n8n 연동 후 실행됩니다.',
+  }
+}
+
+export async function syncBarobillTaxInvoiceStatus(params: {
+  invoiceId: number
+  currentStatus: InvoiceTaxInvoiceStatus
+}): Promise<BarobillTaxInvoiceStatusResult> {
+  const syncedAt = new Date().toISOString()
+  const status = params.currentStatus === 'requesting' ? 'requested' : params.currentStatus
+
+  return {
+    ok: true,
+    provider: 'barobill',
+    dryRun: true,
+    status,
+    syncedAt,
+    statusCode: `DRY_RUN_${params.invoiceId}`,
+    message: 'n8n 상태조회 workflow 연결 전 dry-run 확인입니다. 바로빌/국세청 상태는 조회하지 않았습니다.',
+  }
+}
 
 // ─────────────────────────────────────────
 // 명세표 라인아이템 (items)

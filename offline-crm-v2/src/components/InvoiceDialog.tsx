@@ -37,6 +37,7 @@ import { GRADE_COLORS } from '@/lib/constants'
 import { DEFAULT_RECEIPT_TYPE, normalizeReceiptTypeValue, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
 import { formatBusinessNumber, formatPhoneNumber, normalizeDateInput } from '@/lib/formatters'
+import { getVatIncludedLineTotal, splitVatIncludedAmount } from '@/lib/vatIncluded'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
@@ -161,17 +162,15 @@ function formatDraftTime(value?: string): string {
 }
 
 function calcRow(row: ItemRow): ItemRow {
-  const supply = row.quantity * row.unit_price
-  const tax = row.taxable ? Math.floor(supply / 10) : 0
-  return { ...row, supply_amount: supply, tax_amount: tax }
+  const total = getVatIncludedLineTotal(row.unit_price, row.quantity)
+  const split = splitVatIncludedAmount(total, row.taxable)
+  return { ...row, supply_amount: split.supplyAmount, tax_amount: split.taxAmount }
 }
 
-// 합계(total) → 공급가/세액 역산 (accounting-specialist 검증)
+// 합계(total, 부가세 포함) → 공급가/세액 역산
 function reverseCalcFromTotal(total: number, taxable: boolean): { supply: number; tax: number } {
-  if (!taxable) return { supply: total, tax: 0 }
-  const supply = Math.floor(total / 1.1)
-  const tax = total - supply
-  return { supply, tax }
+  const split = splitVatIncludedAmount(total, taxable)
+  return { supply: split.supplyAmount, tax: split.taxAmount }
 }
 
 function today(): string {

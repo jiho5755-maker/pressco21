@@ -1,8 +1,8 @@
 # 바로빌 전자세금계산서 n8n SOAP Webhook 개발계획
 
-작성일: 2026-04-29
-대상 worktree: `n8n-barobill-tax-invoice-webhook`
-대상 branch: `work/n8n/barobill-tax-invoice-webhook`
+작성일: 2026-04-29  
+대상 worktree: `n8n-barobill-tax-invoice-webhook`  
+대상 branch: `work/n8n/barobill-tax-invoice-webhook`  
 연결 CRM branch: `work/offline-crm/barobill-tax-invoice-ui`
 
 ## 1. 최종 확정 결론

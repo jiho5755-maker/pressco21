@@ -36,18 +36,6 @@ export default defineConfig({
         rewrite: () => '/webhook/crm-payment-reminder',
         configure: stripN8nBrowserHeaders,
       },
-      '/webhook/crm/barobill/tax-invoices/issue': {
-        target: 'https://n8n.pressco21.com',
-        changeOrigin: true,
-        rewrite: () => '/webhook/crm/barobill/tax-invoices/issue',
-        configure: stripN8nBrowserHeaders,
-      },
-      '/webhook/crm/barobill/tax-invoices/sync-status': {
-        target: 'https://n8n.pressco21.com',
-        changeOrigin: true,
-        rewrite: () => '/webhook/crm/barobill/tax-invoices/sync-status',
-        configure: stripN8nBrowserHeaders,
-      },
     },
   },
   build: {

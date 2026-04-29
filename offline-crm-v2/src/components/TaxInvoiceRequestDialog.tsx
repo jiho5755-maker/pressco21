@@ -31,6 +31,13 @@ const LOCKED_TAX_INVOICE_STATUSES: InvoiceTaxInvoiceStatus[] = [
   'cancelled',
 ]
 
+const BAROBILL_TAX_INVOICE_MODE =
+  import.meta.env.VITE_BAROBILL_TAX_INVOICE_MODE === 'production' ? 'production' : 'test'
+const BAROBILL_ALLOW_PRODUCTION_ISSUE =
+  import.meta.env.VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE === 'true'
+const IS_PRODUCTION_ISSUE_ENABLED =
+  BAROBILL_TAX_INVOICE_MODE === 'production' && BAROBILL_ALLOW_PRODUCTION_ISSUE
+
 function formatAmount(value?: number | null) {
   if (value == null || !Number.isFinite(Number(value))) return '-'
   return `${Number(value).toLocaleString()}원`
@@ -202,7 +209,7 @@ export function TaxInvoiceRequestDialog({
       invoiceNo: normalizeInvoiceNo(invoice.invoice_no),
       issueType: 'normal',
       provider: 'barobill',
-      mode: 'test',
+      mode: BAROBILL_TAX_INVOICE_MODE,
       providerMgtKey: mgtKey,
       writeDate: issueDate,
       sendEmail: mailSent,
@@ -233,7 +240,9 @@ export function TaxInvoiceRequestDialog({
             바로빌 전자세금계산서 발급
           </DialogTitle>
           <DialogDescription>
-            테스트환경 n8n webhook으로만 발급을 요청합니다. 운영 발급은 별도 승인 전까지 CRM에서 차단됩니다.
+            {IS_PRODUCTION_ISSUE_ENABLED
+              ? '운영 바로빌 서버로 실제 전자세금계산서를 발급합니다. 공급받는자 정보와 금액을 최종 확인해주세요.'
+              : '테스트환경 n8n webhook으로만 발급을 요청합니다. 운영 발급은 별도 승인 전까지 CRM에서 차단됩니다.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -390,8 +399,9 @@ export function TaxInvoiceRequestDialog({
             </section>
 
             <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
-              실제 바로빌 테스트 서버로 발급 요청됩니다. 같은 명세표는 CRM/n8n idempotency key로 중복 발급을 차단합니다.
-              운영 발급 execute는 별도 승인 전까지 비활성입니다.
+              {IS_PRODUCTION_ISSUE_ENABLED
+                ? '실제 바로빌 운영 서버로 발급 요청됩니다. 발급 후 취소·수정은 별도 절차가 필요하며, 같은 명세표는 CRM/n8n idempotency key로 중복 발급을 차단합니다.'
+                : '실제 바로빌 테스트 서버로 발급 요청됩니다. 같은 명세표는 CRM/n8n idempotency key로 중복 발급을 차단합니다. 운영 발급 execute는 별도 승인 전까지 비활성입니다.'}
               <div className="mt-1 font-mono text-[11px] text-red-600">{idempotencyKey}</div>
             </div>
 
@@ -413,7 +423,9 @@ export function TaxInvoiceRequestDialog({
             disabled={!invoice || validationErrors.length > 0 || isSubmitting}
             onClick={() => void handleSubmit()}
           >
-            {isSubmitting ? '테스트 발급 요청 중...' : '테스트 세금계산서 발급'}
+            {isSubmitting
+              ? (IS_PRODUCTION_ISSUE_ENABLED ? '실제 발급 요청 중...' : '테스트 발급 요청 중...')
+              : (IS_PRODUCTION_ISSUE_ENABLED ? '실제 세금계산서 발급' : '테스트 세금계산서 발급')}
           </Button>
         </DialogFooter>
       </DialogContent>

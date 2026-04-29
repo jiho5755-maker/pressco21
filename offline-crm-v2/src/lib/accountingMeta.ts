@@ -37,6 +37,7 @@ export interface InvoiceAccountingMetaState {
   taxInvoice?: InvoiceTaxInvoiceMeta
   paymentReminder?: InvoicePaymentReminderState
   paymentHistory: InvoicePaymentHistoryEntry[]
+  governanceEvents?: GovernanceEvent[]
 }
 
 export type InvoiceFulfillmentStatus = 'ordered' | 'preparing' | 'shipment_confirmed' | 'voided' | 'adjusted'
@@ -53,6 +54,38 @@ export type InvoiceTaxInvoiceStatus =
 
 export type InvoiceTaxInvoiceProvider = 'barobill'
 export type InvoiceTaxInvoiceIssueType = 'normal' | 'reverse' | 'consignment' | 'amendment'
+
+export type GovernanceEventAction =
+  | 'shipment_confirm'
+  | 'bulk_shipment_confirm'
+  | 'payment_promise_upsert'
+  | 'payment_promise_complete'
+  | 'deposit_apply'
+  | 'deposit_exclude'
+  | 'manual_complete'
+  | 'refund_pending_added'
+  | 'refund_paid'
+  | 'tax_invoice_request'
+  | 'tax_invoice_cancel'
+  | 'rollback'
+
+export type GovernanceEventSource = 'crm-ui' | 'n8n' | 'migration' | 'manual'
+
+export interface GovernanceEvent {
+  opId: string
+  action: GovernanceEventAction
+  actor?: string
+  at: string
+  source: GovernanceEventSource
+  beforeHash?: string
+  afterHash?: string
+  amount?: number
+  relatedInvoiceId?: number
+  relatedCustomerId?: number
+  relatedQueueId?: string
+  reason?: string
+  rollbackOf?: string
+}
 
 export interface InvoiceTaxInvoiceMeta {
   provider?: InvoiceTaxInvoiceProvider
@@ -257,6 +290,59 @@ function sanitizeTaxInvoiceIssueType(value: unknown): InvoiceTaxInvoiceIssueType
   return value === 'normal' || value === 'reverse' || value === 'consignment' || value === 'amendment'
     ? value
     : undefined
+}
+
+function sanitizeGovernanceEventAction(value: unknown): GovernanceEventAction | undefined {
+  return value === 'shipment_confirm' ||
+    value === 'bulk_shipment_confirm' ||
+    value === 'payment_promise_upsert' ||
+    value === 'payment_promise_complete' ||
+    value === 'deposit_apply' ||
+    value === 'deposit_exclude' ||
+    value === 'manual_complete' ||
+    value === 'refund_pending_added' ||
+    value === 'refund_paid' ||
+    value === 'tax_invoice_request' ||
+    value === 'tax_invoice_cancel' ||
+    value === 'rollback'
+    ? value
+    : undefined
+}
+
+function sanitizeGovernanceEventSource(value: unknown): GovernanceEventSource | undefined {
+  return value === 'crm-ui' || value === 'n8n' || value === 'migration' || value === 'manual'
+    ? value
+    : undefined
+}
+
+function sanitizeOptionalPositiveInteger(value: unknown): number | undefined {
+  const parsed = sanitizeOptionalInteger(value)
+  return parsed !== undefined && parsed > 0 ? parsed : undefined
+}
+
+function sanitizeGovernanceEvent(entry: Partial<GovernanceEvent>): GovernanceEvent | null {
+  const opId = sanitizeShortKey(entry.opId, 160)
+  const action = sanitizeGovernanceEventAction(entry.action)
+  const at = sanitizeIsoLike(entry.at)
+  const source = sanitizeGovernanceEventSource(entry.source)
+
+  if (!opId || !action || !at || !source) return null
+
+  return {
+    opId,
+    action,
+    actor: sanitizeShortKey(entry.actor, 80),
+    at,
+    source,
+    beforeHash: sanitizeShortKey(entry.beforeHash, 160),
+    afterHash: sanitizeShortKey(entry.afterHash, 160),
+    amount: entry.amount === undefined ? undefined : Math.max(0, parseInteger(entry.amount)),
+    relatedInvoiceId: sanitizeOptionalPositiveInteger(entry.relatedInvoiceId),
+    relatedCustomerId: sanitizeOptionalPositiveInteger(entry.relatedCustomerId),
+    relatedQueueId: sanitizeShortKey(entry.relatedQueueId, 160),
+    reason: sanitizeMultilineText(entry.reason, 500),
+    rollbackOf: sanitizeShortKey(entry.rollbackOf, 160),
+  }
 }
 
 function sanitizeOptionalBoolean(value: unknown): boolean | undefined {
@@ -564,6 +650,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       taxInvoice?: Partial<InvoiceTaxInvoiceMeta>
       paymentReminder?: Partial<InvoicePaymentReminderState>
       paymentHistory?: Partial<InvoicePaymentHistoryEntry>[]
+      governanceEvents?: Partial<GovernanceEvent>[]
     }
     const customerAddressKey = typeof parsed.customerAddressKey === 'string' && parsed.customerAddressKey.trim()
       ? parsed.customerAddressKey.trim()
@@ -575,6 +662,11 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       ? parsed.paymentHistory
         .map(sanitizeInvoicePaymentHistoryEntry)
         .filter((entry): entry is InvoicePaymentHistoryEntry => entry !== null)
+      : []
+    const governanceEvents = Array.isArray(parsed.governanceEvents)
+      ? parsed.governanceEvents
+        .map(sanitizeGovernanceEvent)
+        .filter((entry): entry is GovernanceEvent => entry !== null)
       : []
     return {
       depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)),
@@ -592,6 +684,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       taxInvoice,
       paymentReminder,
       paymentHistory,
+      governanceEvents,
     }
   } catch {
     return { depositUsedAmount: 0, discountAmount: 0, paymentHistory: [] }
@@ -623,6 +716,11 @@ export function serializeInvoiceAccountingMeta(
       .map(sanitizeInvoicePaymentHistoryEntry)
       .filter((entry): entry is InvoicePaymentHistoryEntry => entry !== null)
     : []
+  const governanceEvents = Array.isArray(nextState.governanceEvents)
+    ? nextState.governanceEvents
+      .map(sanitizeGovernanceEvent)
+      .filter((entry): entry is GovernanceEvent => entry !== null)
+    : []
   const discountAmount = Math.max(0, parseInteger(nextState.discountAmount))
   if (
     nextState.depositUsedAmount <= 0 &&
@@ -636,7 +734,8 @@ export function serializeInvoiceAccountingMeta(
     !salesLedgerId &&
     !salesLedgerIdempotencyKey &&
     !taxInvoiceStatus &&
-    !taxInvoice
+    !taxInvoice &&
+    governanceEvents.length === 0
   ) {
     if (!internalMemo && !paymentReminder && paymentHistory.length === 0) {
       return lines.join('\n').trim()
@@ -660,6 +759,7 @@ export function serializeInvoiceAccountingMeta(
   if (internalMemo) payload.internalMemo = internalMemo
   if (paymentReminder) payload.paymentReminder = paymentReminder
   if (paymentHistory.length > 0) payload.paymentHistory = paymentHistory
+  if (governanceEvents.length > 0) payload.governanceEvents = governanceEvents
 
   const metaLine = `${INVOICE_ACCOUNTING_META_PREFIX} ${JSON.stringify(payload)}`
   return [...lines, metaLine].join('\n').trim()
@@ -673,6 +773,17 @@ export function appendInvoicePaymentHistory(
   return serializeInvoiceAccountingMeta(memo, {
     ...prev,
     paymentHistory: [...prev.paymentHistory, entry],
+  })
+}
+
+export function appendInvoiceGovernanceEvent(
+  memo: string | undefined,
+  entry: GovernanceEvent,
+): string {
+  const prev = parseInvoiceAccountingMeta(memo)
+  return serializeInvoiceAccountingMeta(memo, {
+    ...prev,
+    governanceEvents: [...(prev.governanceEvents ?? []), entry],
   })
 }
 

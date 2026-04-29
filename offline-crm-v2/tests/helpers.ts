@@ -61,6 +61,10 @@ interface ItemCleanupRow {
   Id: number
 }
 
+interface ItemCreateRow {
+  Id: number
+}
+
 interface ProductCleanupRow {
   Id: number
   name?: string
@@ -243,6 +247,17 @@ export async function createTestInvoice(
 ): Promise<InvoiceCreateRow> {
   return proxyRequest<InvoiceCreateRow>(request, {
     table: 'invoices',
+    method: 'POST',
+    payload,
+  })
+}
+
+export async function createTestItem(
+  request: APIRequestContext,
+  payload: Record<string, unknown>,
+): Promise<ItemCreateRow> {
+  return proxyRequest<ItemCreateRow>(request, {
+    table: 'items',
     method: 'POST',
     payload,
   })

@@ -1,25 +1,32 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText, PackageCheck, CheckSquare } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText, PackageCheck, CheckSquare, ReceiptText, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { InvoiceDialog } from '@/components/InvoiceDialog'
+import { TaxInvoiceRequestDialog } from '@/components/TaxInvoiceRequestDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink, updateInvoice } from '@/lib/api'
-import type { Customer, Invoice } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink, updateInvoice, requestBarobillTaxInvoice, syncBarobillTaxInvoiceStatus } from '@/lib/api'
+import type { BarobillTaxInvoiceRequestPayload, Customer, Invoice, InvoiceItem } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
-import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
+import { buildShipmentConfirmedInvoiceMemo, getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount, getInvoiceFulfillmentStatus, isInvoiceRevenueRecognized, parseInvoiceAccountingMeta, serializeInvoiceAccountingMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 import { getInvoiceSettlementSnapshot } from '@/lib/receivables'
 
 const PAGE_SIZE = 25
+
+interface TaxInvoiceDialogData {
+  invoice: Invoice
+  customer: Customer | null
+  items: InvoiceItem[]
+}
 
 function isValidCalendarDate(value: string | null): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -83,6 +90,53 @@ function getFulfillmentBadge(invoice: Invoice): { label: string; cls: string } {
     return { label: '취소', cls: 'border-slate-200 bg-slate-50 text-slate-500' }
   }
   return { label: '기존매출', cls: 'border-gray-200 bg-gray-50 text-gray-600' }
+}
+
+const TAX_INVOICE_BADGE: Record<InvoiceTaxInvoiceStatus, { label: string; cls: string }> = {
+  not_requested: { label: '미요청', cls: 'border-slate-200 bg-slate-50 text-slate-600' },
+  requesting: { label: '요청 중', cls: 'border-blue-200 bg-blue-50 text-blue-700' },
+  requested: { label: '요청됨', cls: 'border-amber-200 bg-amber-50 text-amber-700' },
+  issued: { label: '발급완료', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  failed: { label: '실패', cls: 'border-red-200 bg-red-50 text-red-700' },
+  cancel_requested: { label: '취소요청', cls: 'border-purple-200 bg-purple-50 text-purple-700' },
+  cancelled: { label: '취소완료', cls: 'border-slate-300 bg-slate-100 text-slate-700' },
+}
+
+function getInvoiceTaxInvoiceStatus(invoice: Invoice): InvoiceTaxInvoiceStatus {
+  return parseInvoiceAccountingMeta(invoice.memo as string | undefined).taxInvoiceStatus ?? 'not_requested'
+}
+
+function isTaxInvoiceRequestAvailable(status: InvoiceTaxInvoiceStatus): boolean {
+  return status === 'not_requested' || status === 'failed'
+}
+
+function buildTaxInvoiceIdempotencyKey(invoice: Invoice): string | undefined {
+  const invoiceNo = typeof invoice.invoice_no === 'string' ? invoice.invoice_no.trim() : ''
+  if (!invoice.Id || !invoiceNo) return undefined
+  return `barobill:tax-invoice:pressco21:${invoice.Id}:${invoiceNo}`
+}
+
+function getMaskedConfirmNumber(value?: string): string | undefined {
+  if (!value) return undefined
+  if (value.length <= 8) return value
+  return `${value.slice(0, 4)}…${value.slice(-4)}`
+}
+
+function getTaxInvoiceSummary(invoice: Invoice): { status: InvoiceTaxInvoiceStatus; label: string; cls: string; detail?: string } {
+  const meta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
+  const status = meta.taxInvoiceStatus ?? 'not_requested'
+  const badge = TAX_INVOICE_BADGE[status]
+  const ntsConfirmNum = getMaskedConfirmNumber(meta.taxInvoice?.ntsConfirmNum)
+  if (status === 'issued' && ntsConfirmNum) {
+    return { status, ...badge, detail: `승인 ${ntsConfirmNum}` }
+  }
+  if (status === 'failed') {
+    return { status, ...badge, detail: meta.taxInvoice?.errorMessage ?? meta.taxInvoice?.statusMessage ?? '오류 확인 필요' }
+  }
+  if (meta.taxInvoice?.statusMessage && status !== 'not_requested') {
+    return { status, ...badge, detail: meta.taxInvoice.statusMessage }
+  }
+  return { status, ...badge }
 }
 
 function formatAmount(value?: number | null) {
@@ -215,6 +269,11 @@ export function Invoices() {
   const [showCourierConfirm, setShowCourierConfirm] = useState(false)
   const [printDialogInvoice, setPrintDialogInvoice] = useState<Invoice | null>(null)
   const [printDocumentType, setPrintDocumentType] = useState<PrintDocumentType>('invoice')
+  const [taxInvoiceDialogData, setTaxInvoiceDialogData] = useState<TaxInvoiceDialogData | null>(null)
+  const [taxInvoiceDetailInvoice, setTaxInvoiceDetailInvoice] = useState<Invoice | null>(null)
+  const [loadingTaxInvoiceId, setLoadingTaxInvoiceId] = useState<number | null>(null)
+  const [requestingTaxInvoiceId, setRequestingTaxInvoiceId] = useState<number | null>(null)
+  const [syncingTaxInvoiceId, setSyncingTaxInvoiceId] = useState<number | null>(null)
   const [confirmingShipmentId, setConfirmingShipmentId] = useState<number | null>(null)
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<number>>(() => new Set())
   const [isBulkShipmentConfirming, setIsBulkShipmentConfirming] = useState(false)
@@ -611,6 +670,179 @@ export function Invoices() {
       )
     } catch {
       toast.error('인쇄 데이터를 불러오지 못했습니다')
+    }
+  }
+
+  function invalidateTaxInvoiceViews(invoiceId?: number) {
+    void refetch()
+    if (invoiceId) {
+      qc.invalidateQueries({ queryKey: ['invoice', invoiceId] })
+      qc.invalidateQueries({ queryKey: ['invoiceItems', invoiceId] })
+    }
+    qc.invalidateQueries({ queryKey: ['invoices-customer'] })
+    qc.invalidateQueries({ queryKey: ['receivables'] })
+    qc.invalidateQueries({ queryKey: ['transactions'] })
+    qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+  }
+
+  async function loadTaxInvoiceDialogData(inv: Invoice): Promise<TaxInvoiceDialogData> {
+    const [latestInvoice, itemsData] = await Promise.all([
+      getInvoice(inv.Id),
+      getItems(inv.Id),
+    ])
+    const customerId = typeof latestInvoice.customer_id === 'number'
+      ? latestInvoice.customer_id
+      : typeof inv.customer_id === 'number'
+        ? inv.customer_id
+        : undefined
+    const linkedCustomer = await findCustomerByInvoiceLink(customerId, latestInvoice.customer_name)
+    return {
+      invoice: latestInvoice,
+      customer: linkedCustomer,
+      items: itemsData.list,
+    }
+  }
+
+  async function openTaxInvoiceRequest(inv: Invoice) {
+    const currentStatus = getInvoiceTaxInvoiceStatus(inv)
+    if (!isTaxInvoiceRequestAvailable(currentStatus)) {
+      setTaxInvoiceDetailInvoice(inv)
+      toast.info('이미 요청된 세금계산서입니다. 발급내역을 확인해주세요.')
+      return
+    }
+
+    setLoadingTaxInvoiceId(inv.Id)
+    try {
+      const dialogData = await loadTaxInvoiceDialogData(inv)
+      const latestStatus = getInvoiceTaxInvoiceStatus(dialogData.invoice)
+      if (!isTaxInvoiceRequestAvailable(latestStatus)) {
+        setTaxInvoiceDetailInvoice(dialogData.invoice)
+        toast.info('최신 상태 기준으로 이미 요청된 세금계산서입니다')
+        return
+      }
+      setTaxInvoiceDialogData(dialogData)
+    } catch {
+      toast.error('세금계산서 발급 요청 정보를 불러오지 못했습니다')
+    } finally {
+      setLoadingTaxInvoiceId(null)
+    }
+  }
+
+  async function handleTaxInvoiceSubmit(payload: BarobillTaxInvoiceRequestPayload) {
+    const dialogData = taxInvoiceDialogData
+    if (!dialogData) return
+
+    setRequestingTaxInvoiceId(dialogData.invoice.Id)
+    try {
+      const latestInvoice = await getInvoice(dialogData.invoice.Id)
+      const latestMeta = parseInvoiceAccountingMeta(latestInvoice.memo as string | undefined)
+      const latestStatus = latestMeta.taxInvoiceStatus ?? 'not_requested'
+      if (!isTaxInvoiceRequestAvailable(latestStatus)) {
+        toast.error('최신 상태 기준으로 이미 발급 요청된 명세표입니다')
+        setTaxInvoiceDialogData(null)
+        setTaxInvoiceDetailInvoice(latestInvoice)
+        return
+      }
+
+      const result = await requestBarobillTaxInvoice(payload)
+      const statusCode =
+        result.errorCode ??
+        (result.barobillResultCode == null ? result.status : String(result.barobillResultCode))
+      const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
+        ...latestMeta,
+        taxInvoiceStatus: result.status,
+        taxInvoice: {
+          ...latestMeta.taxInvoice,
+          provider: 'barobill',
+          issueType: 'normal',
+          mode: result.mode,
+          mgtKey: result.mgtKey || result.providerMgtKey,
+          idempotencyKey: result.idempotencyKey,
+          requestId: result.requestId,
+          requestedAt: result.requestedAt ?? latestMeta.taxInvoice?.requestedAt,
+          requestedBy: 'crm-admin',
+          lastStatusSyncedAt: result.syncedAt ?? result.requestedAt ?? latestMeta.taxInvoice?.lastStatusSyncedAt,
+          statusCode,
+          barobillResultCode: result.barobillResultCode == null ? undefined : String(result.barobillResultCode),
+          statusMessage: result.message,
+          errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
+          errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
+          mailSent: payload.sendEmail,
+          smsRequested: payload.sendSms,
+        },
+      })
+      const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
+      setTaxInvoiceDialogData(null)
+      setTaxInvoiceDetailInvoice(updatedInvoice)
+      invalidateTaxInvoiceViews(updatedInvoice.Id)
+      if (result.duplicate) {
+        toast.warning('중복 발급 요청이 차단되어 기존 발급내역을 표시합니다')
+      } else if (result.status === 'failed') {
+        toast.error(result.message)
+      } else {
+        toast.success('바로빌 테스트 세금계산서 발급 요청을 보냈습니다')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '세금계산서 발급 요청에 실패했습니다'
+      toast.error(message)
+    } finally {
+      setRequestingTaxInvoiceId(null)
+    }
+  }
+
+  async function handleTaxInvoiceStatusSync(inv: Invoice) {
+    setSyncingTaxInvoiceId(inv.Id)
+    try {
+      const latestInvoice = await getInvoice(inv.Id)
+      const latestMeta = parseInvoiceAccountingMeta(latestInvoice.memo as string | undefined)
+      const currentStatus = latestMeta.taxInvoiceStatus ?? 'not_requested'
+      if (currentStatus === 'not_requested') {
+        toast.info('아직 발급 요청 전인 명세표입니다')
+        return
+      }
+
+      const result = await syncBarobillTaxInvoiceStatus({
+        invoiceId: latestInvoice.Id,
+        invoiceNo: latestInvoice.invoice_no,
+        idempotencyKey: latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+        providerMgtKey: latestMeta.taxInvoice?.mgtKey,
+        currentStatus,
+      })
+      const statusCode = result.statusCode ??
+        (result.barobillState != null ? String(result.barobillState) : result.status)
+      const nextMemo = serializeInvoiceAccountingMeta(latestInvoice.memo as string | undefined, {
+        ...latestMeta,
+        taxInvoiceStatus: result.status,
+        taxInvoice: {
+          ...latestMeta.taxInvoice,
+          provider: 'barobill',
+          issueType: latestMeta.taxInvoice?.issueType ?? 'normal',
+          mode: result.mode,
+          mgtKey: result.mgtKey ?? result.providerMgtKey ?? latestMeta.taxInvoice?.mgtKey,
+          idempotencyKey: result.idempotencyKey ?? latestMeta.taxInvoice?.idempotencyKey ?? buildTaxInvoiceIdempotencyKey(latestInvoice),
+          requestId: latestMeta.taxInvoice?.requestId ?? result.requestId,
+          lastStatusSyncedAt: result.syncedAt,
+          ntsConfirmNum: result.ntsConfirmNum ?? latestMeta.taxInvoice?.ntsConfirmNum,
+          issuedAt: result.status === 'issued'
+            ? result.issuedAt ?? latestMeta.taxInvoice?.issuedAt ?? result.syncedAt
+            : latestMeta.taxInvoice?.issuedAt,
+          statusCode,
+          barobillState: result.barobillState,
+          ntsSendState: result.ntsSendState,
+          statusMessage: result.message,
+          errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
+          errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
+        },
+      })
+      const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
+      setTaxInvoiceDetailInvoice(updatedInvoice)
+      invalidateTaxInvoiceViews(updatedInvoice.Id)
+      toast.success('바로빌 세금계산서 상태를 새로고침했습니다')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '세금계산서 상태 새로고침에 실패했습니다'
+      toast.error(message)
+    } finally {
+      setSyncingTaxInvoiceId(null)
     }
   }
 
@@ -1059,6 +1291,9 @@ export function Invoices() {
           const fulfillment = getFulfillmentBadge(inv)
           const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
           const isConfirmingShipment = confirmingShipmentId === inv.Id
+          const taxInvoiceSummary = getTaxInvoiceSummary(inv)
+          const isTaxInvoiceLoading = loadingTaxInvoiceId === inv.Id
+          const isTaxInvoiceSyncing = syncingTaxInvoiceId === inv.Id
 
           return (
             <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
@@ -1111,8 +1346,16 @@ export function Invoices() {
                   <div className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${fulfillment.cls}`}>
                     {fulfillment.label}
                   </div>
+                  <div className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${taxInvoiceSummary.cls}`}>
+                    세금계산서 {taxInvoiceSummary.label}
+                  </div>
                 </div>
               </div>
+              {taxInvoiceSummary.detail ? (
+                <div className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                  {taxInvoiceSummary.detail}
+                </div>
+              ) : null}
 
               <div className="mt-3 rounded-lg bg-[#f8faf7] p-3">
                 <div className="grid grid-cols-2 gap-3 text-[11px]">
@@ -1166,6 +1409,39 @@ export function Invoices() {
                   >
                     <PackageCheck className="h-3.5 w-3.5" />
                     <span className="ml-1">{isShipmentConfirmed ? '출고확정됨' : isConfirmingShipment ? '처리 중...' : '포장·출고확정'}</span>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-blue-200 text-xs text-blue-700 hover:bg-blue-50"
+                    disabled={isTaxInvoiceLoading}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)) void openTaxInvoiceRequest(inv)
+                      else setTaxInvoiceDetailInvoice(inv)
+                    }}
+                  >
+                    <ReceiptText className="h-3.5 w-3.5" />
+                    <span className="ml-1">
+                      {isTaxInvoiceLoading
+                        ? '불러오는 중...'
+                        : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
+                          ? '세금계산서 발급'
+                          : '발급내역 보기'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-slate-200 text-xs text-slate-600 hover:bg-slate-50"
+                    disabled={taxInvoiceSummary.status === 'not_requested' || isTaxInvoiceSyncing}
+                    onClick={(e) => { e.stopPropagation(); void handleTaxInvoiceStatusSync(inv) }}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isTaxInvoiceSyncing ? 'animate-spin' : ''}`} />
+                    <span className="ml-1">{isTaxInvoiceSyncing ? '확인 중...' : '상태 새로고침'}</span>
                   </Button>
                 </div>
 
@@ -1227,7 +1503,7 @@ export function Invoices() {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금 현황</th>
-              <th className="w-72 text-center px-4 py-3 font-medium text-muted-foreground">출력/관리</th>
+              <th className="w-[420px] text-center px-4 py-3 font-medium text-muted-foreground">세금계산서/출력/관리</th>
             </tr>
           </thead>
           <tbody>
@@ -1260,6 +1536,9 @@ export function Invoices() {
               const fulfillment = getFulfillmentBadge(inv)
               const isShipmentConfirmed = getInvoiceFulfillmentStatus(inv.memo as string | undefined) === 'shipment_confirmed'
               const isConfirmingShipment = confirmingShipmentId === inv.Id
+              const taxInvoiceSummary = getTaxInvoiceSummary(inv)
+              const isTaxInvoiceLoading = loadingTaxInvoiceId === inv.Id
+              const isTaxInvoiceSyncing = syncingTaxInvoiceId === inv.Id
               return (
                 <tr
                   key={inv.Id}
@@ -1344,10 +1623,55 @@ export function Invoices() {
                     <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${fulfillment.cls}`}>
                       {fulfillment.label}
                     </div>
+                    <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${taxInvoiceSummary.cls}`}>
+                      세금계산서 {taxInvoiceSummary.label}
+                    </div>
+                    {taxInvoiceSummary.detail ? (
+                      <div className="mt-1 max-w-[220px] truncate text-xs text-muted-foreground">
+                        {taxInvoiceSummary.detail}
+                      </div>
+                    ) : null}
                   </td>
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3 align-top">
                     <div className="flex flex-wrap items-start justify-end gap-2">
+                      <div className="rounded-xl border border-blue-100 bg-white p-1 shadow-sm">
+                        <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-blue-700">세금계산서</div>
+                        <div className="grid gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-blue-200 px-3 text-xs text-blue-700 hover:bg-blue-50"
+                            title={isTaxInvoiceRequestAvailable(taxInvoiceSummary.status) ? '세금계산서 발급' : '발급내역 보기'}
+                            disabled={isTaxInvoiceLoading}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)) void openTaxInvoiceRequest(inv)
+                              else setTaxInvoiceDetailInvoice(inv)
+                            }}
+                          >
+                            <ReceiptText className="h-3.5 w-3.5" />
+                            <span className="ml-1">
+                              {isTaxInvoiceLoading
+                                ? '로딩'
+                                : isTaxInvoiceRequestAvailable(taxInvoiceSummary.status)
+                                  ? '세금계산서 발급'
+                                  : '내역 보기'}
+                            </span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-200 px-3 text-xs text-slate-600 hover:bg-slate-50"
+                            title="세금계산서 상태 새로고침"
+                            disabled={taxInvoiceSummary.status === 'not_requested' || isTaxInvoiceSyncing}
+                            onClick={(e) => { e.stopPropagation(); void handleTaxInvoiceStatusSync(inv) }}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${isTaxInvoiceSyncing ? 'animate-spin' : ''}`} />
+                            <span className="ml-1">{isTaxInvoiceSyncing ? '확인 중' : '상태 확인'}</span>
+                          </Button>
+                        </div>
+                      </div>
                       <div className="rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
                         <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-[#5a7353]">문서</div>
                         <div className="grid gap-1">
@@ -1538,6 +1862,103 @@ export function Invoices() {
           }}
         />
       )}
+
+      <TaxInvoiceRequestDialog
+        open={!!taxInvoiceDialogData}
+        invoice={taxInvoiceDialogData?.invoice ?? null}
+        customer={taxInvoiceDialogData?.customer ?? null}
+        items={taxInvoiceDialogData?.items ?? []}
+        isSubmitting={requestingTaxInvoiceId === taxInvoiceDialogData?.invoice.Id}
+        onClose={() => setTaxInvoiceDialogData(null)}
+        onSubmit={handleTaxInvoiceSubmit}
+      />
+
+      {taxInvoiceDetailInvoice && (() => {
+        const summary = getTaxInvoiceSummary(taxInvoiceDetailInvoice)
+        const meta = parseInvoiceAccountingMeta(taxInvoiceDetailInvoice.memo as string | undefined)
+        const taxInvoice = meta.taxInvoice
+        const isSyncing = syncingTaxInvoiceId === taxInvoiceDetailInvoice.Id
+        return (
+          <Dialog open={!!taxInvoiceDetailInvoice} onOpenChange={(open) => {
+            if (!open) setTaxInvoiceDetailInvoice(null)
+          }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ReceiptText className="h-5 w-5 text-blue-700" />
+                  세금계산서 발급내역
+                </DialogTitle>
+                <DialogDescription>
+                  바로빌 테스트환경 발급/상태조회 webhook 결과와 저장된 요청 메타입니다.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-[#f8faf7] p-3">
+                  <div className="font-semibold text-foreground">{taxInvoiceDetailInvoice.customer_name ?? '-'}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {taxInvoiceDetailInvoice.invoice_no ?? '-'} · {formatAmount(taxInvoiceDetailInvoice.total_amount)}
+                  </div>
+                  <div className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${summary.cls}`}>
+                    {summary.label}
+                  </div>
+                  {summary.detail ? <div className="mt-2 text-xs text-muted-foreground">{summary.detail}</div> : null}
+                </div>
+
+                <dl className="grid gap-2 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">공급사</dt>
+                    <dd>{taxInvoice?.provider === 'barobill' ? '바로빌' : '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">관리번호</dt>
+                    <dd className="max-w-[280px] truncate font-mono">{taxInvoice?.mgtKey ?? '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">요청 ID</dt>
+                    <dd className="max-w-[280px] truncate font-mono">{taxInvoice?.requestId ?? '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">요청 시각</dt>
+                    <dd>{taxInvoice?.requestedAt ? taxInvoice.requestedAt.slice(0, 19).replace('T', ' ') : '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">상태 확인</dt>
+                    <dd>{taxInvoice?.lastStatusSyncedAt ? taxInvoice.lastStatusSyncedAt.slice(0, 19).replace('T', ' ') : '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">국세청 승인번호</dt>
+                    <dd className="font-mono">{taxInvoice?.ntsConfirmNum ?? '-'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">메일/문자</dt>
+                    <dd>
+                      메일 {taxInvoice?.mailSent ? 'ON' : 'OFF'} · 문자 {taxInvoice?.smsRequested ? 'ON' : 'OFF'}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                  취소 요청과 실제 발급 execute는 2차 승인 흐름과 n8n idempotency 검증 후 활성화합니다.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTaxInvoiceDetailInvoice(null)}>닫기</Button>
+                <Button
+                  variant="outline"
+                  disabled={summary.status === 'not_requested' || isSyncing}
+                  onClick={() => void handleTaxInvoiceStatusSync(taxInvoiceDetailInvoice)}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? '확인 중...' : '상태 새로고침'}
+                </Button>
+                <Button variant="outline" disabled>
+                  취소 요청 준비
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       <TransactionDetailDialog
         open={!!selectedTransaction}

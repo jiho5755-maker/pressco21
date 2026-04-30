@@ -227,7 +227,7 @@ test('T7-09: 저장 후 고객 잔액 자동 재계산 확인', async ({ page, r
   const createdRow = invoiceRows(page).filter({ hasText: invoiceNo }).first()
   await expect(createdRow).toBeVisible({ timeout: API_TIMEOUT })
   page.once('dialog', async (dialog) => {
-    expect(dialog.message()).toContain('포장·출고확정')
+    expect(dialog.message()).toContain('포장·출고완료 처리할까요')
     await dialog.accept()
   })
   await createdRow.getByRole('button', { name: /포장·출고확정/ }).click()

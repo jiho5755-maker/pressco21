@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Upload, RefreshCw, Trash2 } from 'lucide-react'
+import { Upload, RefreshCw, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
 import {
@@ -18,6 +19,7 @@ import {
 import {
   appendCustomerAccountingEvent,
   appendInvoicePaymentHistory,
+  isInvoiceRevenueRecognized,
   parseCustomerAccountingMeta,
 } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
@@ -128,6 +130,14 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
   const [isResolvingReviewKey, setIsResolvingReviewKey] = useState<string | null>(null)
   const [filter, setFilter] = useState<LocalInboxFilter>('all')
   const [search, setSearch] = useState('')
+  const [manualDialogOpen, setManualDialogOpen] = useState(false)
+  const [manualSender, setManualSender] = useState('')
+  const [manualAmountInput, setManualAmountInput] = useState('')
+  const [manualDate, setManualDate] = useState(todayDate())
+  const [manualCustomerSearch, setManualCustomerSearch] = useState('')
+  const [manualSelectedCustomerId, setManualSelectedCustomerId] = useState('')
+  const [manualNote, setManualNote] = useState('')
+  const [isManualApplying, setIsManualApplying] = useState(false)
   const activeOperator = loadActiveWorkOperatorProfile()
   const settings = loadStoredCrmSettings()
   const { data: customers = [] } = useQuery({
@@ -164,6 +174,39 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     () => buildCustomerReceivableLedger(customers, resolvedInvoices, legacySnapshots, fiscalSnapshots),
     [customers, resolvedInvoices, legacySnapshots, fiscalSnapshots],
   )
+
+  const ledgerByCustomerId = useMemo(
+    () => new Map(ledgers.map((ledger) => [ledger.customerId, ledger])),
+    [ledgers],
+  )
+
+  const manualCustomerOptions = useMemo(() => {
+    const keyword = manualCustomerSearch.trim().toLowerCase()
+    if (!keyword) return customers.slice(0, 12)
+    return customers
+      .filter((customer) => {
+        const meta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+        return [
+          customer.name,
+          customer.book_name,
+          customer.mobile,
+          customer.email,
+          ...meta.depositorAliases,
+        ]
+          .filter((value): value is string => typeof value === 'string')
+          .some((value) => value.toLowerCase().includes(keyword))
+      })
+      .slice(0, 12)
+  }, [customers, manualCustomerSearch])
+
+  const manualSelectedCustomer = useMemo(
+    () => customers.find((customer) => String(customer.Id) === manualSelectedCustomerId) ?? null,
+    [customers, manualSelectedCustomerId],
+  )
+
+  const manualSelectedLedger = manualSelectedCustomer
+    ? ledgerByCustomerId.get(manualSelectedCustomer.Id)
+    : undefined
 
   const matchedEntries = useMemo(
     () => buildAutoDepositMatchResults(entries, customers, resolvedInvoices, ledgers),
@@ -304,6 +347,102 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     await Promise.allSettled(tasks)
   }
 
+  function resetManualDepositForm() {
+    setManualSender('')
+    setManualAmountInput('')
+    setManualDate(todayDate())
+    setManualCustomerSearch('')
+    setManualSelectedCustomerId('')
+    setManualNote('')
+  }
+
+  async function handleManualDepositApply() {
+    const amount = Number(manualAmountInput.replace(/,/g, '').trim())
+    const sender = manualSender.trim()
+    const note = manualNote.trim()
+    if (!manualDate) {
+      toast.error('입금일을 입력해주세요.')
+      return
+    }
+    if (!sender) {
+      toast.error('입금자명을 입력해주세요.')
+      return
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('입금 금액을 올바르게 입력해주세요.')
+      return
+    }
+    if (!manualSelectedCustomer) {
+      toast.error('반영할 고객을 선택해주세요.')
+      return
+    }
+
+    const ledgerAmount = manualSelectedLedger?.totalRemaining ?? 0
+    const depositPreview = Math.max(0, amount - ledgerAmount)
+    const shouldApply = window.confirm(
+      [
+        '수동 입금을 운영 장부에 반영할까요?',
+        '',
+        `입금자: ${sender}`,
+        `대상 고객: ${manualSelectedCustomer.name ?? manualSelectedCustomer.book_name ?? manualSelectedCustomer.Id}`,
+        `입금액: ${amount.toLocaleString()}원`,
+        `현재 받을 돈: ${ledgerAmount.toLocaleString()}원`,
+        depositPreview > 0 ? `초과 예상 예치금: ${depositPreview.toLocaleString()}원` : '초과 예상 예치금: 0원',
+        '',
+        '열린 명세표와 기존 장부에 오래된 순서로 반영하고, 남은 금액은 예치금으로 보관합니다.',
+      ].join('\n'),
+    )
+    if (!shouldApply) return
+
+    const entry: AutoDepositInboxEntry = {
+      id: `manual-${Date.now()}-${manualSelectedCustomer.Id}-${amount}`,
+      date: manualDate,
+      sender,
+      amount,
+      note,
+      sourceFile: '수동 입력',
+      status: 'pending',
+    }
+    const candidate: AutoDepositCandidate = {
+      key: `customer-${manualSelectedCustomer.Id}`,
+      kind: 'customer',
+      confidence: 'review',
+      customerId: manualSelectedCustomer.Id,
+      customerName: manualSelectedCustomer.name?.trim() || manualSelectedCustomer.book_name?.trim() || `고객 ${manualSelectedCustomer.Id}`,
+      bookName: manualSelectedCustomer.book_name?.trim(),
+      amount,
+      remainingAmount: ledgerAmount,
+      score: 0,
+      reason: '운영자가 입금자명과 대상 고객을 직접 확인해 수동 반영했습니다.',
+    }
+
+    setIsManualApplying(true)
+    try {
+      await applyCustomerDepositLedger(entry, candidate)
+      const appliedEntry: AutoDepositInboxEntry = {
+        ...entry,
+        status: 'applied',
+        appliedAt: currentTimestamp(),
+        appliedTargetKey: candidate.key,
+        resolvedAt: currentTimestamp(),
+        resolvedBy: activeOperator?.label ?? 'manual',
+        resolvedReason: `수동 반영 · 대상 ${candidate.customerName}${note ? ` · ${note}` : ''}`,
+      }
+      persistEntries([
+        appliedEntry,
+        ...entries.filter((item) => item.id !== appliedEntry.id),
+      ])
+      await refreshAllViews(manualSelectedCustomer.Id)
+      toast.success('수동 입금 반영을 완료했습니다.')
+      resetManualDepositForm()
+      setManualDialogOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '수동 입금 반영 중 오류가 발생했습니다.')
+    } finally {
+      setIsManualApplying(false)
+    }
+  }
+
   function getLiveCandidateDetails(candidate: AutoDepositCandidate): AutoDepositCandidate {
     const customer = customers.find((item) => item.Id === candidate.customerId)
     if (candidate.kind === 'invoice' && candidate.invoiceId) {
@@ -356,6 +495,9 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
       queryFn: () => getAllInvoices({ where: `(Id,eq,${candidate.invoiceId})`, limit: 1 }).then((rows) => rows[0] ?? null),
     })
     if (!invoice) throw new Error('명세표를 찾지 못했습니다.')
+    if (!isInvoiceRevenueRecognized(invoice)) {
+      throw new Error('출고확정/매출반영 전 명세표에는 입금을 반영할 수 없습니다.')
+    }
 
     const remaining = calcRemaining(invoice)
     if (entry.amount > remaining) throw new Error('현재 미수보다 큰 금액은 자동 반영할 수 없습니다.')
@@ -387,6 +529,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
   }
 
   async function applyCashToInvoice(invoice: Invoice, amount: number, entry: AutoDepositInboxEntry) {
+    if (!isInvoiceRevenueRecognized(invoice)) return { appliedAmount: 0, invoice }
     const remainingBefore = calcRemaining(invoice)
     const appliedAmount = Math.min(amount, remainingBefore)
     if (appliedAmount <= 0) return { appliedAmount: 0, invoice }
@@ -432,6 +575,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     let openInvoices = sortInvoicesForSettlement(
       invoices.filter((invoice) =>
         calcRemaining(invoice) > 0 &&
+        isInvoiceRevenueRecognized(invoice) &&
         isInvoiceEligibleForDepositDate(invoice, entry.date, candidate.invoiceId)
       ),
       candidate.invoiceId,
@@ -725,12 +869,141 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
             <Upload className="mr-2 h-4 w-4" />
             입금 파일 업로드
           </Button>
+          <Button type="button" variant="outline" onClick={() => setManualDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            수동 입금 반영
+          </Button>
           <Button type="button" variant="outline" onClick={handleClearInbox}>
             <Trash2 className="mr-2 h-4 w-4" />
             목록 비우기
           </Button>
         </div>
       </div>
+
+      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>수동 입금 반영</DialogTitle>
+            <DialogDescription>
+              입금자명이 실제 고객명과 다를 때 운영자가 대상 고객을 직접 지정합니다. 열린 명세표와 기존 장부에 오래된 순서로 반영하고 초과분은 예치금으로 보관합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <Label htmlFor="manual-deposit-date">입금일</Label>
+                <Input
+                  id="manual-deposit-date"
+                  type="date"
+                  className="mt-1"
+                  value={manualDate}
+                  onChange={(event) => setManualDate(event.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="manual-deposit-sender">입금자명</Label>
+                <Input
+                  id="manual-deposit-sender"
+                  className="mt-1"
+                  value={manualSender}
+                  onChange={(event) => setManualSender(event.target.value)}
+                  placeholder="예: 김순자"
+                />
+              </div>
+              <div>
+                <Label htmlFor="manual-deposit-amount">입금액</Label>
+                <Input
+                  id="manual-deposit-amount"
+                  inputMode="numeric"
+                  className="mt-1"
+                  value={manualAmountInput}
+                  onChange={(event) => setManualAmountInput(event.target.value.replace(/[^\d,]/g, ''))}
+                  placeholder="예: 1,000,000"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="manual-deposit-customer-search">대상 고객 검색</Label>
+              <Input
+                id="manual-deposit-customer-search"
+                className="mt-1"
+                value={manualCustomerSearch}
+                onChange={(event) => setManualCustomerSearch(event.target.value)}
+                placeholder="예: 서상견, 거래처명, 입금 별칭"
+              />
+              <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border">
+                {manualCustomerOptions.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    검색된 고객이 없습니다.
+                  </div>
+                ) : manualCustomerOptions.map((customer) => {
+                  const meta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+                  const ledger = ledgerByCustomerId.get(customer.Id)
+                  const selected = String(customer.Id) === manualSelectedCustomerId
+                  return (
+                    <button
+                      key={customer.Id}
+                      type="button"
+                      className={`flex w-full items-start justify-between gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-gray-50 ${selected ? 'bg-[#f4f7f1]' : ''}`}
+                      onClick={() => setManualSelectedCustomerId(String(customer.Id))}
+                    >
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900">{customer.name || customer.book_name || `고객 ${customer.Id}`}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {[customer.book_name, meta.depositorAliases.length ? `별칭 ${meta.depositorAliases.join(', ')}` : ''].filter(Boolean).join(' · ') || '별칭 없음'}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right text-xs text-muted-foreground">
+                        받을 돈<br />
+                        <span className={ledger?.totalRemaining ? 'font-semibold text-red-600' : 'font-semibold text-gray-700'}>
+                          {(ledger?.totalRemaining ?? 0).toLocaleString()}원
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="manual-deposit-note">메모</Label>
+              <Input
+                id="manual-deposit-note"
+                className="mt-1"
+                value={manualNote}
+                onChange={(event) => setManualNote(event.target.value)}
+                placeholder="예: 김순자 입금분을 서상견 거래처로 확인"
+              />
+            </div>
+
+            {manualSelectedCustomer ? (
+              <div className="rounded-lg border border-[#d8e4d6] bg-[#f8faf7] px-4 py-3 text-sm">
+                <div className="font-medium text-gray-900">
+                  반영 대상: {manualSelectedCustomer.name || manualSelectedCustomer.book_name}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  현재 받을 돈 {(manualSelectedLedger?.totalRemaining ?? 0).toLocaleString()}원
+                  {' · '}
+                  입금액 {Number(manualAmountInput.replace(/,/g, '') || 0).toLocaleString()}원
+                  {' · '}
+                  예상 예치금 {Math.max(0, Number(manualAmountInput.replace(/,/g, '') || 0) - (manualSelectedLedger?.totalRemaining ?? 0)).toLocaleString()}원
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setManualDialogOpen(false)} disabled={isManualApplying}>
+              닫기
+            </Button>
+            <Button type="button" onClick={() => void handleManualDepositApply()} disabled={isManualApplying}>
+              {isManualApplying ? '반영 중...' : '수동 입금 반영'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7" data-guide-id="deposit-summary">
         {[

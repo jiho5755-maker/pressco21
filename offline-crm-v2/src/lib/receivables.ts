@@ -1,5 +1,5 @@
 import type { Customer, Invoice } from '@/lib/api'
-import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
+import { getInvoiceDepositUsedAmount, isInvoiceRevenueRecognized } from '@/lib/accountingMeta'
 import type {
   FiscalBalanceSnapshotPayload,
   LegacyCustomerSnapshotPayload,
@@ -149,6 +149,7 @@ export function buildResolvedReceivableInvoices(
   asOfDate: string,
 ): ResolvedReceivableInvoice[] {
   return invoices
+    .filter(isInvoiceRevenueRecognized)
     .map((invoice) => {
       const asOfRemaining = getRemainingAmountAsOf(invoice, asOfDate)
       const asOfStatus = getPaymentStatusAsOf(invoice, asOfDate)

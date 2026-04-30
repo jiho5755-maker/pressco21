@@ -40,6 +40,7 @@ import { exportUnifiedTransactions } from '@/lib/excel'
 import {
   getDisplayMemo,
   getInvoicePaymentHistory,
+  isInvoiceRevenueRecognized,
   mergeDisplayMemo,
   parseCustomerAccountingMeta,
   replaceCustomerAccountingPreferences,
@@ -190,6 +191,8 @@ interface HistoryRow {
   memo: string
   slipNo?: string
   isCrm: boolean
+  affectsReceivable?: boolean
+  neutralReason?: string
 }
 
 function formatItemQuantity(item: InvoiceItem): string {
@@ -287,6 +290,7 @@ function getHistorySignedImpact(row: HistoryRow): number {
   const absoluteAmount = Math.abs(row.amount)
   switch (row.txType) {
     case '출고':
+      if (row.affectsReceivable === false) return 0
       return absoluteAmount
     case '입금':
     case '반입':
@@ -361,6 +365,7 @@ function getPositionTone(value: number): string {
 }
 
 function buildHistoryImpactSummary(row: HistoryRow, signedImpact: number): string {
+  if (row.neutralReason) return `${row.neutralReason} · 잔액 변동 없음`
   if (row.txType === '지급') return '지급 이벤트 · 고객 미수 잔액에는 직접 반영하지 않음'
   if (row.txType === '메모') return '메모 이벤트 · 잔액 변동 없음'
   if (signedImpact > 0) return `받을 돈 ${formatPositionAmount(signedImpact)} 증가`
@@ -379,6 +384,7 @@ function buildHistorySecondaryText(row: FinancialTimelineRow): string {
   const parts: string[] = [row.sourceLabel]
   if (row.isCrm && row.txType === '출고') {
     if (row.slipNo) parts.push(row.slipNo)
+    if (row.neutralReason) parts.push(row.neutralReason)
   } else if (row.isCrm && row.memo && row.memo !== row.slipNo) {
     parts.push(row.memo)
   } else if (!row.isCrm) {
@@ -541,10 +547,6 @@ export function CustomerDetail() {
     () => parseCustomerAccountingMeta(customer?.memo as string | undefined),
     [customer?.memo],
   )
-  const currentNetReceivablePosition =
-    (((customer?.outstanding_balance as number | undefined) ?? 0)
-      - customerAccountingMeta.depositBalance
-      - customerAccountingMeta.refundPendingBalance)
 
   const { data: customerLinks = [] } = useQuery({
     queryKey: ['customer-detail-link-customers'],
@@ -564,6 +566,23 @@ export function CustomerDetail() {
     },
     enabled: !!customerId && customerLinks.length > 0,
   })
+  const todayResolvedInvoices = useMemo(
+    () => buildResolvedReceivableInvoices(invoiceData, customerLinks, todayStr()),
+    [invoiceData, customerLinks],
+  )
+  const currentLegacyReceivableBalance = useMemo(
+    () => getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots),
+    [customer, fiscalSnapshots, legacySnapshots],
+  )
+  const crmOutstandingBalance = useMemo(
+    () => todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0),
+    [todayResolvedInvoices],
+  )
+  const currentGrossReceivablePosition = currentLegacyReceivableBalance + crmOutstandingBalance
+  const currentNetReceivablePosition =
+    currentGrossReceivablePosition
+    - customerAccountingMeta.depositBalance
+    - customerAccountingMeta.refundPendingBalance
 
   const invoiceIdsForItemSummary = useMemo(
     () => invoiceData
@@ -610,6 +629,10 @@ export function CustomerDetail() {
       }),
     [invoiceData, dateFrom, dateTo]
   )
+  const recognizedFilteredInvoices = useMemo(
+    () => filteredInvoices.filter(isInvoiceRevenueRecognized),
+    [filteredInvoices],
+  )
 
   // 레거시 txHistory 기간 필터 (출고 건만, txAll에서 클라이언트 필터링)
   const filteredLegacyTx = useMemo(
@@ -623,20 +646,20 @@ export function CustomerDetail() {
 
   const periodStats = useMemo(() => {
     // CRM v2 명세표 합산
-    const crmSales = filteredInvoices.reduce((s, inv) => s + (inv.total_amount ?? 0), 0)
-    const received = filteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).settledAmount, 0)
-    const depositUsed = filteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).depositUsedAmount, 0)
+    const crmSales = recognizedFilteredInvoices.reduce((s, inv) => s + (inv.total_amount ?? 0), 0)
+    const received = recognizedFilteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).settledAmount, 0)
+    const depositUsed = recognizedFilteredInvoices.reduce((s, inv) => s + getInvoiceSettlementSnapshot(inv).depositUsedAmount, 0)
     const outstanding = Math.max(0, crmSales - received)
     // 레거시 출고 합산 (txAll에서 가져옴)
     const legacySales = filteredLegacyTx.reduce((s, tx) => s + (tx.amount ?? 0), 0)
     return {
       crmSales, received, depositUsed, outstanding,
-      crmCount: filteredInvoices.length,
+      crmCount: recognizedFilteredInvoices.length,
       legacySales,
       legacyCount: filteredLegacyTx.length,
       totalSales: crmSales + legacySales,
     }
-  }, [filteredInvoices, filteredLegacyTx])
+  }, [recognizedFilteredInvoices, filteredLegacyTx])
 
   // ── 기간 프리셋 ───────────────────────────────────────
   function applyPreset(preset: 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear') {
@@ -689,6 +712,7 @@ export function CustomerDetail() {
     // CRM v2 명세표 → 출고 행
     const invRows: HistoryRow[] = []
     for (const inv of invoiceData) {
+      const affectsReceivable = isInvoiceRevenueRecognized(inv)
       invRows.push({
         key: `inv-${inv.Id}`,
         source: 'crm',
@@ -699,6 +723,8 @@ export function CustomerDetail() {
         memo: invoiceItemSummaryById.get(inv.Id) || getDisplayMemo(inv.memo as string | undefined) || inv.invoice_no || '-',
         slipNo: inv.invoice_no ?? '',
         isCrm: true,
+        affectsReceivable,
+        neutralReason: affectsReceivable ? undefined : '출고확정/매출반영 전 명세표라 받을 돈 계산에서 제외',
       })
       invRows.push(...buildCrmPaymentHistoryRows(inv))
     }
@@ -935,11 +961,6 @@ export function CustomerDetail() {
       .map(([year, amount]) => ({ year, amount }))
   })()
 
-  const todayResolvedInvoices = useMemo(
-    () => buildResolvedReceivableInvoices(invoiceData, customerLinks, todayStr()),
-    [invoiceData, customerLinks],
-  )
-
   if (isLoading) {
     return (
       <div className="p-6 text-muted-foreground flex items-center gap-2">
@@ -961,17 +982,17 @@ export function CustomerDetail() {
 
   const status = customer.customer_status
   const effectiveGrade = customer.is_ambassador ? 'AMBASSADOR' : (customer.member_grade ?? '')
-  const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
+  const storedOutstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
+  const outstandingBalance = currentGrossReceivablePosition
   const { snapshot: legacyTradebook, matchReason: legacyTradebookMatchReason } = deriveLegacyTradebookSnapshot(customer, legacySnapshots)
   const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
-  const legacyBalanceBaseline = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
-  const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
+  const legacyBalanceBaseline = currentLegacyReceivableBalance
+  const currentLegacyReceivable = currentLegacyReceivableBalance
   const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
   const legacyPayableMemoState = parseLegacyPayableMemo(customer.memo as string | undefined)
   const legacySettlementTimeline = buildSettlementTimeline(legacyMemoState.settlements, currentLegacyReceivable)
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
-  const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const customerDisplayMemo = getDisplayMemo(customer.memo as string | undefined)
   const infoAddressEntries = getCustomerAddressEntries(customer).map((entry, index) => ({
     label: customerAccountingMeta.addressLabels[index] ?? defaultAddressLabel(index),
@@ -1025,7 +1046,9 @@ export function CustomerDetail() {
     {
       label: '새 입력 미수',
       value: `${crmOutstandingBalance.toLocaleString()}원`,
-      helper: 'CRM 명세표 기준',
+      helper: storedOutstandingBalance !== crmOutstandingBalance
+        ? `CRM 명세표 기준 · 고객 저장값 ${storedOutstandingBalance.toLocaleString()}원`
+        : 'CRM 명세표 기준',
       tone: crmOutstandingBalance > 0 ? 'text-red-600' : crmOutstandingBalance < 0 ? 'text-blue-700' : 'text-foreground',
     },
     {

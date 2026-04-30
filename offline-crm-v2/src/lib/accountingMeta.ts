@@ -832,8 +832,22 @@ export function getInvoiceRevenuePostingStatus(memo?: string): InvoiceRevenuePos
   return parseInvoiceAccountingMeta(memo).revenuePostingStatus
 }
 
+function hasNonTradeInvoiceMarker(value?: string): boolean {
+  const normalized = normalizeMemo(value)
+    .replace(/\s+/g, '')
+    .toLowerCase()
+  return (
+    normalized.includes('실제거래건아님') ||
+    normalized.includes('실제거래건x') ||
+    normalized.includes('실거래아님') ||
+    normalized.includes('실거래x')
+  )
+}
+
 export function isInvoiceRevenueRecognized(invoice: { memo?: unknown }): boolean {
-  const meta = parseInvoiceAccountingMeta(typeof invoice.memo === 'string' ? invoice.memo : undefined)
+  const memo = typeof invoice.memo === 'string' ? invoice.memo : undefined
+  const meta = parseInvoiceAccountingMeta(memo)
+  if (hasNonTradeInvoiceMarker(memo) || hasNonTradeInvoiceMarker(meta.internalMemo)) return false
   // 과거 거래명세표는 출고 상태 메타가 없으므로 기존 매출 집계를 유지한다.
   if (!meta.fulfillmentStatus && !meta.revenuePostingStatus) return true
   return meta.fulfillmentStatus === 'shipment_confirmed' && meta.revenuePostingStatus === 'posted'

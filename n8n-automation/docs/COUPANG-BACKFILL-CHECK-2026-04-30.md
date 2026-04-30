@@ -127,6 +127,28 @@ bash _tools/pressco21-check.sh
 => Status: OK
 ```
 
+
+## 운영 배포 및 일회성 매출보고 발송 결과
+
+2026-04-30 11:44 KST에 F23B 운영 workflow를 배포했다.
+
+- Workflow: `[F23B] 쿠팡 pending backfill (19:30)`
+- Workflow ID: `CZGvlrUcX3PlU5ql`
+- 배포 결과: HTTP 200, `active=true`
+- 검증: 운영 workflow에서 최근 3일 점검, 정정 알림, 문제 없을 때 무알림 마커 확인
+- 백업/검증 산출물: `n8n-automation/backups/20260430-114412-f23b-correction-alert-deploy/`
+
+2026-04-30 11:44 KST에 F24 매출보고를 일회성으로 1회 발송했다.
+
+- F24 실행 ID: `272134`
+- Telegram 방: `PRESSCO21 매출 공유`
+- Topic: `매출보고` (`message_thread_id=3`)
+- message_id: `29`
+- 보고 기준일: 2026-04-29
+- 어제 매출: 4,294,374원
+- 4월 누계: 136,167,648원
+- 쿠팡윙: 450,300원, source=`nocodb_f23_api`
+
 ## 다음 조치
 
 1. 2026-04-30 19:30 KST F23B가 2026-04-28을 다시 자동 재시도할 예정이다.

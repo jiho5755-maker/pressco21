@@ -1,0 +1,799 @@
+{
+  "updatedAt": "2026-04-25T02:14:09.519Z",
+  "createdAt": "2026-04-25T01:24:22.942Z",
+  "id": "CZGvlrUcX3PlU5ql",
+  "name": "[F23B] 쿠팡 pending backfill (19:30)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 19,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        200
+      ],
+      "id": "node-schedule-1930",
+      "name": "매일 19:30"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-coupang-pending-backfill",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        500
+      ],
+      "id": "node-webhook-backfill",
+      "name": "수동 백필",
+      "webhookId": "flora-coupang-pending-backfill"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 19:30 쿠팡/Sheet pending backfill 후보 산출\n// 기본: 최근 14일 daily_sales에서 쿠팡 수집 상태가 pending/api_error/skipped 이거나,\n// Google Sheet C:G가 NocoDB 자동채널 값과 비어 있거나 불일치하면 F23으로 재집계한다.\n// 수동 웹훅 body.dates 또는 body.targetDate가 있으면 해당 날짜만 강제 후보로 사용한다.\nlet body = {};\nlet isWebhook = false;\ntry {\n  body = $('수동 백필').first().json.body || {};\n  isWebhook = true;\n} catch (e) {}\nconst token = String($env.NOCODB_TOKEN || '').trim();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu';\nconst chatId = String(body.chatId || body.chat_id || '-5251214343');\nconst explicitDates = Array.isArray(body.dates) ? [...body.dates] : [];\nif (body.targetDate || body.target_date) explicitDates.push(body.targetDate || body.target_date);\nconst isDate = (value) => /^\\d{4}-\\d{2}-\\d{2}$/.test(String(value || ''));\nconst unique = (list) => [...new Set(list.filter(isDate).map(String))].sort();\nconst makeItem = (json) => ({ json: { ...json, chatId, isWebhook } });\n\nlet sheetRows = [];\nlet sheetReadError = '';\ntry {\n  const sheetResp = $('올해 Sheet 일별 매출 조회').first().json || {};\n  if (sheetResp.error || sheetResp.message) {\n    sheetReadError = String(sheetResp.error || sheetResp.message).slice(0, 300);\n  } else {\n    sheetRows = Array.isArray(sheetResp.values) ? sheetResp.values : [];\n  }\n} catch (e) {\n  sheetReadError = e.message;\n}\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  return parseInt(String(v).replace(/[^0-9.-]/g, '')) || 0;\n};\nconst sheetIndexForDate = (dt) => {\n  const parts = String(dt).split('-').map(Number);\n  const target = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));\n  const jan1 = new Date(Date.UTC(parts[0], 0, 1));\n  return Math.round((target - jan1) / 86400000);\n};\nconst sheetCompare = (row) => {\n  if (sheetReadError) return { ok: true, reason: '', sheetValues: [] };\n  const dt = String(row.report_date || '').slice(0, 10);\n  const sheetRow = sheetRows[sheetIndexForDate(dt)] || [];\n  const sheetValues = [0, 1, 2, 3, 4].map((idx) => num(sheetRow[idx]));\n  const expected = [\n    num(row.makeshop_revenue),\n    num(row.naver_revenue),\n    num(row.st11_revenue),\n    num(row.crm_revenue),\n    num(row.coupang_revenue),\n  ];\n  const expectedHasValue = expected.some((value) => value !== 0);\n  const sheetHasValue = sheetValues.some((value) => value !== 0);\n  if (expectedHasValue && !sheetHasValue) return { ok: false, reason: 'sheet_missing', sheetValues, expected };\n  for (let i = 0; i < expected.length; i++) {\n    if (sheetValues[i] !== expected[i]) return { ok: false, reason: 'sheet_mismatch', sheetValues, expected };\n  }\n  return { ok: true, reason: '', sheetValues, expected };\n};\n\nif (unique(explicitDates).length > 0) {\n  return unique(explicitDates).map((targetDate) => makeItem({ targetDate, reason: 'manual', skip: false, sheetReadError }));\n}\n\nif (!token) {\n  return [makeItem({ skip: true, reason: 'NOCODB_TOKEN 미설정', sheetReadError })];\n}\n\nconst now = new Date(Date.now() + 9 * 60 * 60 * 1000);\n// F23/F24 확정 리포트 기준은 전일 이전이다. 당일 row는 부분 집계가 될 수 있어 자동 backfill에서 제외한다.\nconst endDate = new Date(now);\nendDate.setDate(endDate.getDate() - 1);\nconst end = endDate.toISOString().slice(0, 10);\nconst startDate = new Date(endDate);\nstartDate.setDate(startDate.getDate() - 13);\nconst start = startDate.toISOString().slice(0, 10);\n\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: baseUrl,\n    headers: { 'xc-token': token },\n    qs: {\n      where: '(report_date,gte,' + start + ')~and(report_date,lte,' + end + ')',\n      sort: '-report_date,-Id',\n      limit: 100,\n      fields: 'Id,report_date,makeshop_revenue,naver_revenue,st11_revenue,crm_revenue,coupang_revenue,coupang_orders,total_revenue,coupang_collection_status,notes'\n    }\n  });\n  const latestByDate = {};\n  for (const row of (resp.list || [])) {\n    const dt = String(row.report_date || '').slice(0, 10);\n    if (!isDate(dt)) continue;\n    if (!latestByDate[dt] || (parseInt(row.Id) || 0) > (parseInt(latestByDate[dt].Id) || 0)) latestByDate[dt] = row;\n  }\n  const candidates = [];\n  for (const dt of Object.keys(latestByDate).sort()) {\n    const row = latestByDate[dt];\n    const notes = String(row.notes || '').toLowerCase();\n    const collectionStatus = String(row.coupang_collection_status || '').toLowerCase();\n    const coupangRevenue = num(row.coupang_revenue);\n    const coupangOrders = num(row.coupang_orders);\n    const statusNeedsBackfill = /pending|api_error|skipped_blackout|sheet_existing/.test(collectionStatus);\n    const hasPendingNote = /pending|blackout|403|429|timeout|휴지시간|추후/.test(notes) && /coupang|쿠팡/.test(notes);\n    const totalRevenue = num(row.total_revenue);\n    const legacyEmptyCoupang = !collectionStatus && totalRevenue > 0 && coupangRevenue === 0 && coupangOrders === 0 && /coupang|쿠팡|pending|blackout|403|429|timeout|휴지시간|추후/.test(notes);\n    const sheetState = sheetCompare(row);\n    if (statusNeedsBackfill || hasPendingNote || legacyEmptyCoupang || !sheetState.ok) {\n      const reason = statusNeedsBackfill\n        ? 'status_' + collectionStatus\n        : (hasPendingNote ? 'note_pending' : (legacyEmptyCoupang ? 'legacy_empty_coupang' : sheetState.reason));\n      candidates.push(makeItem({ targetDate: dt, recordId: row.Id, reason, skip: false, sheetReadError, sheetValues: sheetState.sheetValues, expectedSheetValues: sheetState.expected }));\n    }\n  }\n  if (candidates.length) return candidates;\n  const reason = sheetReadError ? 'Sheet 조회 실패: ' + sheetReadError : '백필 후보 없음';\n  return [makeItem({ skip: true, reason, start, end, sheetReadError })];\n} catch (e) {\n  return [makeItem({ skip: true, reason: '후보 조회 실패: ' + e.message, start, end, sheetReadError })];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        350
+      ],
+      "id": "node-candidates",
+      "name": "백필 대상 계산"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        980,
+        350
+      ],
+      "id": "node-has-candidate",
+      "name": "백필 대상 있음"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-daily-sales-all",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ mode: 'target-date', targetDate: $json.targetDate, chatId: $json.chatId, source: 'coupang-pending-backfill-1930', reason: $json.reason }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        260
+      ],
+      "id": "node-call-f23",
+      "name": "F23 재집계 호출",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map((item) => item.json || {});\nlet isWebhook = false;\ntry {\n  $('수동 백필').first().json;\n  isWebhook = true;\n} catch (e) {}\nconst skipped = items.filter((row) => row.skip);\nconst executed = items.filter((row) => !row.skip);\nconst sheetReadError = items.find((row) => row.sheetReadError)?.sheetReadError || '';\nconst isOk = (row) => row.ok !== false && !row.error && !(row.nocodb && row.nocodb.ok === false) && !(row.status && row.status.nocodb && row.status.nocodb.ok === false) && !(row.status && row.status.sheets && row.status.sheets.ok === false);\nconst okCount = executed.filter(isOk).length;\nconst failCount = executed.length - okCount;\nlet message = '<b>[운영알림][F23B] 쿠팡/Sheet 19:30 backfill</b>\\n';\nif (sheetReadError) message += 'Sheet 조회 경고: ' + String(sheetReadError).slice(0, 250) + '\\n';\nif (executed.length === 0) {\n  message += '실행 없음: ' + (skipped[0] && skipped[0].reason ? skipped[0].reason : '후보 없음');\n} else {\n  message += '대상 ' + executed.length + '일 / 성공 ' + okCount + ' / 실패 ' + failCount + '\\n';\n  for (const row of executed.slice(0, 10)) {\n    const date = row.date || row.targetDate || (row.status && row.status.nocodb && row.status.nocodb.reportDate) || 'unknown';\n    const detail = row.error ? String(row.error).slice(0, 80) : (row.status && row.status.nocodb && row.status.nocodb.action ? row.status.nocodb.action : '요청 완료');\n    const total = row.total_revenue !== undefined ? ' / 총매출 ' + Number(row.total_revenue || 0).toLocaleString('ko-KR') + '원' : '';\n    message += '- ' + date + ': ' + (isOk(row) ? detail : '실패 ' + detail) + total + '\\n';\n  }\n}\nconst shouldNotify = executed.length > 0 || failCount > 0 || !!sheetReadError || (skipped[0] && String(skipped[0].reason || '').includes('실패'));\nreturn [{ json: { message, shouldNotify, isWebhook, executedCount: executed.length, okCount, failCount, skippedCount: skipped.length, skippedReason: skipped[0] && skipped[0].reason, sheetReadError } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        500
+      ],
+      "id": "node-summary",
+      "name": "백필 결과 요약"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003917399249",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "message_thread_id": 4,
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1700,
+        420
+      ],
+      "id": "node-telegram",
+      "name": "운영 알림 전송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, summary: $('백필 결과 요약').first().json }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2180,
+        540
+      ],
+      "id": "node-respond",
+      "name": "응답"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.shouldNotify === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "192c12f6-e0a0-4a65-9e81-8878e0dab33a",
+      "name": "알림 필요 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('백필 결과 요약').first().json.isWebhook === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "291f820d-1c5f-4432-96cd-c95b2e183494",
+      "name": "웹훅 응답 필요",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C2:G367",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "a301c9e4-e36c-4a53-97f6-b74e48c46a87",
+      "name": "올해 Sheet 일별 매출 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        350
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+          "name": "Pressco21-GoogleDrive"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "매일 19:30": {
+      "main": [
+        [
+          {
+            "node": "올해 Sheet 일별 매출 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 백필": {
+      "main": [
+        [
+          {
+            "node": "올해 Sheet 일별 매출 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "백필 대상 계산": {
+      "main": [
+        [
+          {
+            "node": "백필 대상 있음",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "백필 대상 있음": {
+      "main": [
+        [
+          {
+            "node": "F23 재집계 호출",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "백필 결과 요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "F23 재집계 호출": {
+      "main": [
+        [
+          {
+            "node": "백필 결과 요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "백필 결과 요약": {
+      "main": [
+        [
+          {
+            "node": "알림 필요 여부",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알림 필요 여부": {
+      "main": [
+        [
+          {
+            "node": "운영 알림 전송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "웹훅 응답 필요",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "운영 알림 전송": {
+      "main": [
+        [
+          {
+            "node": "웹훅 응답 필요",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "웹훅 응답 필요": {
+      "main": [
+        [
+          {
+            "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "올해 Sheet 일별 매출 조회": {
+      "main": [
+        [
+          {
+            "node": "백필 대상 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:매일 19:30": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "bec298cd-76c0-45ed-b31a-84408edb4c42",
+  "activeVersionId": "bec298cd-76c0-45ed-b31a-84408edb4c42",
+  "versionCounter": 18,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2026-04-25T01:24:22.942Z",
+      "createdAt": "2026-04-25T01:24:22.942Z",
+      "role": "workflow:owner",
+      "workflowId": "CZGvlrUcX3PlU5ql",
+      "projectId": "DIT0WAQj00qvNJUL",
+      "project": {
+        "updatedAt": "2026-02-28T07:51:06.297Z",
+        "createdAt": "2026-02-23T16:25:57.845Z",
+        "id": "DIT0WAQj00qvNJUL",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-25T02:14:09.520Z",
+    "createdAt": "2026-04-25T02:14:09.520Z",
+    "versionId": "bec298cd-76c0-45ed-b31a-84408edb4c42",
+    "workflowId": "CZGvlrUcX3PlU5ql",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 19,
+                "triggerAtMinute": 30
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          200
+        ],
+        "id": "node-schedule-1930",
+        "name": "매일 19:30"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "flora-coupang-pending-backfill",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          500
+        ],
+        "id": "node-webhook-backfill",
+        "name": "수동 백필",
+        "webhookId": "flora-coupang-pending-backfill"
+      },
+      {
+        "parameters": {
+          "jsCode": "// 19:30 쿠팡/Sheet pending backfill 후보 산출\n// 기본: 최근 14일 daily_sales에서 쿠팡 수집 상태가 pending/api_error/skipped 이거나,\n// Google Sheet C:G가 NocoDB 자동채널 값과 비어 있거나 불일치하면 F23으로 재집계한다.\n// 수동 웹훅 body.dates 또는 body.targetDate가 있으면 해당 날짜만 강제 후보로 사용한다.\nlet body = {};\nlet isWebhook = false;\ntry {\n  body = $('수동 백필').first().json.body || {};\n  isWebhook = true;\n} catch (e) {}\nconst token = String($env.NOCODB_TOKEN || '').trim();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu';\nconst chatId = String(body.chatId || body.chat_id || '-5251214343');\nconst explicitDates = Array.isArray(body.dates) ? [...body.dates] : [];\nif (body.targetDate || body.target_date) explicitDates.push(body.targetDate || body.target_date);\nconst isDate = (value) => /^\\d{4}-\\d{2}-\\d{2}$/.test(String(value || ''));\nconst unique = (list) => [...new Set(list.filter(isDate).map(String))].sort();\nconst makeItem = (json) => ({ json: { ...json, chatId, isWebhook } });\n\nlet sheetRows = [];\nlet sheetReadError = '';\ntry {\n  const sheetResp = $('올해 Sheet 일별 매출 조회').first().json || {};\n  if (sheetResp.error || sheetResp.message) {\n    sheetReadError = String(sheetResp.error || sheetResp.message).slice(0, 300);\n  } else {\n    sheetRows = Array.isArray(sheetResp.values) ? sheetResp.values : [];\n  }\n} catch (e) {\n  sheetReadError = e.message;\n}\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  return parseInt(String(v).replace(/[^0-9.-]/g, '')) || 0;\n};\nconst sheetIndexForDate = (dt) => {\n  const parts = String(dt).split('-').map(Number);\n  const target = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));\n  const jan1 = new Date(Date.UTC(parts[0], 0, 1));\n  return Math.round((target - jan1) / 86400000);\n};\nconst sheetCompare = (row) => {\n  if (sheetReadError) return { ok: true, reason: '', sheetValues: [] };\n  const dt = String(row.report_date || '').slice(0, 10);\n  const sheetRow = sheetRows[sheetIndexForDate(dt)] || [];\n  const sheetValues = [0, 1, 2, 3, 4].map((idx) => num(sheetRow[idx]));\n  const expected = [\n    num(row.makeshop_revenue),\n    num(row.naver_revenue),\n    num(row.st11_revenue),\n    num(row.crm_revenue),\n    num(row.coupang_revenue),\n  ];\n  const expectedHasValue = expected.some((value) => value !== 0);\n  const sheetHasValue = sheetValues.some((value) => value !== 0);\n  if (expectedHasValue && !sheetHasValue) return { ok: false, reason: 'sheet_missing', sheetValues, expected };\n  for (let i = 0; i < expected.length; i++) {\n    if (sheetValues[i] !== expected[i]) return { ok: false, reason: 'sheet_mismatch', sheetValues, expected };\n  }\n  return { ok: true, reason: '', sheetValues, expected };\n};\n\nif (unique(explicitDates).length > 0) {\n  return unique(explicitDates).map((targetDate) => makeItem({ targetDate, reason: 'manual', skip: false, sheetReadError }));\n}\n\nif (!token) {\n  return [makeItem({ skip: true, reason: 'NOCODB_TOKEN 미설정', sheetReadError })];\n}\n\nconst now = new Date(Date.now() + 9 * 60 * 60 * 1000);\n// F23/F24 확정 리포트 기준은 전일 이전이다. 당일 row는 부분 집계가 될 수 있어 자동 backfill에서 제외한다.\nconst endDate = new Date(now);\nendDate.setDate(endDate.getDate() - 1);\nconst end = endDate.toISOString().slice(0, 10);\nconst startDate = new Date(endDate);\nstartDate.setDate(startDate.getDate() - 13);\nconst start = startDate.toISOString().slice(0, 10);\n\ntry {\n  const resp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: baseUrl,\n    headers: { 'xc-token': token },\n    qs: {\n      where: '(report_date,gte,' + start + ')~and(report_date,lte,' + end + ')',\n      sort: '-report_date,-Id',\n      limit: 100,\n      fields: 'Id,report_date,makeshop_revenue,naver_revenue,st11_revenue,crm_revenue,coupang_revenue,coupang_orders,total_revenue,coupang_collection_status,notes'\n    }\n  });\n  const latestByDate = {};\n  for (const row of (resp.list || [])) {\n    const dt = String(row.report_date || '').slice(0, 10);\n    if (!isDate(dt)) continue;\n    if (!latestByDate[dt] || (parseInt(row.Id) || 0) > (parseInt(latestByDate[dt].Id) || 0)) latestByDate[dt] = row;\n  }\n  const candidates = [];\n  for (const dt of Object.keys(latestByDate).sort()) {\n    const row = latestByDate[dt];\n    const notes = String(row.notes || '').toLowerCase();\n    const collectionStatus = String(row.coupang_collection_status || '').toLowerCase();\n    const coupangRevenue = num(row.coupang_revenue);\n    const coupangOrders = num(row.coupang_orders);\n    const statusNeedsBackfill = /pending|api_error|skipped_blackout|sheet_existing/.test(collectionStatus);\n    const hasPendingNote = /pending|blackout|403|429|timeout|휴지시간|추후/.test(notes) && /coupang|쿠팡/.test(notes);\n    const totalRevenue = num(row.total_revenue);\n    const legacyEmptyCoupang = !collectionStatus && totalRevenue > 0 && coupangRevenue === 0 && coupangOrders === 0 && /coupang|쿠팡|pending|blackout|403|429|timeout|휴지시간|추후/.test(notes);\n    const sheetState = sheetCompare(row);\n    if (statusNeedsBackfill || hasPendingNote || legacyEmptyCoupang || !sheetState.ok) {\n      const reason = statusNeedsBackfill\n        ? 'status_' + collectionStatus\n        : (hasPendingNote ? 'note_pending' : (legacyEmptyCoupang ? 'legacy_empty_coupang' : sheetState.reason));\n      candidates.push(makeItem({ targetDate: dt, recordId: row.Id, reason, skip: false, sheetReadError, sheetValues: sheetState.sheetValues, expectedSheetValues: sheetState.expected }));\n    }\n  }\n  if (candidates.length) return candidates;\n  const reason = sheetReadError ? 'Sheet 조회 실패: ' + sheetReadError : '백필 후보 없음';\n  return [makeItem({ skip: true, reason, start, end, sheetReadError })];\n} catch (e) {\n  return [makeItem({ skip: true, reason: '후보 조회 실패: ' + e.message, start, end, sheetReadError })];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          350
+        ],
+        "id": "node-candidates",
+        "name": "백필 대상 계산"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.skip !== true }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          980,
+          350
+        ],
+        "id": "node-has-candidate",
+        "name": "백필 대상 있음"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://n8n.pressco21.com/webhook/flora-daily-sales-all",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ mode: 'target-date', targetDate: $json.targetDate, chatId: $json.chatId, source: 'coupang-pending-backfill-1930', reason: $json.reason }) }}",
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1220,
+          260
+        ],
+        "id": "node-call-f23",
+        "name": "F23 재집계 호출",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all().map((item) => item.json || {});\nlet isWebhook = false;\ntry {\n  $('수동 백필').first().json;\n  isWebhook = true;\n} catch (e) {}\nconst skipped = items.filter((row) => row.skip);\nconst executed = items.filter((row) => !row.skip);\nconst sheetReadError = items.find((row) => row.sheetReadError)?.sheetReadError || '';\nconst isOk = (row) => row.ok !== false && !row.error && !(row.nocodb && row.nocodb.ok === false) && !(row.status && row.status.nocodb && row.status.nocodb.ok === false) && !(row.status && row.status.sheets && row.status.sheets.ok === false);\nconst okCount = executed.filter(isOk).length;\nconst failCount = executed.length - okCount;\nlet message = '<b>[운영알림][F23B] 쿠팡/Sheet 19:30 backfill</b>\\n';\nif (sheetReadError) message += 'Sheet 조회 경고: ' + String(sheetReadError).slice(0, 250) + '\\n';\nif (executed.length === 0) {\n  message += '실행 없음: ' + (skipped[0] && skipped[0].reason ? skipped[0].reason : '후보 없음');\n} else {\n  message += '대상 ' + executed.length + '일 / 성공 ' + okCount + ' / 실패 ' + failCount + '\\n';\n  for (const row of executed.slice(0, 10)) {\n    const date = row.date || row.targetDate || (row.status && row.status.nocodb && row.status.nocodb.reportDate) || 'unknown';\n    const detail = row.error ? String(row.error).slice(0, 80) : (row.status && row.status.nocodb && row.status.nocodb.action ? row.status.nocodb.action : '요청 완료');\n    const total = row.total_revenue !== undefined ? ' / 총매출 ' + Number(row.total_revenue || 0).toLocaleString('ko-KR') + '원' : '';\n    message += '- ' + date + ': ' + (isOk(row) ? detail : '실패 ' + detail) + total + '\\n';\n  }\n}\nconst shouldNotify = executed.length > 0 || failCount > 0 || !!sheetReadError || (skipped[0] && String(skipped[0].reason || '').includes('실패'));\nreturn [{ json: { message, shouldNotify, isWebhook, executedCount: executed.length, okCount, failCount, skippedCount: skipped.length, skippedReason: skipped[0] && skipped[0].reason, sheetReadError } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1220,
+          500
+        ],
+        "id": "node-summary",
+        "name": "백필 결과 요약"
+      },
+      {
+        "parameters": {
+          "chatId": "-1003917399249",
+          "text": "={{ $json.message }}",
+          "additionalFields": {
+            "parse_mode": "HTML",
+            "message_thread_id": 4,
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1700,
+          420
+        ],
+        "id": "node-telegram",
+        "name": "운영 알림 전송",
+        "credentials": {
+          "telegramApi": {
+            "id": "RdFu3nsFuuO5NCff",
+            "name": "Pressco메이크샵봇"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ ok: true, summary: $('백필 결과 요약').first().json }) }}"
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          2180,
+          540
+        ],
+        "id": "node-respond",
+        "name": "응답"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.shouldNotify === true }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "192c12f6-e0a0-4a65-9e81-8878e0dab33a",
+        "name": "알림 필요 여부",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1460,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $('백필 결과 요약').first().json.isWebhook === true }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "291f820d-1c5f-4432-96cd-c95b2e183494",
+        "name": "웹훅 응답 필요",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1940,
+          540
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C2:G367",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleDriveOAuth2Api",
+          "options": {
+            "timeout": 10000
+          }
+        },
+        "id": "a301c9e4-e36c-4a53-97f6-b74e48c46a87",
+        "name": "올해 Sheet 일별 매출 조회",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          350
+        ],
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+            "name": "Pressco21-GoogleDrive"
+          }
+        },
+        "continueOnFail": true
+      }
+    ],
+    "connections": {
+      "매일 19:30": {
+        "main": [
+          [
+            {
+              "node": "올해 Sheet 일별 매출 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "수동 백필": {
+        "main": [
+          [
+            {
+              "node": "올해 Sheet 일별 매출 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "백필 대상 계산": {
+        "main": [
+          [
+            {
+              "node": "백필 대상 있음",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "백필 대상 있음": {
+        "main": [
+          [
+            {
+              "node": "F23 재집계 호출",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "백필 결과 요약",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "F23 재집계 호출": {
+        "main": [
+          [
+            {
+              "node": "백필 결과 요약",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "백필 결과 요약": {
+        "main": [
+          [
+            {
+              "node": "알림 필요 여부",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "알림 필요 여부": {
+        "main": [
+          [
+            {
+              "node": "운영 알림 전송",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "웹훅 응답 필요",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "운영 알림 전송": {
+        "main": [
+          [
+            {
+              "node": "웹훅 응답 필요",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "웹훅 응답 필요": {
+        "main": [
+          [
+            {
+              "node": "응답",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "올해 Sheet 일별 매출 조회": {
+        "main": [
+          [
+            {
+              "node": "백필 대상 계산",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Admin User",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-25T02:14:09.549Z",
+        "id": 2772,
+        "workflowId": "CZGvlrUcX3PlU5ql",
+        "versionId": "bec298cd-76c0-45ed-b31a-84408edb4c42",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T02:14:09.565Z",
+        "id": 2773,
+        "workflowId": "CZGvlrUcX3PlU5ql",
+        "versionId": "bec298cd-76c0-45ed-b31a-84408edb4c42",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    ]
+  }
+}

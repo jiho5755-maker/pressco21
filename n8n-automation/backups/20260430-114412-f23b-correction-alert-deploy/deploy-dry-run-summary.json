@@ -1,0 +1,24 @@
+{
+  "backup_dir": "n8n-automation/backups/20260430-114412-f23b-correction-alert-deploy",
+  "workflow_id": "CZGvlrUcX3PlU5ql",
+  "workflow_name": "[F23B] 쿠팡 pending backfill (19:30)",
+  "live_before_active": true,
+  "node_count": 11,
+  "put_body_bytes": 19805,
+  "validated_markers": {
+    "백필 대상 계산": [
+      "const lookbackDays = 3;",
+      "beforeTotalRevenue",
+      "beforeCoupangRevenue",
+      "missing_nocodb_record"
+    ],
+    "백필 결과 요약": [
+      "매출 백필 정정 알림",
+      "문제 후보가 없으면 Telegram 운영알림을 보내지 않는다",
+      "총매출",
+      "쿠팡윙",
+      "shouldNotify"
+    ]
+  },
+  "prepared_at": "2026-04-30T11:44:12"
+}

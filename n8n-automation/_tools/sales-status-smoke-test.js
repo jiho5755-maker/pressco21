@@ -68,4 +68,10 @@ assert(f23bCandidate.includes('targetDates'), 'F23B must enumerate fixed target 
 assert(f23bCandidate.includes('missing_nocodb_record'), 'F23B must backfill missing NocoDB dates within the 3-day window');
 assert(!f23bCandidate.includes('최근 14일'), 'F23B default backfill window must not remain 14 days');
 
+assert(f23bCandidate.includes('beforeTotalRevenue'), 'F23B candidates must keep prior total revenue for correction alerts');
+assert(f23bCandidate.includes('beforeCoupangRevenue'), 'F23B candidates must keep prior Coupang revenue for correction alerts');
+assert(f23b.includes('매출 백필 정정 알림'), 'F23B alert must be framed as a correction alert');
+assert(f23b.includes('총매출') && f23b.includes('쿠팡윙'), 'F23B correction alert must include total and Coupang amount changes');
+assert(f23b.includes('문제 후보가 없으면 Telegram 운영알림을 보내지 않는다'), 'F23B must document no-alert behavior when there is no issue');
+
 console.log('sales-status-smoke-test: ok');

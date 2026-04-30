@@ -1,60 +1,71 @@
 ---
-handoff_id: HOFF-20260430-095556-direct-trade-governance-session-save
-created_at: 2026-04-30T09:55:57+0900
+handoff_id: HOFF-20260430-1238-tax-invoice-loading-fix
 runtime: codex-omx
-owner_agent_id: yoo-junho-paircoder
-contributors: []
-scope_type: worktree
-project: offline-crm
-worktree_slot: offline-crm-shipment-payment-governance-prd
-repo_root: /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd
-branch: "work/offline-crm/shipment-payment-governance-prd"
-worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
-source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
-commit_sha: 98c119f
-status: active
-promoted_to_global: false
-summary: "직접거래 CRM 거버넌스: 운영 apply 101건, full E2E 94/94, 운영 릴리스 20260430093850-6551434까지 완료"
-decision: "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다."
-changed_artifacts:
-  - "(no working-tree changes at handoff time)"
-verification:
-  - "local output handoff saved: output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md"
-  - "git status captured at handoff time"
-open_risks:
-  - "세금계산서 실제 발급은 미수행. 운영 데이터 롤백은 앱 롤백이 아니라 정정 이벤트로 처리 필요. memo 원문 스냅샷은 git 제외 로컬 output에만 있음"
-next_step: "다음 작업 없음. 문제 발생 시 task-k/task-l/task-m handoff와 민감 스냅샷을 기준으로 개별 확인"
-learn_to_save:
-  - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
-local_output_handoff: "output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md"
-session_log: "output/codex-sessions/20260430-095556-offline-crm.md"
-backup_folder: "(none)"
+owner_agent_id: choi-minseok-cto
+branch: work/offline-crm/shipment-payment-governance-prd
+task_name: Task O — 바로빌 세금계산서 모달 무한 로딩 복구
+task_goal: 명세표 작성/조회 화면의 바로빌 전자세금계산서 발급 모달이 응답 지연 또는 필수 정보 누락 상태에서 무한 로딩처럼 보이는 문제를 해소하고 운영 서버에 반영한다.
+run_outcome: finished
 ---
 
-# Codex durable handoff
+## summary
+최민석님이 세금계산서 발급 모달의 무한 대기 가능성을 제거했습니다. 명세표/품목 조회는 15초, 고객 사업자 정보 조회는 8초, 바로빌 발급·상태조회·취소 webhook은 30초 타임아웃을 두어 대기 상태가 풀리도록 했습니다. 사업자번호/대표자/이메일이 없는 경우 발급 버튼을 `정보 보완 필요`로 바꾸고 `고객 정보 보완` 버튼으로 고객 상세로 이동하게 했습니다.
 
-## 요약
-직접거래 CRM 거버넌스: 운영 apply 101건, full E2E 94/94, 운영 릴리스 20260430093850-6551434까지 완료
+## decision
+- 운영 데이터 write는 하지 않았습니다.
+- 실제 바로빌 발급 클릭은 수행하지 않았습니다.
+- 고객 정보 조회가 지연되면 명세표에 저장된 거래처 정보만으로 모달을 열고 보완 필요 항목을 보여주도록 했습니다.
+- 운영 배포 스크립트는 기본 빌드 모드를 `production` + `VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE=true`로 설정했습니다. 따라서 운영 서버에서 버튼은 실제 운영 발급 모드로 표시됩니다.
 
-## 다음 작업
-다음 작업 없음. 문제 발생 시 task-k/task-l/task-m handoff와 민감 스냅샷을 기준으로 개별 확인
+## changed_artifacts
+- 코드 커밋: `69f96a1 [codex] 세금계산서 모달 로딩 보완`
+- 운영 릴리스: `/var/www/releases/crm/20260430123709-69f96a1`
+- 수정 파일:
+  - `offline-crm-v2/src/lib/api.ts`
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+  - `offline-crm-v2/src/components/TaxInvoiceRequestDialog.tsx`
+  - `offline-crm-v2/deploy/deploy-release.sh`
+  - `offline-crm-v2/tests/10-tax-invoice.spec.ts`
+  - `offline-crm-v2/tests/15-tax-invoice-resilience.spec.ts`
 
-## 리스크
-세금계산서 실제 발급은 미수행. 운영 데이터 롤백은 앱 롤백이 아니라 정정 이벤트로 처리 필요. memo 원문 스냅샷은 git 제외 로컬 output에만 있음
+## verification
+- `npm run lint`: PASS
+- `VITE_BAROBILL_TAX_INVOICE_MODE=production VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE=true npm run build`: PASS
+- `npx playwright test tests/15-tax-invoice-resilience.spec.ts --reporter=list`: PASS, 1/1
+- `npx playwright test tests/14-governance-browser-smoke.spec.ts --reporter=list`: PASS, 1/1
+- `bash _tools/pressco21-check.sh`: PASS
+- `bash deploy/deploy-release.sh`: PASS, Release ID `20260430123709-69f96a1`
+- Remote `readlink -f /var/www/crm-current`: `/var/www/releases/crm/20260430123709-69f96a1`
+- Remote `systemctl is-active crm-auth.service`: `active`
+- Remote `curl -fsS http://127.0.0.1:9100/health`: `ok`
+- Remote `sudo nginx -t`: successful
+- External `curl -I https://crm.pressco21.com/login?next=%2F`: HTTP 200
+- Built asset check: 운영 바로빌 문구 포함, 테스트 gate 문구 미포함, `정보 보완 필요`/`고객 정보 보완` 문구 포함
 
-## 로컬 output handoff
-`output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md`
+## browser_evidence
+- Mock 브라우저 E2E에서 사업자 정보 누락 명세표를 열면 발급 모달이 표시되고, 누락 항목 3개가 보이며, `고객 정보 보완` 버튼은 활성, `정보 보완 필요` 버튼은 비활성으로 확인했습니다.
+- 운영 로그인 페이지는 외부 HTTPS 200으로 확인했습니다. 운영 내부 화면은 로그인 세션이 필요해 실제 발급 클릭 없이 배포 smoke만 수행했습니다.
 
-## Git 상태
+## open_risks
+- 실제 바로빌 운영 발급 자체는 클릭하지 않았으므로, 첫 실발급은 사용자가 대상 명세표의 사업자번호/대표자/수신 이메일을 보완한 뒤 1건만 확인해야 합니다.
+- n8n/바로빌 쪽이 30초 이상 응답하지 않으면 이제 무한 로딩은 풀리지만, 실제 provider 처리 여부는 발급내역/바로빌 콘솔에서 확인해야 합니다.
+- 배포 중 crm-auth health 첫 retry에서 connection refused 로그가 1회 있었으나 재시도 후 health ok로 완료되었습니다.
 
-```text
-(clean)
-```
+## blockers
+없음.
 
-## 최근 커밋
+## next_step
+- 사용자가 운영 CRM에서 해당 명세표의 `고객 정보 보완`으로 사업자번호/대표자/이메일을 채운 뒤 세금계산서 발급 모달을 다시 열어 실제 운영 발급 버튼 표시를 확인합니다.
+- 실제 발급은 1건만 먼저 실행하고, 발급내역 상태조회가 정상인지 확인합니다.
 
-```text
-98c119f [codex] 직접거래 운영 재배포 핸드오프
-6551434 [codex] 직접거래 운영 적용 핸드오프
-ecfd259 [codex] 직접거래 운영 적용 검증 보강
-```
+## files_to_inspect_next
+- `offline-crm-v2/src/components/TaxInvoiceRequestDialog.tsx`
+- `offline-crm-v2/src/lib/api.ts`
+- `offline-crm-v2/src/pages/Invoices.tsx`
+- `offline-crm-v2/deploy/deploy-release.sh`
+
+## rollback_or_recovery_note
+앱 롤백은 `cd offline-crm-v2 && bash deploy/rollback-release.sh 20260430123709-69f96a1`로 수행할 수 있습니다. 운영 데이터 write는 하지 않았으므로 앱 롤백만으로 이번 변경을 되돌릴 수 있습니다.
+
+## learn_to_save
+세금계산서/외부 provider 버튼은 응답 지연 시 반드시 프론트 타임아웃과 중복발급 확인 안내를 함께 둬야 하며, 필수 정보 누락 상태의 primary button은 발급처럼 보이면 안 됩니다.

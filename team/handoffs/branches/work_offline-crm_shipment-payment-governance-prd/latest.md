@@ -1,79 +1,71 @@
 ---
-handoff_id: HOFF-20260430-1208-direct-trade-settlement-ia-auto-tax-latest
-created_at: 2026-04-30T12:08:00+0900
+handoff_id: HOFF-20260430-1238-tax-invoice-loading-fix
 runtime: codex-omx
-owner_agent_id: yoon-haneul-pm
-contributors:
-  - choi-minseok-cto
-  - park-seoyeon-cfo
-  - cho-hyunwoo-legal
-  - yoo-junho-paircoder
-scope_type: worktree
-project: offline-crm
-worktree_slot: offline-crm-shipment-payment-governance-prd
-repo_root: /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd
-branch: "work/offline-crm/shipment-payment-governance-prd"
-worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
-commit_sha: 46d2c65
-implementation_commit: 46d2c65
-status: deployed
-summary: "수급 지급 관리 통합 IA, 고객계정 자동반영 정확일치 보강, 세금계산서 요청자/운영 UI 정비 구현 및 mock browser smoke 통과"
-decision: "운영 데이터 write 없이 프론트 구조/안전 매칭/세금계산서 요청 payload를 정비했습니다. 실제 바로빌 발급과 운영 입금 자동반영은 별도 승인 필요입니다."
-changed_artifacts:
-  - "offline-crm-v2/src/pages/SettlementManagement.tsx"
-  - "offline-crm-v2/src/components/layout/Sidebar.tsx"
-  - "offline-crm-v2/src/lib/accountingMeta.ts"
-  - "offline-crm-v2/src/lib/autoDeposits.ts"
-  - "offline-crm-v2/src/pages/CustomerDetail.tsx"
-  - "offline-crm-v2/src/components/TaxInvoiceRequestDialog.tsx"
-  - "offline-crm-v2/src/pages/Invoices.tsx"
-  - "offline-crm-v2/tests/12-deposit-inbox-governance.spec.ts"
-  - "offline-crm-v2/tests/13-month-end-review.spec.ts"
-  - "offline-crm-v2/tests/14-governance-browser-smoke.spec.ts"
-deployment:
-  release_id: "20260430121301-399271c"
-  url: "https://crm.pressco21.com"
-  smoke: "login page 200 / title PRESSCO21 CRM 로그인"
-verification:
-  - "npm run build: PASS"
-  - "npm run lint: PASS"
-  - "npx playwright test tests/12-deposit-inbox-governance.spec.ts tests/13-month-end-review.spec.ts tests/14-governance-browser-smoke.spec.ts --reporter=list: PASS, 4/4"
-  - "npx playwright test tests/03-dashboard.spec.ts tests/12...14 --reporter=list: attempted, 9 passed/4 failed; dashboard live data/chart expectations failed, governance smoke fixed and rerun PASS"
-open_risks:
-  - "세금계산서 실제 발급은 미수행. 운영 env가 test면 UI는 계속 테스트 발급으로 표시됩니다."
-  - "고객계정 자동반영은 전역 자동반영 ON + 고객별 허용 ON + 입금자명/별칭 정확일치에서 실제 장부 write가 가능하므로 운영 설정 변경 전 후보 dry-run 확인 필요."
-  - "dashboard full spec 일부는 현재 live data/chart 조건 및 Vite EPIPE로 실패 기록이 있음. 이번 기능 검증 기준은 mock governance smoke."
-next_step: "운영 화면 로그인 후 수급 지급 관리 메뉴 확인. 운영 env 점검과 실제 바로빌 발급은 별도 승인 후 1건 단위로 진행."
-learn_to_save:
-  - "메뉴 용어/IA 변경은 hidden legacy route를 유지하고 새 통합 route로 링크만 유도하면 안전합니다."
-  - "고객 전체 선입금 자동화는 고객별 허용 플래그, 동명이인 차단, 입금자명/별칭 정확일치가 핵심입니다."
-  - "세금계산서 테스트/운영 표시는 코드보다 배포 env gate 확인이 먼저입니다."
+owner_agent_id: choi-minseok-cto
+branch: work/offline-crm/shipment-payment-governance-prd
+task_name: Task O — 바로빌 세금계산서 모달 무한 로딩 복구
+task_goal: 명세표 작성/조회 화면의 바로빌 전자세금계산서 발급 모달이 응답 지연 또는 필수 정보 누락 상태에서 무한 로딩처럼 보이는 문제를 해소하고 운영 서버에 반영한다.
+run_outcome: finished
 ---
 
-# 최신 handoff
+## summary
+최민석님이 세금계산서 발급 모달의 무한 대기 가능성을 제거했습니다. 명세표/품목 조회는 15초, 고객 사업자 정보 조회는 8초, 바로빌 발급·상태조회·취소 webhook은 30초 타임아웃을 두어 대기 상태가 풀리도록 했습니다. 사업자번호/대표자/이메일이 없는 경우 발급 버튼을 `정보 보완 필요`로 바꾸고 `고객 정보 보완` 버튼으로 고객 상세로 이동하게 했습니다.
 
-## 요약
-수급 지급 관리 단일 메뉴와 5개 탭이 구현됐고, 고객계정 자동반영은 정확일치 조건으로 보강됐으며 세금계산서 요청자/운영 모드 UI가 정비됐습니다.
+## decision
+- 운영 데이터 write는 하지 않았습니다.
+- 실제 바로빌 발급 클릭은 수행하지 않았습니다.
+- 고객 정보 조회가 지연되면 명세표에 저장된 거래처 정보만으로 모달을 열고 보완 필요 항목을 보여주도록 했습니다.
+- 운영 배포 스크립트는 기본 빌드 모드를 `production` + `VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE=true`로 설정했습니다. 따라서 운영 서버에서 버튼은 실제 운영 발급 모드로 표시됩니다.
 
-## 상세 작업 handoff
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-n1-settlement-ia.md`
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-n2-auto-deposit-account-match.md`
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-n3-tax-invoice-production-ui.md`
+## changed_artifacts
+- 코드 커밋: `69f96a1 [codex] 세금계산서 모달 로딩 보완`
+- 운영 릴리스: `/var/www/releases/crm/20260430123709-69f96a1`
+- 수정 파일:
+  - `offline-crm-v2/src/lib/api.ts`
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+  - `offline-crm-v2/src/components/TaxInvoiceRequestDialog.tsx`
+  - `offline-crm-v2/deploy/deploy-release.sh`
+  - `offline-crm-v2/tests/10-tax-invoice.spec.ts`
+  - `offline-crm-v2/tests/15-tax-invoice-resilience.spec.ts`
 
-## 검증
-- build/lint 통과
-- governance mock browser smoke 4/4 통과
-- 운영 데이터 write 없음
+## verification
+- `npm run lint`: PASS
+- `VITE_BAROBILL_TAX_INVOICE_MODE=production VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE=true npm run build`: PASS
+- `npx playwright test tests/15-tax-invoice-resilience.spec.ts --reporter=list`: PASS, 1/1
+- `npx playwright test tests/14-governance-browser-smoke.spec.ts --reporter=list`: PASS, 1/1
+- `bash _tools/pressco21-check.sh`: PASS
+- `bash deploy/deploy-release.sh`: PASS, Release ID `20260430123709-69f96a1`
+- Remote `readlink -f /var/www/crm-current`: `/var/www/releases/crm/20260430123709-69f96a1`
+- Remote `systemctl is-active crm-auth.service`: `active`
+- Remote `curl -fsS http://127.0.0.1:9100/health`: `ok`
+- Remote `sudo nginx -t`: successful
+- External `curl -I https://crm.pressco21.com/login?next=%2F`: HTTP 200
+- Built asset check: 운영 바로빌 문구 포함, 테스트 gate 문구 미포함, `정보 보완 필요`/`고객 정보 보완` 문구 포함
 
-## 남은 주의
-- 실제 바로빌 운영 발급은 클릭하지 않았습니다.
-- 운영 env가 production/allow true로 배포되어야 테스트 문구가 실제 발급 문구로 바뀝니다.
+## browser_evidence
+- Mock 브라우저 E2E에서 사업자 정보 누락 명세표를 열면 발급 모달이 표시되고, 누락 항목 3개가 보이며, `고객 정보 보완` 버튼은 활성, `정보 보완 필요` 버튼은 비활성으로 확인했습니다.
+- 운영 로그인 페이지는 외부 HTTPS 200으로 확인했습니다. 운영 내부 화면은 로그인 세션이 필요해 실제 발급 클릭 없이 배포 smoke만 수행했습니다.
 
-## Git 보존
-- 구현 커밋: `46d2c65`
-- 브랜치 push 완료: `origin/work/offline-crm/shipment-payment-governance-prd`
+## open_risks
+- 실제 바로빌 운영 발급 자체는 클릭하지 않았으므로, 첫 실발급은 사용자가 대상 명세표의 사업자번호/대표자/수신 이메일을 보완한 뒤 1건만 확인해야 합니다.
+- n8n/바로빌 쪽이 30초 이상 응답하지 않으면 이제 무한 로딩은 풀리지만, 실제 provider 처리 여부는 발급내역/바로빌 콘솔에서 확인해야 합니다.
+- 배포 중 crm-auth health 첫 retry에서 connection refused 로그가 1회 있었으나 재시도 후 health ok로 완료되었습니다.
 
-## 운영 배포
-- 릴리스: `20260430121301-399271c`
-- URL: `https://crm.pressco21.com`
-- 검증: auth service active, internal health ok, sudo nginx -t ok, external login page 200, headless browser title `PRESSCO21 CRM 로그인`
+## blockers
+없음.
+
+## next_step
+- 사용자가 운영 CRM에서 해당 명세표의 `고객 정보 보완`으로 사업자번호/대표자/이메일을 채운 뒤 세금계산서 발급 모달을 다시 열어 실제 운영 발급 버튼 표시를 확인합니다.
+- 실제 발급은 1건만 먼저 실행하고, 발급내역 상태조회가 정상인지 확인합니다.
+
+## files_to_inspect_next
+- `offline-crm-v2/src/components/TaxInvoiceRequestDialog.tsx`
+- `offline-crm-v2/src/lib/api.ts`
+- `offline-crm-v2/src/pages/Invoices.tsx`
+- `offline-crm-v2/deploy/deploy-release.sh`
+
+## rollback_or_recovery_note
+앱 롤백은 `cd offline-crm-v2 && bash deploy/rollback-release.sh 20260430123709-69f96a1`로 수행할 수 있습니다. 운영 데이터 write는 하지 않았으므로 앱 롤백만으로 이번 변경을 되돌릴 수 있습니다.
+
+## learn_to_save
+세금계산서/외부 provider 버튼은 응답 지연 시 반드시 프론트 타임아웃과 중복발급 확인 안내를 함께 둬야 하며, 필수 정보 누락 상태의 primary button은 발급처럼 보이면 안 됩니다.

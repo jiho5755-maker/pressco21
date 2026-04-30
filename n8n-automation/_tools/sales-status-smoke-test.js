@@ -24,6 +24,7 @@ const f23 = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'
 const f23Coupang = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'), '쿠팡윙 주문 조회');
 const f26 = codeOf(workflow('workflows/automation/daily-sales-f26-weekly-adjustment.json'), '메이크샵 재조회');
 const f22 = codeOf(workflow('workflows/automation/daily-sales-report.json'), '매출 분석');
+const f23bCandidate = codeOf(workflow('workflows/automation/coupang-pending-backfill-1930.json'), '백필 대상 계산');
 const f23b = codeOf(workflow('workflows/automation/coupang-pending-backfill-1930.json'), '백필 결과 요약');
 
 for (const [label, code] of [['F23', f23], ['F26', f26]]) {
@@ -61,5 +62,10 @@ assert(f23b.includes('hasUnresolvedCoupang'), 'F23B must classify unresolved Cou
 assert(f23b.includes('needsBackfill'), 'F23B must treat pending Coupang as unresolved');
 assert(f23b.includes('unresolvedCount'), 'F23B summary must expose unresolvedCount');
 assert(f23b.includes('미해결'), 'F23B alert must show unresolved wording instead of false success');
+
+assert(f23bCandidate.includes('const lookbackDays = 3;'), 'F23B must always inspect the latest 3 closed sales days');
+assert(f23bCandidate.includes('targetDates'), 'F23B must enumerate fixed target dates, not only existing NocoDB rows');
+assert(f23bCandidate.includes('missing_nocodb_record'), 'F23B must backfill missing NocoDB dates within the 3-day window');
+assert(!f23bCandidate.includes('최근 14일'), 'F23B default backfill window must not remain 14 days');
 
 console.log('sales-status-smoke-test: ok');

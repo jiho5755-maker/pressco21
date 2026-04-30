@@ -16,7 +16,7 @@ branch: "work/offline-crm/shipment-payment-governance-prd"
 worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
 commit_sha: 46d2c65
 implementation_commit: 46d2c65
-status: pushed
+status: deployed
 summary: "수급 지급 관리 통합 IA, 고객계정 자동반영 정확일치 보강, 세금계산서 요청자/운영 UI 정비 구현 및 mock browser smoke 통과"
 decision: "운영 데이터 write 없이 프론트 구조/안전 매칭/세금계산서 요청 payload를 정비했습니다. 실제 바로빌 발급과 운영 입금 자동반영은 별도 승인 필요입니다."
 changed_artifacts:
@@ -30,6 +30,10 @@ changed_artifacts:
   - "offline-crm-v2/tests/12-deposit-inbox-governance.spec.ts"
   - "offline-crm-v2/tests/13-month-end-review.spec.ts"
   - "offline-crm-v2/tests/14-governance-browser-smoke.spec.ts"
+deployment:
+  release_id: "20260430121301-399271c"
+  url: "https://crm.pressco21.com"
+  smoke: "login page 200 / title PRESSCO21 CRM 로그인"
 verification:
   - "npm run build: PASS"
   - "npm run lint: PASS"
@@ -39,7 +43,7 @@ open_risks:
   - "세금계산서 실제 발급은 미수행. 운영 env가 test면 UI는 계속 테스트 발급으로 표시됩니다."
   - "고객계정 자동반영은 전역 자동반영 ON + 고객별 허용 ON + 입금자명/별칭 정확일치에서 실제 장부 write가 가능하므로 운영 설정 변경 전 후보 dry-run 확인 필요."
   - "dashboard full spec 일부는 현재 live data/chart 조건 및 Vite EPIPE로 실패 기록이 있음. 이번 기능 검증 기준은 mock governance smoke."
-next_step: "운영 배포가 필요하면 별도 승인 후 배포. 운영 env 점검과 실제 바로빌 발급은 별도 승인 후 1건 단위로 진행."
+next_step: "운영 화면 로그인 후 수급 지급 관리 메뉴 확인. 운영 env 점검과 실제 바로빌 발급은 별도 승인 후 1건 단위로 진행."
 learn_to_save:
   - "메뉴 용어/IA 변경은 hidden legacy route를 유지하고 새 통합 route로 링크만 유도하면 안전합니다."
   - "고객 전체 선입금 자동화는 고객별 허용 플래그, 동명이인 차단, 입금자명/별칭 정확일치가 핵심입니다."
@@ -68,3 +72,8 @@ learn_to_save:
 ## Git 보존
 - 구현 커밋: `46d2c65`
 - 브랜치 push 완료: `origin/work/offline-crm/shipment-payment-governance-prd`
+
+## 운영 배포
+- 릴리스: `20260430121301-399271c`
+- URL: `https://crm.pressco21.com`
+- 검증: auth service active, internal health ok, sudo nginx -t ok, external login page 200, headless browser title `PRESSCO21 CRM 로그인`

@@ -1,0 +1,22 @@
+{
+  "execution_id": "272134",
+  "status": "success",
+  "mode": "webhook",
+  "startedAt": "2026-04-30T02:44:39.354Z",
+  "stoppedAt": "2026-04-30T02:44:42.026Z",
+  "telegram": {
+    "chat_title": "PRESSCO21 매출 공유",
+    "message_thread_id": 3,
+    "topic": "매출보고",
+    "message_id": 29
+  },
+  "report": {
+    "date": "2026-04-29",
+    "yesterday_revenue": 4294374,
+    "mtd_revenue": 136167648,
+    "ytd_revenue": 371961252,
+    "coupang_revenue": 450300,
+    "coupang_source": "nocodb_f23_api",
+    "manual_entered": false
+  }
+}

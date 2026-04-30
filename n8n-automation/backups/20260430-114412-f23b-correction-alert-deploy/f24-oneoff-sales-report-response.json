@@ -1,0 +1,16 @@
+{
+  "http_status": 200,
+  "request": {
+    "source": "manual-oneoff-after-f23b-correction-alert-deploy",
+    "requestedAt": "2026-04-30T11:44:39"
+  },
+  "response": {
+    "ok": true,
+    "date": "2026-04-29",
+    "mtd_revenue": 136167648,
+    "ytd_revenue": 371961252,
+    "manual_entered": false,
+    "coupang_source": "nocodb_f23_api"
+  },
+  "called_at": "2026-04-30T11:44:42"
+}

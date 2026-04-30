@@ -365,11 +365,5 @@
   },
   "settings": {
     "executionOrder": "v1"
-  },
-  "meta": {
-    "draft": true,
-    "notes": "운영 배포 전 F23 webhook URL과 pending 후보 조건을 실제 테이블 값으로 재확인하세요."
-  },
-  "id": "CZGvlrUcX3PlU5ql",
-  "active": true
+  }
 }

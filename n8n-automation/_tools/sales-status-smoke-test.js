@@ -24,6 +24,7 @@ const f23 = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'
 const f23Coupang = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'), '쿠팡윙 주문 조회');
 const f26 = codeOf(workflow('workflows/automation/daily-sales-f26-weekly-adjustment.json'), '메이크샵 재조회');
 const f22 = codeOf(workflow('workflows/automation/daily-sales-report.json'), '매출 분석');
+const f23b = codeOf(workflow('workflows/automation/coupang-pending-backfill-1930.json'), '백필 결과 요약');
 
 for (const [label, code] of [['F23', f23], ['F26', f26]]) {
   assert(code.includes("const isRevenueStatus = status === 'Y' || status === 'S';"), `${label} must include Y/S as revenue states`);
@@ -55,5 +56,10 @@ assert(f23Coupang.includes('const maxAttempts = 3;'), 'F23 Coupang must retry tr
 assert(f23Coupang.includes('nextToken'), 'F23 Coupang must support paginated responses');
 assert(f23Coupang.includes('statusSummary'), 'F23 Coupang must return per-status diagnostics');
 assert(f23Coupang.includes('summarizeError'), 'F23 Coupang must preserve sanitized API error details');
+
+assert(f23b.includes('hasUnresolvedCoupang'), 'F23B must classify unresolved Coupang backfill separately');
+assert(f23b.includes('needsBackfill'), 'F23B must treat pending Coupang as unresolved');
+assert(f23b.includes('unresolvedCount'), 'F23B summary must expose unresolvedCount');
+assert(f23b.includes('미해결'), 'F23B alert must show unresolved wording instead of false success');
 
 console.log('sales-status-smoke-test: ok');

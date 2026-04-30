@@ -18,6 +18,37 @@ REMOTE_NGINX_CONFIG="/etc/nginx/sites-available/crm"
 REMOTE_UPLOAD_DIR="/tmp/pressco21-crm-deploy"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+WORKTREE_ROOT="$(dirname "$PROJECT_DIR")"
+DEFAULT_MAIN_ROOT="$HOME/workspace/pressco21"
+SECRETS_FILE=""
+
+if [ -f "$WORKTREE_ROOT/.secrets.env" ]; then
+  SECRETS_FILE="$WORKTREE_ROOT/.secrets.env"
+elif [ -f "$DEFAULT_MAIN_ROOT/.secrets.env" ]; then
+  SECRETS_FILE="$DEFAULT_MAIN_ROOT/.secrets.env"
+fi
+
+if [ -n "$SECRETS_FILE" ]; then
+  # 쉘에 안전하게 export만 하고 파일은 수정하지 않는다. 값은 출력하지 않는다.
+  # 일부 secret 값은 다른 미정의 변수를 텍스트로 포함할 수 있어 source 중 nounset만 잠시 끈다.
+  set +u
+  set -a
+  # shellcheck disable=SC1090
+  . "$SECRETS_FILE"
+  set +a
+  set -u
+fi
+
+if [ -z "${VITE_CRM_API_KEY:-}" ] && [ -n "${CRM_API_KEY:-}" ]; then
+  export VITE_CRM_API_KEY="$CRM_API_KEY"
+fi
+
+if [ -z "${VITE_CRM_API_KEY:-}" ]; then
+  echo "오류: VITE_CRM_API_KEY(또는 CRM_API_KEY)를 찾지 못했습니다." >&2
+  echo "확인한 파일: ${SECRETS_FILE:-없음}" >&2
+  exit 1
+fi
+
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 GIT_SHA="$(git -C "$PROJECT_DIR" rev-parse --short HEAD)"
 DIRTY_SUFFIX=""

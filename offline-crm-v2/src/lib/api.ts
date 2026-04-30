@@ -83,12 +83,29 @@ export interface PaymentReminderWebhookResponse {
   scheduledFor?: string
 }
 
-function redirectToLogin() {
-  if (typeof window === 'undefined') return
-  if (window.location.pathname.startsWith('/login')) return
+const AUTH_REDIRECT_GUARD_KEY = 'pressco21-crm-auth-redirect-at'
+const AUTH_REDIRECT_GUARD_MS = 30_000
+
+function redirectToLogin(): boolean {
+  if (typeof window === 'undefined') return false
+  if (window.location.pathname.startsWith('/login')) return false
+
+  const now = Date.now()
+  const previousRedirectAt = Number(window.sessionStorage.getItem(AUTH_REDIRECT_GUARD_KEY) || 0)
+  if (Number.isFinite(previousRedirectAt) && now - previousRedirectAt < AUTH_REDIRECT_GUARD_MS) {
+    return false
+  }
+
+  window.sessionStorage.setItem(AUTH_REDIRECT_GUARD_KEY, String(now))
   const next = `${window.location.pathname}${window.location.search}${window.location.hash}`
   const encodedNext = encodeURIComponent(next || '/')
   window.location.href = `/login?next=${encodedNext}`
+  return true
+}
+
+function clearAuthRedirectGuard() {
+  if (typeof window === 'undefined') return
+  window.sessionStorage.removeItem(AUTH_REDIRECT_GUARD_KEY)
 }
 
 export interface AutoDepositReviewQueueRecord {
@@ -141,12 +158,18 @@ async function proxyRequest<T>(req: ProxyRequest): Promise<T> {
   })
 
   if (!res.ok) {
+    const errorText = await res.text()
     if (res.status === 401) {
-      redirectToLogin()
+      const didRedirect = redirectToLogin()
+      if (didRedirect) {
+        throw new Error('로그인 세션 확인이 필요해 로그인 화면으로 이동합니다')
+      }
+      throw new Error('CRM API 인증 오류가 반복되어 자동 새로고침을 중단했습니다. 새로고침 또는 재로그인 후 다시 시도해주세요.')
     }
-    throw new Error(`Proxy Error ${res.status}: ${await res.text()}`)
+    throw new Error(`Proxy Error ${res.status}: ${errorText}`)
   }
 
+  clearAuthRedirectGuard()
   const json: ProxyResponse<T> = await res.json()
 
   if (!json.success) {

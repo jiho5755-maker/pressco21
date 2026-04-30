@@ -21,6 +21,7 @@ import {
   appendInvoicePaymentHistory,
   isInvoiceRevenueRecognized,
   parseCustomerAccountingMeta,
+  replaceCustomerAccountingPreferences,
 } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
 import {
@@ -43,6 +44,10 @@ import {
 } from '@/lib/autoDeposits'
 
 type LocalInboxFilter = 'all' | AutoDepositMatchedEntry['status']
+type ManualDepositSource =
+  | { kind: 'new' }
+  | { kind: 'local'; entryId: string }
+  | { kind: 'review'; queueId: string }
 
 interface DepositInboxProps {
   titleOverride?: string
@@ -137,6 +142,8 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
   const [manualCustomerSearch, setManualCustomerSearch] = useState('')
   const [manualSelectedCustomerId, setManualSelectedCustomerId] = useState('')
   const [manualNote, setManualNote] = useState('')
+  const [manualSaveAlias, setManualSaveAlias] = useState(false)
+  const [manualSource, setManualSource] = useState<ManualDepositSource>({ kind: 'new' })
   const [isManualApplying, setIsManualApplying] = useState(false)
   const activeOperator = loadActiveWorkOperatorProfile()
   const settings = loadStoredCrmSettings()
@@ -354,6 +361,42 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     setManualCustomerSearch('')
     setManualSelectedCustomerId('')
     setManualNote('')
+    setManualSaveAlias(false)
+    setManualSource({ kind: 'new' })
+  }
+
+  function formatManualAmountInput(amount: number): string {
+    return Number.isFinite(amount) && amount > 0 ? String(Math.trunc(amount)) : ''
+  }
+
+  function openManualDepositDialog(source: ManualDepositSource, entry?: AutoDepositInboxEntry) {
+    setManualSource(source)
+    setManualSender(entry?.sender ?? '')
+    setManualAmountInput(formatManualAmountInput(entry?.amount ?? 0))
+    setManualDate(entry?.date || todayDate())
+    setManualCustomerSearch('')
+    setManualSelectedCustomerId('')
+    setManualNote(entry
+      ? `${entry.sender} 입금분 대상 고객 직접 매핑${entry.note ? ` · ${entry.note}` : ''}`
+      : '')
+    setManualSaveAlias(false)
+    setManualDialogOpen(true)
+  }
+
+  async function saveDepositorAliasIfRequested(customerId: number, alias: string) {
+    const normalizedAlias = alias.trim()
+    if (!manualSaveAlias || !normalizedAlias) return
+    const latestCustomer = await getCustomer(customerId)
+    const latestMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
+    if (latestMeta.depositorAliases.includes(normalizedAlias)) return
+    const nextMemo = replaceCustomerAccountingPreferences(latestCustomer.memo as string | undefined, {
+      depositorAliases: [...latestMeta.depositorAliases, normalizedAlias],
+      addressLabels: latestMeta.addressLabels,
+      autoDepositDisabled: latestMeta.autoDepositDisabled,
+      autoDepositAccountMatchEnabled: latestMeta.autoDepositAccountMatchEnabled,
+      autoDepositPriority: latestMeta.autoDepositPriority,
+    })
+    await updateCustomer(customerId, { memo: nextMemo })
   }
 
   async function handleManualDepositApply() {
@@ -394,13 +437,26 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     )
     if (!shouldApply) return
 
+    const sourceEntry = manualSource.kind === 'local'
+      ? entries.find((item) => item.id === manualSource.entryId)
+      : manualSource.kind === 'review'
+        ? remoteItems.find((item) => item.queueId === manualSource.queueId)
+        : undefined
     const entry: AutoDepositInboxEntry = {
-      id: `manual-${Date.now()}-${manualSelectedCustomer.Id}-${amount}`,
+      id: manualSource.kind === 'local'
+        ? manualSource.entryId
+        : manualSource.kind === 'review'
+          ? manualSource.queueId
+          : `manual-${Date.now()}-${manualSelectedCustomer.Id}-${amount}`,
       date: manualDate,
       sender,
       amount,
-      note,
-      sourceFile: '수동 입력',
+      note: note || (sourceEntry && 'reason' in sourceEntry ? sourceEntry.reason ?? '' : ''),
+      sourceFile: sourceEntry && 'sourceFile' in sourceEntry
+        ? sourceEntry.sourceFile
+        : sourceEntry && 'source' in sourceEntry
+          ? sourceEntry.source || '자동입금 검토 큐'
+          : '수동 입력',
       status: 'pending',
     }
     const candidate: AutoDepositCandidate = {
@@ -419,6 +475,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
     setIsManualApplying(true)
     try {
       await applyCustomerDepositLedger(entry, candidate)
+      await saveDepositorAliasIfRequested(manualSelectedCustomer.Id, sender)
       const appliedEntry: AutoDepositInboxEntry = {
         ...entry,
         status: 'applied',
@@ -428,12 +485,24 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
         resolvedBy: activeOperator?.label ?? 'manual',
         resolvedReason: `수동 반영 · 대상 ${candidate.customerName}${note ? ` · ${note}` : ''}`,
       }
-      persistEntries([
-        appliedEntry,
-        ...entries.filter((item) => item.id !== appliedEntry.id),
-      ])
+      if (manualSource.kind === 'local') {
+        persistEntries(entries.map((item) => item.id === appliedEntry.id ? appliedEntry : item))
+      } else {
+        persistEntries([
+          appliedEntry,
+          ...entries.filter((item) => item.id !== appliedEntry.id),
+        ])
+      }
+      if (manualSource.kind === 'review') {
+        await dismissAutoDepositReviewQueueItem(
+          manualSource.queueId,
+          activeOperator?.label ?? 'manual',
+          `CRM 검토 큐 수동 매핑 완료 · ${sender} → ${candidate.customerName}`,
+        )
+        await refetchRemoteReviewQueue()
+      }
       await refreshAllViews(manualSelectedCustomer.Id)
-      toast.success('수동 입금 반영을 완료했습니다.')
+      toast.success(manualSource.kind === 'review' ? '검토 큐 입금 매핑을 완료했습니다.' : '수동 입금 반영을 완료했습니다.')
       resetManualDepositForm()
       setManualDialogOpen(false)
     } catch (error) {
@@ -869,7 +938,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
             <Upload className="mr-2 h-4 w-4" />
             입금 파일 업로드
           </Button>
-          <Button type="button" variant="outline" onClick={() => setManualDialogOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => openManualDepositDialog({ kind: 'new' })}>
             <Plus className="mr-2 h-4 w-4" />
             수동 입금 반영
           </Button>
@@ -883,9 +952,11 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
       <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>수동 입금 반영</DialogTitle>
+            <DialogTitle>{manualSource.kind === 'new' ? '수동 입금 반영' : '입금행 고객 매핑'}</DialogTitle>
             <DialogDescription>
-              입금자명이 실제 고객명과 다를 때 운영자가 대상 고객을 직접 지정합니다. 열린 명세표와 기존 장부에 오래된 순서로 반영하고 초과분은 예치금으로 보관합니다.
+              {manualSource.kind === 'new'
+                ? '입금자명이 실제 고객명과 다를 때 운영자가 대상 고객을 직접 지정합니다. 열린 명세표와 기존 장부에 오래된 순서로 반영하고 초과분은 예치금으로 보관합니다.'
+                : '자동입금 검토 목록의 입금행을 대상 고객에 직접 연결합니다. 이번 건만 반영하거나, 필요한 경우 입금자명을 고객 별칭으로 저장할 수 있습니다.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -978,6 +1049,21 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
               />
             </div>
 
+            <label className="flex items-start gap-2 rounded-lg border bg-white px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-[#7d9675]"
+                checked={manualSaveAlias}
+                onChange={(event) => setManualSaveAlias(event.target.checked)}
+              />
+              <span>
+                <span className="font-medium">이 이름을 고객 별칭으로 저장</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  동명이인이 많은 이름은 체크하지 말고 이번 건만 수동 매핑하세요. 체크하면 다음 자동입금 후보 산정에 사용됩니다.
+                </span>
+              </span>
+            </label>
+
             {manualSelectedCustomer ? (
               <div className="rounded-lg border border-[#d8e4d6] bg-[#f8faf7] px-4 py-3 text-sm">
                 <div className="font-medium text-gray-900">
@@ -999,7 +1085,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
               닫기
             </Button>
             <Button type="button" onClick={() => void handleManualDepositApply()} disabled={isManualApplying}>
-              {isManualApplying ? '반영 중...' : '수동 입금 반영'}
+              {isManualApplying ? '반영 중...' : manualSource.kind === 'new' ? '수동 입금 반영' : '이 입금행 매핑 반영'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1095,7 +1181,7 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
                   </td>
                   <td className="px-4 py-3 min-w-[320px]">
                     {item.candidates.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">후보를 찾지 못했습니다. 고객관리에서 별칭을 보강한 뒤 다시 확인하세요.</p>
+                      <p className="text-xs text-muted-foreground">후보를 찾지 못했습니다. 오른쪽의 고객 지정으로 이번 입금을 직접 매핑하세요.</p>
                     ) : (
                       <div className="space-y-2">
                         <Select
@@ -1137,6 +1223,15 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isResolvingReviewKey === item.queueId}
+                        onClick={() => openManualDepositDialog({ kind: 'review', queueId: item.queueId }, buildEntryFromReviewItem(item))}
+                      >
+                        고객 지정
+                      </Button>
                       <Button
                         type="button"
                         size="sm"
@@ -1340,6 +1435,15 @@ export function DepositInbox({ titleOverride, descriptionOverride }: DepositInbo
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={item.entry.status !== 'pending'}
+                        onClick={() => openManualDepositDialog({ kind: 'local', entryId: item.entry.id }, item.entry)}
+                      >
+                        고객 지정
+                      </Button>
                       <Button
                         type="button"
                         size="sm"

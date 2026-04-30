@@ -1,0 +1,25 @@
+{
+  "http_status": 200,
+  "payload": {
+    "source": "monthly-audit-sheet-snapshot-read",
+    "requestedAt": "2026-04-30T12:06:31"
+  },
+  "response": {
+    "ok": true,
+    "summary": {
+      "message": "<b>[운영알림][F23B] 매출 백필 정정 알림</b>\n문제 없음: 최근 3일 백필 후보 없음",
+      "shouldNotify": false,
+      "isWebhook": true,
+      "executedCount": 0,
+      "resolvedCount": 0,
+      "okCount": 0,
+      "unresolvedCount": 0,
+      "hardFailCount": 0,
+      "failCount": 0,
+      "skippedCount": 1,
+      "skippedReason": "최근 3일 백필 후보 없음",
+      "sheetReadError": "",
+      "corrections": []
+    }
+  }
+}

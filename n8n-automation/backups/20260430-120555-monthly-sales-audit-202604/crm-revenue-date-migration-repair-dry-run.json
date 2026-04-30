@@ -1,0 +1,1264 @@
+{
+  "generatedAt": "2026-04-30T12:00:00+09:00",
+  "mode": "dry-run",
+  "cause": "bulk_shipment_confirm migration used execution date as revenueRecognizedDate",
+  "affectedCount": 101,
+  "affectedAmount": 43022140,
+  "aprilInvoiceAffectedCount": 52,
+  "aprilInvoiceAffectedAmount": 20725890,
+  "byInvoiceDate": {
+    "2026-02-25": {
+      "count": 1,
+      "amount": 27900
+    },
+    "2026-03-09": {
+      "count": 1,
+      "amount": 626900
+    },
+    "2026-03-12": {
+      "count": 10,
+      "amount": 1337210
+    },
+    "2026-03-13": {
+      "count": 4,
+      "amount": 1883500
+    },
+    "2026-03-16": {
+      "count": 3,
+      "amount": 3189000
+    },
+    "2026-03-17": {
+      "count": 4,
+      "amount": 1792650
+    },
+    "2026-03-19": {
+      "count": 3,
+      "amount": 548660
+    },
+    "2026-03-20": {
+      "count": 3,
+      "amount": 2517900
+    },
+    "2026-03-23": {
+      "count": 1,
+      "amount": 965400
+    },
+    "2026-03-24": {
+      "count": 2,
+      "amount": 295100
+    },
+    "2026-03-25": {
+      "count": 3,
+      "amount": 147170
+    },
+    "2026-03-26": {
+      "count": 5,
+      "amount": 2507500
+    },
+    "2026-03-27": {
+      "count": 2,
+      "amount": 297000
+    },
+    "2026-03-30": {
+      "count": 3,
+      "amount": 4317160
+    },
+    "2026-03-31": {
+      "count": 4,
+      "amount": 1843200
+    },
+    "2026-04-01": {
+      "count": 2,
+      "amount": 604750
+    },
+    "2026-04-02": {
+      "count": 1,
+      "amount": 751200
+    },
+    "2026-04-03": {
+      "count": 1,
+      "amount": 54000
+    },
+    "2026-04-06": {
+      "count": 3,
+      "amount": 4662200
+    },
+    "2026-04-07": {
+      "count": 5,
+      "amount": 487420
+    },
+    "2026-04-08": {
+      "count": 4,
+      "amount": 1916700
+    },
+    "2026-04-09": {
+      "count": 5,
+      "amount": 2727850
+    },
+    "2026-04-10": {
+      "count": 3,
+      "amount": 872400
+    },
+    "2026-04-13": {
+      "count": 7,
+      "amount": 1976650
+    },
+    "2026-04-14": {
+      "count": 2,
+      "amount": 578700
+    },
+    "2026-04-15": {
+      "count": 1,
+      "amount": 29500
+    },
+    "2026-04-16": {
+      "count": 2,
+      "amount": 838300
+    },
+    "2026-04-17": {
+      "count": 2,
+      "amount": 546000
+    },
+    "2026-04-20": {
+      "count": 2,
+      "amount": 1095990
+    },
+    "2026-04-22": {
+      "count": 1,
+      "amount": 247500
+    },
+    "2026-04-23": {
+      "count": 2,
+      "amount": 375200
+    },
+    "2026-04-24": {
+      "count": 3,
+      "amount": 513700
+    },
+    "2026-04-27": {
+      "count": 2,
+      "amount": 691500
+    },
+    "2026-04-28": {
+      "count": 1,
+      "amount": 162800
+    },
+    "2026-04-29": {
+      "count": 3,
+      "amount": 1593530
+    }
+  },
+  "records": [
+    {
+      "id": 168,
+      "invoiceNoHash": "740d07eabb72",
+      "invoiceDate": "2026-04-29",
+      "amount": 216000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-29",
+      "shipmentConfirmedAt": "2026-04-30T00:26:02.642Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 169,
+      "invoiceNoHash": "9b2b39f42f87",
+      "invoiceDate": "2026-04-29",
+      "amount": 189630,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-29",
+      "shipmentConfirmedAt": "2026-04-30T00:26:02.843Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 181,
+      "invoiceNoHash": "e64e8254f229",
+      "invoiceDate": "2026-04-29",
+      "amount": 1187900,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-29",
+      "shipmentConfirmedAt": "2026-04-30T00:26:03.090Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 170,
+      "invoiceNoHash": "87a8e949e782",
+      "invoiceDate": "2026-04-28",
+      "amount": 162800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-28",
+      "shipmentConfirmedAt": "2026-04-30T00:26:02.424Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 161,
+      "invoiceNoHash": "1ab71fff02dc",
+      "invoiceDate": "2026-04-27",
+      "amount": 72500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-27",
+      "shipmentConfirmedAt": "2026-04-30T00:26:02.022Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 162,
+      "invoiceNoHash": "d577c4b3d7d9",
+      "invoiceDate": "2026-04-27",
+      "amount": 619000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-27",
+      "shipmentConfirmedAt": "2026-04-30T00:26:02.224Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 158,
+      "invoiceNoHash": "e6753642a45e",
+      "invoiceDate": "2026-04-24",
+      "amount": 60000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-24",
+      "shipmentConfirmedAt": "2026-04-30T00:26:01.389Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 159,
+      "invoiceNoHash": "f806ac7c385b",
+      "invoiceDate": "2026-04-24",
+      "amount": 82700,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-24",
+      "shipmentConfirmedAt": "2026-04-30T00:26:01.619Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 160,
+      "invoiceNoHash": "560968cdebb8",
+      "invoiceDate": "2026-04-24",
+      "amount": 371000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-24",
+      "shipmentConfirmedAt": "2026-04-30T00:26:01.824Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 155,
+      "invoiceNoHash": "527f31f30233",
+      "invoiceDate": "2026-04-23",
+      "amount": 195200,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-23",
+      "shipmentConfirmedAt": "2026-04-30T00:26:00.858Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 157,
+      "invoiceNoHash": "d4c03b732a5f",
+      "invoiceDate": "2026-04-23",
+      "amount": 180000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-23",
+      "shipmentConfirmedAt": "2026-04-30T00:26:01.193Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 153,
+      "invoiceNoHash": "8469ed7b5a13",
+      "invoiceDate": "2026-04-22",
+      "amount": 247500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-22",
+      "shipmentConfirmedAt": "2026-04-30T00:26:00.620Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 135,
+      "invoiceNoHash": "d839e2b0e345",
+      "invoiceDate": "2026-04-20",
+      "amount": 997500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-20",
+      "shipmentConfirmedAt": "2026-04-30T00:26:00.218Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 140,
+      "invoiceNoHash": "15d4fcb2bef0",
+      "invoiceDate": "2026-04-20",
+      "amount": 98490,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-20",
+      "shipmentConfirmedAt": "2026-04-30T00:26:00.409Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 125,
+      "invoiceNoHash": "5f7d76a49a19",
+      "invoiceDate": "2026-04-17",
+      "amount": 540000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-17",
+      "shipmentConfirmedAt": "2026-04-30T00:25:59.768Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 133,
+      "invoiceNoHash": "9a6f8752c09b",
+      "invoiceDate": "2026-04-17",
+      "amount": 6000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-17",
+      "shipmentConfirmedAt": "2026-04-30T00:26:00.007Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 127,
+      "invoiceNoHash": "88d47bfdcf58",
+      "invoiceDate": "2026-04-16",
+      "amount": 49500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-16",
+      "shipmentConfirmedAt": "2026-04-30T00:25:59.355Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 134,
+      "invoiceNoHash": "1c1603bb81e6",
+      "invoiceDate": "2026-04-16",
+      "amount": 788800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-16",
+      "shipmentConfirmedAt": "2026-04-30T00:25:59.553Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 122,
+      "invoiceNoHash": "cb61425b45ae",
+      "invoiceDate": "2026-04-15",
+      "amount": 29500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-15",
+      "shipmentConfirmedAt": "2026-04-30T00:25:59.146Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 111,
+      "invoiceNoHash": "5e5b3479b490",
+      "invoiceDate": "2026-04-14",
+      "amount": 362550,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-14",
+      "shipmentConfirmedAt": "2026-04-30T00:25:58.721Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 120,
+      "invoiceNoHash": "9e8d9208516c",
+      "invoiceDate": "2026-04-14",
+      "amount": 216150,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-14",
+      "shipmentConfirmedAt": "2026-04-30T00:25:58.936Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 108,
+      "invoiceNoHash": "50ee28086552",
+      "invoiceDate": "2026-04-13",
+      "amount": 520000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:57.100Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 109,
+      "invoiceNoHash": "3d552f8f688a",
+      "invoiceDate": "2026-04-13",
+      "amount": 306000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:57.301Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 113,
+      "invoiceNoHash": "ed27b7db866c",
+      "invoiceDate": "2026-04-13",
+      "amount": 118800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:57.495Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 114,
+      "invoiceNoHash": "bdec76d53779",
+      "invoiceDate": "2026-04-13",
+      "amount": 685500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:57.701Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 115,
+      "invoiceNoHash": "a09bb8261f8d",
+      "invoiceDate": "2026-04-13",
+      "amount": 139500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:57.987Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 116,
+      "invoiceNoHash": "15a5529c4798",
+      "invoiceDate": "2026-04-13",
+      "amount": 131800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:58.244Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 118,
+      "invoiceNoHash": "b9395b1b4cd5",
+      "invoiceDate": "2026-04-13",
+      "amount": 75050,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:58.478Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 105,
+      "invoiceNoHash": "f6e5296ec394",
+      "invoiceDate": "2026-04-10",
+      "amount": 124000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-10",
+      "shipmentConfirmedAt": "2026-04-30T00:25:56.454Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 106,
+      "invoiceNoHash": "00cfb7c8e854",
+      "invoiceDate": "2026-04-10",
+      "amount": 64400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-10",
+      "shipmentConfirmedAt": "2026-04-30T00:25:56.674Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 107,
+      "invoiceNoHash": "ce865634319a",
+      "invoiceDate": "2026-04-10",
+      "amount": 684000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-10",
+      "shipmentConfirmedAt": "2026-04-30T00:25:56.882Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 86,
+      "invoiceNoHash": "290f08df6326",
+      "invoiceDate": "2026-04-09",
+      "amount": 808650,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:55.318Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 100,
+      "invoiceNoHash": "7b4906c3805a",
+      "invoiceDate": "2026-04-09",
+      "amount": 743500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:55.536Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 101,
+      "invoiceNoHash": "f7c1733d23bf",
+      "invoiceDate": "2026-04-09",
+      "amount": 68700,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:55.767Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 102,
+      "invoiceNoHash": "0301e32dedbe",
+      "invoiceDate": "2026-04-09",
+      "amount": 39000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:55.969Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 104,
+      "invoiceNoHash": "bdce4bd77594",
+      "invoiceDate": "2026-04-09",
+      "amount": 1068000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:56.172Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 89,
+      "invoiceNoHash": "87e0285a3ffe",
+      "invoiceDate": "2026-04-08",
+      "amount": 453000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-08",
+      "shipmentConfirmedAt": "2026-04-30T00:25:54.289Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 96,
+      "invoiceNoHash": "859081bfffcf",
+      "invoiceDate": "2026-04-08",
+      "amount": 267000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-08",
+      "shipmentConfirmedAt": "2026-04-30T00:25:54.652Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 97,
+      "invoiceNoHash": "20bc4301e593",
+      "invoiceDate": "2026-04-08",
+      "amount": 1013300,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-08",
+      "shipmentConfirmedAt": "2026-04-30T00:25:54.904Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 98,
+      "invoiceNoHash": "a33c09316f5e",
+      "invoiceDate": "2026-04-08",
+      "amount": 183400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-08",
+      "shipmentConfirmedAt": "2026-04-30T00:25:55.114Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 87,
+      "invoiceNoHash": "e0a167455028",
+      "invoiceDate": "2026-04-07",
+      "amount": 70200,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-07",
+      "shipmentConfirmedAt": "2026-04-30T00:25:53.014Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 88,
+      "invoiceNoHash": "2b7beac56da0",
+      "invoiceDate": "2026-04-07",
+      "amount": 251800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-07",
+      "shipmentConfirmedAt": "2026-04-30T00:25:53.308Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 93,
+      "invoiceNoHash": "c99cbd20a3f3",
+      "invoiceDate": "2026-04-07",
+      "amount": 56320,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-07",
+      "shipmentConfirmedAt": "2026-04-30T00:25:53.517Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 94,
+      "invoiceNoHash": "b3153dcce91e",
+      "invoiceDate": "2026-04-07",
+      "amount": 23700,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-07",
+      "shipmentConfirmedAt": "2026-04-30T00:25:53.775Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 95,
+      "invoiceNoHash": "30cad182cb8b",
+      "invoiceDate": "2026-04-07",
+      "amount": 85400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-07",
+      "shipmentConfirmedAt": "2026-04-30T00:25:54.046Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 83,
+      "invoiceNoHash": "b60ed2ed27b8",
+      "invoiceDate": "2026-04-06",
+      "amount": 188800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-06",
+      "shipmentConfirmedAt": "2026-04-30T00:25:52.389Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 84,
+      "invoiceNoHash": "dc6aee3ba3e3",
+      "invoiceDate": "2026-04-06",
+      "amount": 513400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-06",
+      "shipmentConfirmedAt": "2026-04-30T00:25:52.591Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 85,
+      "invoiceNoHash": "2cad03181600",
+      "invoiceDate": "2026-04-06",
+      "amount": 3960000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-06",
+      "shipmentConfirmedAt": "2026-04-30T00:25:52.789Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 82,
+      "invoiceNoHash": "59420a213fd7",
+      "invoiceDate": "2026-04-03",
+      "amount": 54000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-03",
+      "shipmentConfirmedAt": "2026-04-30T00:25:52.191Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 68,
+      "invoiceNoHash": "74c5f2830988",
+      "invoiceDate": "2026-04-02",
+      "amount": 751200,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-02",
+      "shipmentConfirmedAt": "2026-04-30T00:25:51.958Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 74,
+      "invoiceNoHash": "da7ebb0399a2",
+      "invoiceDate": "2026-04-01",
+      "amount": 568250,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-01",
+      "shipmentConfirmedAt": "2026-04-30T00:25:51.438Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 75,
+      "invoiceNoHash": "0c5164483e62",
+      "invoiceDate": "2026-04-01",
+      "amount": 36500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-04-01",
+      "shipmentConfirmedAt": "2026-04-30T00:25:51.681Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 67,
+      "invoiceNoHash": "989d1a115705",
+      "invoiceDate": "2026-03-31",
+      "amount": 51000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-31",
+      "shipmentConfirmedAt": "2026-04-30T00:25:50.597Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 69,
+      "invoiceNoHash": "b85079219bca",
+      "invoiceDate": "2026-03-31",
+      "amount": 1522100,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-31",
+      "shipmentConfirmedAt": "2026-04-30T00:25:50.801Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 70,
+      "invoiceNoHash": "b35220ecb5bc",
+      "invoiceDate": "2026-03-31",
+      "amount": 56700,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-31",
+      "shipmentConfirmedAt": "2026-04-30T00:25:51.032Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 73,
+      "invoiceNoHash": "7d66bd59d267",
+      "invoiceDate": "2026-03-31",
+      "amount": 213400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-31",
+      "shipmentConfirmedAt": "2026-04-30T00:25:51.243Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 60,
+      "invoiceNoHash": "8e2c73a9557a",
+      "invoiceDate": "2026-03-30",
+      "amount": 698000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-30",
+      "shipmentConfirmedAt": "2026-04-30T00:25:49.811Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 63,
+      "invoiceNoHash": "97ae00429f19",
+      "invoiceDate": "2026-03-30",
+      "amount": 3527000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-30",
+      "shipmentConfirmedAt": "2026-04-30T00:25:50.033Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 65,
+      "invoiceNoHash": "6afd466538ca",
+      "invoiceDate": "2026-03-30",
+      "amount": 92160,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-30",
+      "shipmentConfirmedAt": "2026-04-30T00:25:50.390Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 56,
+      "invoiceNoHash": "e64ddac4e90e",
+      "invoiceDate": "2026-03-27",
+      "amount": 180000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-27",
+      "shipmentConfirmedAt": "2026-04-30T00:25:49.410Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 59,
+      "invoiceNoHash": "0c2df92e4286",
+      "invoiceDate": "2026-03-27",
+      "amount": 117000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-27",
+      "shipmentConfirmedAt": "2026-04-30T00:25:49.609Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 50,
+      "invoiceNoHash": "05137700d030",
+      "invoiceDate": "2026-03-26",
+      "amount": 130000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-26",
+      "shipmentConfirmedAt": "2026-04-30T00:25:48.254Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 51,
+      "invoiceNoHash": "cc9271298d1d",
+      "invoiceDate": "2026-03-26",
+      "amount": 750000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-26",
+      "shipmentConfirmedAt": "2026-04-30T00:25:48.521Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 52,
+      "invoiceNoHash": "7bc2e95871c0",
+      "invoiceDate": "2026-03-26",
+      "amount": 352500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-26",
+      "shipmentConfirmedAt": "2026-04-30T00:25:48.737Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 54,
+      "invoiceNoHash": "e34af3dea2b6",
+      "invoiceDate": "2026-03-26",
+      "amount": 875000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-26",
+      "shipmentConfirmedAt": "2026-04-30T00:25:48.941Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 55,
+      "invoiceNoHash": "25d6b090ac66",
+      "invoiceDate": "2026-03-26",
+      "amount": 400000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-26",
+      "shipmentConfirmedAt": "2026-04-30T00:25:49.199Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 47,
+      "invoiceNoHash": "83a93607a68c",
+      "invoiceDate": "2026-03-25",
+      "amount": 19800,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-25",
+      "shipmentConfirmedAt": "2026-04-30T00:25:47.616Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 48,
+      "invoiceNoHash": "376234f6f557",
+      "invoiceDate": "2026-03-25",
+      "amount": 60000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-25",
+      "shipmentConfirmedAt": "2026-04-30T00:25:47.839Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 92,
+      "invoiceNoHash": "1f3b350aff68",
+      "invoiceDate": "2026-03-25",
+      "amount": 67370,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-25",
+      "shipmentConfirmedAt": "2026-04-30T00:25:48.041Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 44,
+      "invoiceNoHash": "45c6750a97ec",
+      "invoiceDate": "2026-03-24",
+      "amount": 53600,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-24",
+      "shipmentConfirmedAt": "2026-04-30T00:25:47.186Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 46,
+      "invoiceNoHash": "2e90e156c028",
+      "invoiceDate": "2026-03-24",
+      "amount": 241500,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-24",
+      "shipmentConfirmedAt": "2026-04-30T00:25:47.386Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 36,
+      "invoiceNoHash": "bcf120819919",
+      "invoiceDate": "2026-03-23",
+      "amount": 965400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-23",
+      "shipmentConfirmedAt": "2026-04-30T00:25:46.857Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 37,
+      "invoiceNoHash": "af702d5e73e8",
+      "invoiceDate": "2026-03-20",
+      "amount": 1312900,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-20",
+      "shipmentConfirmedAt": "2026-04-30T00:25:46.252Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 38,
+      "invoiceNoHash": "84126f1b70a9",
+      "invoiceDate": "2026-03-20",
+      "amount": 598000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-20",
+      "shipmentConfirmedAt": "2026-04-30T00:25:46.451Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 40,
+      "invoiceNoHash": "e8acbd2e951e",
+      "invoiceDate": "2026-03-20",
+      "amount": 607000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-20",
+      "shipmentConfirmedAt": "2026-04-30T00:25:46.658Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 31,
+      "invoiceNoHash": "865d825aeb34",
+      "invoiceDate": "2026-03-19",
+      "amount": 211200,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-19",
+      "shipmentConfirmedAt": "2026-04-30T00:25:45.583Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 32,
+      "invoiceNoHash": "0114c4d685ba",
+      "invoiceDate": "2026-03-19",
+      "amount": 140000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-19",
+      "shipmentConfirmedAt": "2026-04-30T00:25:45.798Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 33,
+      "invoiceNoHash": "00c8942cf3d3",
+      "invoiceDate": "2026-03-19",
+      "amount": 197460,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-19",
+      "shipmentConfirmedAt": "2026-04-30T00:25:46.033Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 22,
+      "invoiceNoHash": "7f9d9ee2c3fe",
+      "invoiceDate": "2026-03-17",
+      "amount": 167650,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-17",
+      "shipmentConfirmedAt": "2026-04-30T00:25:44.716Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 28,
+      "invoiceNoHash": "b9f75e6fe6b6",
+      "invoiceDate": "2026-03-17",
+      "amount": 769000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-17",
+      "shipmentConfirmedAt": "2026-04-30T00:25:44.936Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 29,
+      "invoiceNoHash": "3fff80782708",
+      "invoiceDate": "2026-03-17",
+      "amount": 646600,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-17",
+      "shipmentConfirmedAt": "2026-04-30T00:25:45.147Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 30,
+      "invoiceNoHash": "a6eae1f6e1ba",
+      "invoiceDate": "2026-03-17",
+      "amount": 209400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-17",
+      "shipmentConfirmedAt": "2026-04-30T00:25:45.358Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 18,
+      "invoiceNoHash": "1bf3770db0c0",
+      "invoiceDate": "2026-03-16",
+      "amount": 390000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-16",
+      "shipmentConfirmedAt": "2026-04-30T00:25:44.053Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 19,
+      "invoiceNoHash": "63805ffd9e45",
+      "invoiceDate": "2026-03-16",
+      "amount": 2700000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-16",
+      "shipmentConfirmedAt": "2026-04-30T00:25:44.284Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 20,
+      "invoiceNoHash": "7016fa483b21",
+      "invoiceDate": "2026-03-16",
+      "amount": 99000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-16",
+      "shipmentConfirmedAt": "2026-04-30T00:25:44.508Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 14,
+      "invoiceNoHash": "9760c8a1891f",
+      "invoiceDate": "2026-03-13",
+      "amount": 1324100,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:42.955Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 15,
+      "invoiceNoHash": "86d646714bef",
+      "invoiceDate": "2026-03-13",
+      "amount": 384000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:43.229Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 26,
+      "invoiceNoHash": "41dd940d6361",
+      "invoiceDate": "2026-03-13",
+      "amount": 71000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:43.470Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 27,
+      "invoiceNoHash": "5ebe3f22087b",
+      "invoiceDate": "2026-03-13",
+      "amount": 104400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-13",
+      "shipmentConfirmedAt": "2026-04-30T00:25:43.795Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 2,
+      "invoiceNoHash": "0f970f83b606",
+      "invoiceDate": "2026-03-12",
+      "amount": 10900,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:40.555Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 3,
+      "invoiceNoHash": "dda7403e300d",
+      "invoiceDate": "2026-03-12",
+      "amount": 131000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:40.778Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 4,
+      "invoiceNoHash": "e8e404e5c414",
+      "invoiceDate": "2026-03-12",
+      "amount": 260000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:41.046Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 5,
+      "invoiceNoHash": "99e57e230c12",
+      "invoiceDate": "2026-03-12",
+      "amount": 167650,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:41.265Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 6,
+      "invoiceNoHash": "20b5a6071e8a",
+      "invoiceDate": "2026-03-12",
+      "amount": 59760,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:41.628Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 7,
+      "invoiceNoHash": "f3c38b7432e5",
+      "invoiceDate": "2026-03-12",
+      "amount": 135000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:41.836Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 9,
+      "invoiceNoHash": "1beaca1f016a",
+      "invoiceDate": "2026-03-12",
+      "amount": 3300,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:42.047Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 10,
+      "invoiceNoHash": "05ce8d5c6b17",
+      "invoiceDate": "2026-03-12",
+      "amount": 71000,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:42.283Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 11,
+      "invoiceNoHash": "ce214e7acce8",
+      "invoiceDate": "2026-03-12",
+      "amount": 104400,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:42.488Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 12,
+      "invoiceNoHash": "96b317eb01bc",
+      "invoiceDate": "2026-03-12",
+      "amount": 394200,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-12",
+      "shipmentConfirmedAt": "2026-04-30T00:25:42.742Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 21,
+      "invoiceNoHash": "3644474c2d88",
+      "invoiceDate": "2026-03-09",
+      "amount": 626900,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-03-09",
+      "shipmentConfirmedAt": "2026-04-30T00:25:40.316Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    },
+    {
+      "id": 13,
+      "invoiceNoHash": "25d8cdd67414",
+      "invoiceDate": "2026-02-25",
+      "amount": 27900,
+      "paymentStatus": "paid",
+      "currentRevenueRecognizedDate": "2026-04-30",
+      "proposedRevenueRecognizedDate": "2026-02-25",
+      "shipmentConfirmedAt": "2026-04-30T00:25:40.032Z",
+      "governanceReason": "과거 완납 출고확정 승인 적용"
+    }
+  ]
+}

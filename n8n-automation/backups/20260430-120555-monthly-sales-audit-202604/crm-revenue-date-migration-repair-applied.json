@@ -1,0 +1,966 @@
+{
+  "generatedAt": "2026-04-30T03:32:12.332576Z",
+  "mode": "applied",
+  "scope": "CRM invoice ACCOUNTING_INVOICE_META.revenueRecognizedDate only",
+  "reason": "bulk_shipment_confirm migration wrote execution date 2026-04-30 as revenue recognition date",
+  "targetCount": 101,
+  "appliedCount": 101,
+  "failedCount": 0,
+  "targetAmount": 43022140,
+  "aprilInvoiceCount": 52,
+  "aprilInvoiceAmount": 20725890,
+  "byInvoiceDate": {
+    "2026-02-25": {
+      "count": 1,
+      "amount": 27900
+    },
+    "2026-03-09": {
+      "count": 1,
+      "amount": 626900
+    },
+    "2026-03-12": {
+      "count": 10,
+      "amount": 1337210
+    },
+    "2026-03-13": {
+      "count": 4,
+      "amount": 1883500
+    },
+    "2026-03-16": {
+      "count": 3,
+      "amount": 3189000
+    },
+    "2026-03-17": {
+      "count": 4,
+      "amount": 1792650
+    },
+    "2026-03-19": {
+      "count": 3,
+      "amount": 548660
+    },
+    "2026-03-20": {
+      "count": 3,
+      "amount": 2517900
+    },
+    "2026-03-23": {
+      "count": 1,
+      "amount": 965400
+    },
+    "2026-03-24": {
+      "count": 2,
+      "amount": 295100
+    },
+    "2026-03-25": {
+      "count": 3,
+      "amount": 147170
+    },
+    "2026-03-26": {
+      "count": 5,
+      "amount": 2507500
+    },
+    "2026-03-27": {
+      "count": 2,
+      "amount": 297000
+    },
+    "2026-03-30": {
+      "count": 3,
+      "amount": 4317160
+    },
+    "2026-03-31": {
+      "count": 4,
+      "amount": 1843200
+    },
+    "2026-04-01": {
+      "count": 2,
+      "amount": 604750
+    },
+    "2026-04-02": {
+      "count": 1,
+      "amount": 751200
+    },
+    "2026-04-03": {
+      "count": 1,
+      "amount": 54000
+    },
+    "2026-04-06": {
+      "count": 3,
+      "amount": 4662200
+    },
+    "2026-04-07": {
+      "count": 5,
+      "amount": 487420
+    },
+    "2026-04-08": {
+      "count": 4,
+      "amount": 1916700
+    },
+    "2026-04-09": {
+      "count": 5,
+      "amount": 2727850
+    },
+    "2026-04-10": {
+      "count": 3,
+      "amount": 872400
+    },
+    "2026-04-13": {
+      "count": 7,
+      "amount": 1976650
+    },
+    "2026-04-14": {
+      "count": 2,
+      "amount": 578700
+    },
+    "2026-04-15": {
+      "count": 1,
+      "amount": 29500
+    },
+    "2026-04-16": {
+      "count": 2,
+      "amount": 838300
+    },
+    "2026-04-17": {
+      "count": 2,
+      "amount": 546000
+    },
+    "2026-04-20": {
+      "count": 2,
+      "amount": 1095990
+    },
+    "2026-04-22": {
+      "count": 1,
+      "amount": 247500
+    },
+    "2026-04-23": {
+      "count": 2,
+      "amount": 375200
+    },
+    "2026-04-24": {
+      "count": 3,
+      "amount": 513700
+    },
+    "2026-04-27": {
+      "count": 2,
+      "amount": 691500
+    },
+    "2026-04-28": {
+      "count": 1,
+      "amount": 162800
+    },
+    "2026-04-29": {
+      "count": 3,
+      "amount": 1593530
+    }
+  },
+  "failures": [],
+  "sensitiveBackupPath": "output/ops-snapshots/crm-revenue-date-repair/crm-revenue-date-repair-20260430-sensitive.json",
+  "records": [
+    {
+      "id": 168,
+      "invoiceNoHash": "740d07eabb72",
+      "invoiceDate": "2026-04-29",
+      "amount": 216000,
+      "beforeMetaHash": "635f60ee06906b865ea5963ea4c5b89abe8575e39e32df8f310d1b9ccc963d9c",
+      "afterMetaHash": "d74d73c8878a6eb056307fdfcf68230f8e46cef764d9c4d983313bc2bc2c1764"
+    },
+    {
+      "id": 169,
+      "invoiceNoHash": "9b2b39f42f87",
+      "invoiceDate": "2026-04-29",
+      "amount": 189630,
+      "beforeMetaHash": "a4f4051620551e63b6a75ceea52e33f11af5c13c3b8610d406b37bd507a26940",
+      "afterMetaHash": "16f01a92070be7122d98cbd24bb9ba28a42d61902a56c5b780e50d9aab50dc71"
+    },
+    {
+      "id": 181,
+      "invoiceNoHash": "e64e8254f229",
+      "invoiceDate": "2026-04-29",
+      "amount": 1187900,
+      "beforeMetaHash": "d2f4fc521b559f455d9a30e41e2070c06b0edb3038202e4d956a5b96358dcf95",
+      "afterMetaHash": "841a51b866f589631826924f0a3a24d88092b513a1b30098a04e088742fcf80e"
+    },
+    {
+      "id": 170,
+      "invoiceNoHash": "87a8e949e782",
+      "invoiceDate": "2026-04-28",
+      "amount": 162800,
+      "beforeMetaHash": "38d021c3276883840d8d91815086a03cc51de88a841551c00a93f8c054531f4c",
+      "afterMetaHash": "a5c0ff7487854a1fcea6870db6ce2f689ffd582d3ca504cbec631230e837129a"
+    },
+    {
+      "id": 161,
+      "invoiceNoHash": "1ab71fff02dc",
+      "invoiceDate": "2026-04-27",
+      "amount": 72500,
+      "beforeMetaHash": "bf1e12fc193f108890b8746bf81fd9c37af1bd6f6820e2612a8cba3ddd296ea8",
+      "afterMetaHash": "31efbb55122ed0e7ff876078bcd940785361399122d0ca4c9750d32599428a00"
+    },
+    {
+      "id": 162,
+      "invoiceNoHash": "d577c4b3d7d9",
+      "invoiceDate": "2026-04-27",
+      "amount": 619000,
+      "beforeMetaHash": "b961194afa973ab361636ca700d9eb87178d0a3cca560be3c4b77111e0fae0e7",
+      "afterMetaHash": "6553f3bb1c8c6055af928b95b7f64047e30bcbafec3e2849d12af574cde10256"
+    },
+    {
+      "id": 158,
+      "invoiceNoHash": "e6753642a45e",
+      "invoiceDate": "2026-04-24",
+      "amount": 60000,
+      "beforeMetaHash": "8223b02868ff9c762ac05c373cf6f076185050d0a5f15670a46dffd86a4ff840",
+      "afterMetaHash": "33cc70c73e63f6ae64048e82fa181b09f18a0637967e755c5365698bfad7e48a"
+    },
+    {
+      "id": 159,
+      "invoiceNoHash": "f806ac7c385b",
+      "invoiceDate": "2026-04-24",
+      "amount": 82700,
+      "beforeMetaHash": "48545dbeaafdd131bb48ad7625e3c841e05e253947b7414ebed5a56c0eab4004",
+      "afterMetaHash": "4b4027919e25ad93c852886d3f3f4ff4de004d445c96161f3837943c77108c16"
+    },
+    {
+      "id": 160,
+      "invoiceNoHash": "560968cdebb8",
+      "invoiceDate": "2026-04-24",
+      "amount": 371000,
+      "beforeMetaHash": "4764bf44eb255999b8066532fb9233922c53c2d5adf3bb9261ee29a46a12c1a3",
+      "afterMetaHash": "78f326e6c42bcc646377a39545654512e761a5490c8eb009e87f9888e255063b"
+    },
+    {
+      "id": 155,
+      "invoiceNoHash": "527f31f30233",
+      "invoiceDate": "2026-04-23",
+      "amount": 195200,
+      "beforeMetaHash": "23f2f84e467b1b166d3b40864e704edd984d1939a5461c3867e5c1543d571d05",
+      "afterMetaHash": "eb808400053daba52a0e778e64363167ffcdb3b697da8b7c0b49a56e1aae0621"
+    },
+    {
+      "id": 157,
+      "invoiceNoHash": "d4c03b732a5f",
+      "invoiceDate": "2026-04-23",
+      "amount": 180000,
+      "beforeMetaHash": "d217f8f4b7d71732eb8732d06730c21728dfc9149b40a9ed7e7547a3183bf7e0",
+      "afterMetaHash": "077f1258f81ff8ea337fc9a02682b89f618be3c5e477a14643d029fcda2c7dcf"
+    },
+    {
+      "id": 153,
+      "invoiceNoHash": "8469ed7b5a13",
+      "invoiceDate": "2026-04-22",
+      "amount": 247500,
+      "beforeMetaHash": "0b45904b95a9da46eabaab782a3efb5bf7f2e68a5008482b321eb4cde7261b47",
+      "afterMetaHash": "40c438e541951f60f5de14ad398cd2c5e035f79a024ea3cfea21adfaffa173e1"
+    },
+    {
+      "id": 135,
+      "invoiceNoHash": "d839e2b0e345",
+      "invoiceDate": "2026-04-20",
+      "amount": 997500,
+      "beforeMetaHash": "6601aee725435e6cf940307256dc7ff1695d86625d3d29f1c9ff931e565add24",
+      "afterMetaHash": "796354326b1aa5741c5feb11adaeefa5660be09a09433cb998d328f2f235a94f"
+    },
+    {
+      "id": 140,
+      "invoiceNoHash": "15d4fcb2bef0",
+      "invoiceDate": "2026-04-20",
+      "amount": 98490,
+      "beforeMetaHash": "46650f55607e3e74e08b09d9126bcb13ef7f49049659c78f0e3b82b31efd29d8",
+      "afterMetaHash": "0d8a9ed66ee2f06d20a86837a02cd2551136de759de88c39d738c2626f4918fe"
+    },
+    {
+      "id": 125,
+      "invoiceNoHash": "5f7d76a49a19",
+      "invoiceDate": "2026-04-17",
+      "amount": 540000,
+      "beforeMetaHash": "eebd063046d8c0c11b68333b90555f996c5d834bfa76fb5e6932bfcaca9d8158",
+      "afterMetaHash": "71a45b352cf34fcbee27e4afd6985362b63c7a0054e51f06ad1fc504c3d79f89"
+    },
+    {
+      "id": 133,
+      "invoiceNoHash": "9a6f8752c09b",
+      "invoiceDate": "2026-04-17",
+      "amount": 6000,
+      "beforeMetaHash": "88aa88da61cf0edcecde81733aa0492e8cdf5100b1f35cee846f889d0dc8a2a2",
+      "afterMetaHash": "5c0afc453c1e2ded930ed716cf3cc22e502ef68a41b12511ae75552367f41b2d"
+    },
+    {
+      "id": 127,
+      "invoiceNoHash": "88d47bfdcf58",
+      "invoiceDate": "2026-04-16",
+      "amount": 49500,
+      "beforeMetaHash": "56ce89979adc38b9ef55ff4803b630d524b74027a019c66b1f20427928b596bf",
+      "afterMetaHash": "f5345c83c10c7b01aeff75bd8b427e08526cc449431ee8749950c2d231ac9295"
+    },
+    {
+      "id": 134,
+      "invoiceNoHash": "1c1603bb81e6",
+      "invoiceDate": "2026-04-16",
+      "amount": 788800,
+      "beforeMetaHash": "3e3ad6c875a45f51c49982b04448524b6258702b4802a6761e5f97f8f3593d2c",
+      "afterMetaHash": "115377202146506736c42be0102455daf46ff0c6ab38d1a1b384883232030e5d"
+    },
+    {
+      "id": 122,
+      "invoiceNoHash": "cb61425b45ae",
+      "invoiceDate": "2026-04-15",
+      "amount": 29500,
+      "beforeMetaHash": "e067249628166273a17c05e696136cc94338793d64b5bccb86bf9a36b7f040da",
+      "afterMetaHash": "a83a68d2447b77f32f95dc23574805bed5b8df3e1174bc7f48b7bb1af76068e1"
+    },
+    {
+      "id": 111,
+      "invoiceNoHash": "5e5b3479b490",
+      "invoiceDate": "2026-04-14",
+      "amount": 362550,
+      "beforeMetaHash": "b8457d8e41af00fc40682f652a7d520384a2b2236506bea0dfe989d149915bb7",
+      "afterMetaHash": "3d31042b85acbddcbe732c46dc4a22c5e6d604d906bf94963e7663e32a055714"
+    },
+    {
+      "id": 120,
+      "invoiceNoHash": "9e8d9208516c",
+      "invoiceDate": "2026-04-14",
+      "amount": 216150,
+      "beforeMetaHash": "ac71b0a4dfebe2c6c3185dc14f3b230f71f62a587b04a1ada7fbb29f0655dd79",
+      "afterMetaHash": "169d551cd8f1a275ed1877fd1c1179dc0e4b8538bbbfbe17731c77e83113834a"
+    },
+    {
+      "id": 108,
+      "invoiceNoHash": "50ee28086552",
+      "invoiceDate": "2026-04-13",
+      "amount": 520000,
+      "beforeMetaHash": "0912d7fe2db62fc787b03616bac241c633ba45e07fcce36a69daae113b8a6400",
+      "afterMetaHash": "074bd9cb0388965a5365d5869f3a81d6e77f30647462bc1e21c5777970b7df84"
+    },
+    {
+      "id": 109,
+      "invoiceNoHash": "3d552f8f688a",
+      "invoiceDate": "2026-04-13",
+      "amount": 306000,
+      "beforeMetaHash": "5579bbeb06838aa5f8484cac6e9f971f7fc5e5b47a8d6679e1f50081c8a502a7",
+      "afterMetaHash": "eb1e430b00efa34db4b0bed992783b6b4a7959e837b02718393e105101622610"
+    },
+    {
+      "id": 113,
+      "invoiceNoHash": "ed27b7db866c",
+      "invoiceDate": "2026-04-13",
+      "amount": 118800,
+      "beforeMetaHash": "8d99d5ec9a0b337261351e021d98435769bfbcb9137b780d19aed3afe836a518",
+      "afterMetaHash": "b599f7672957be519f4385d60957faf836e223bf841c960c5c2c5dbd4f1f6cac"
+    },
+    {
+      "id": 114,
+      "invoiceNoHash": "bdec76d53779",
+      "invoiceDate": "2026-04-13",
+      "amount": 685500,
+      "beforeMetaHash": "02b90ed23a1afe5b3e4dc4980a781cdccdb7d32e09818d0837e9f8f2fb77cec7",
+      "afterMetaHash": "fb9ea19d296606ed2978a99732d79232dcbf33ee16ec2ad5e3c595f8f8f93ba5"
+    },
+    {
+      "id": 115,
+      "invoiceNoHash": "a09bb8261f8d",
+      "invoiceDate": "2026-04-13",
+      "amount": 139500,
+      "beforeMetaHash": "9f72fb3246ce694874a15a136c8cd553df0f4af1b2c4d48fbfb409f594553edf",
+      "afterMetaHash": "8821557f6585341d897fbf2f304b501ef67fefc40dfffe9bb455417806a8c83f"
+    },
+    {
+      "id": 116,
+      "invoiceNoHash": "15a5529c4798",
+      "invoiceDate": "2026-04-13",
+      "amount": 131800,
+      "beforeMetaHash": "5f55782a780ca8ea342db9395bc2db467a01479cd20ab6e2d1c5a4fa23b38622",
+      "afterMetaHash": "0d8d80ec358023f8dca6c65b18effe6aaaef457dda9b8f3a13dc47408f33353f"
+    },
+    {
+      "id": 118,
+      "invoiceNoHash": "b9395b1b4cd5",
+      "invoiceDate": "2026-04-13",
+      "amount": 75050,
+      "beforeMetaHash": "f509671b6d58b2bf6905a6b2bc6e37e5f4a411c229ae0aa96d4850a9999870d1",
+      "afterMetaHash": "e2542dba5b8379d4fac8e7c9fa157cad1b8dd2a56db30910cc9b63516d2f8f42"
+    },
+    {
+      "id": 105,
+      "invoiceNoHash": "f6e5296ec394",
+      "invoiceDate": "2026-04-10",
+      "amount": 124000,
+      "beforeMetaHash": "e5c1a69aa7cdbb32ad704c81b72e11a998ab47ebb05931ab3c2e36f251859939",
+      "afterMetaHash": "2c4cc95e9a698de098f03208ac99963b09a16b34dadf27e823b8b31d582cc7b1"
+    },
+    {
+      "id": 106,
+      "invoiceNoHash": "00cfb7c8e854",
+      "invoiceDate": "2026-04-10",
+      "amount": 64400,
+      "beforeMetaHash": "bc1af1cd8352c117de488caaf34146c31d3866dec96f6e7d747a069aab0e2985",
+      "afterMetaHash": "453e67ac529ea6cb520e7c3c4abe3fa5d81b75adeea0659fbc8915fc77bc1dca"
+    },
+    {
+      "id": 107,
+      "invoiceNoHash": "ce865634319a",
+      "invoiceDate": "2026-04-10",
+      "amount": 684000,
+      "beforeMetaHash": "df77820d2653f6d8e1fbc1b77a5b1523d20bef4a4cc18d95375ca47f8df950bc",
+      "afterMetaHash": "cf65bb1f3b758e6d316ae9fe35354ce8bad1b8f4fa4751448f37294bc90c3ef0"
+    },
+    {
+      "id": 86,
+      "invoiceNoHash": "290f08df6326",
+      "invoiceDate": "2026-04-09",
+      "amount": 808650,
+      "beforeMetaHash": "e7b37f02c4658d229861dc76667a1db8af8382063fa21aef9ba6e000be960849",
+      "afterMetaHash": "d54d4a6aff4bf371dca286b65ba1c33388cb19ed287172a5960fa5a238841faa"
+    },
+    {
+      "id": 100,
+      "invoiceNoHash": "7b4906c3805a",
+      "invoiceDate": "2026-04-09",
+      "amount": 743500,
+      "beforeMetaHash": "88926ddaa697e19632e7c692ed6040f3b1ab6e4923406c8bfa7c48195266d465",
+      "afterMetaHash": "06091b7a0ffbbf5ac2900cd439fa4d0afeab521ed8392128daf7ba89c1e423ef"
+    },
+    {
+      "id": 101,
+      "invoiceNoHash": "f7c1733d23bf",
+      "invoiceDate": "2026-04-09",
+      "amount": 68700,
+      "beforeMetaHash": "5d409031d86b6817e261b744b60ec3c88d58dcb2ece17ed5e6a6b10236972edd",
+      "afterMetaHash": "feacb6baffba249047f020013d3d1a920e5c3d57cab884c59930e7624e61ff3c"
+    },
+    {
+      "id": 102,
+      "invoiceNoHash": "0301e32dedbe",
+      "invoiceDate": "2026-04-09",
+      "amount": 39000,
+      "beforeMetaHash": "711c67c4229f97687ca83c0b5c210494391af1d4a7d05b0d9c650a4089612998",
+      "afterMetaHash": "64867d6dcfad71042db5bafbfb93b80327f80890a2ddb4bd295afe42fafe8589"
+    },
+    {
+      "id": 104,
+      "invoiceNoHash": "bdce4bd77594",
+      "invoiceDate": "2026-04-09",
+      "amount": 1068000,
+      "beforeMetaHash": "416e8662fe6855afe45cf67704f36cfd9ed764875edd77d1fd7b89270ff281d0",
+      "afterMetaHash": "e9ab0126ac6a590a514f0007aae0db3fa025ca0ae25756cdcd2157c878994e95"
+    },
+    {
+      "id": 89,
+      "invoiceNoHash": "87e0285a3ffe",
+      "invoiceDate": "2026-04-08",
+      "amount": 453000,
+      "beforeMetaHash": "00fc4e3b4727e756efbc310564ce7944b875360de88cff1b8be5342b99eba68a",
+      "afterMetaHash": "38eb5c457f35636e666a64358ee085956fc37b28819b83a8fcfaa34ad0b3d115"
+    },
+    {
+      "id": 96,
+      "invoiceNoHash": "859081bfffcf",
+      "invoiceDate": "2026-04-08",
+      "amount": 267000,
+      "beforeMetaHash": "eccaaccad98e6e92683217b447717f9c5af5c1161a2b392837e6d3d1dd38687a",
+      "afterMetaHash": "b4f37cc06b1862adf47fed6d7352b0aee7d2b9c62da1da81f463a0833112ea8e"
+    },
+    {
+      "id": 97,
+      "invoiceNoHash": "20bc4301e593",
+      "invoiceDate": "2026-04-08",
+      "amount": 1013300,
+      "beforeMetaHash": "2063b27257cedd3bf95fd08e8bc4179a803e152f8f589d9fc211e6dc948cb42b",
+      "afterMetaHash": "93e11324f706cb998143d33d89cf87a85cd3ca12c79e3a953d4ed8086a5308cf"
+    },
+    {
+      "id": 98,
+      "invoiceNoHash": "a33c09316f5e",
+      "invoiceDate": "2026-04-08",
+      "amount": 183400,
+      "beforeMetaHash": "a57de7a3a65089e062063959b494ee0184893e851c4184127060882d4f909c36",
+      "afterMetaHash": "068b6f73df56b5d9854653b17258f5fe8452b6f780cc5cdf03bd26591a178acb"
+    },
+    {
+      "id": 87,
+      "invoiceNoHash": "e0a167455028",
+      "invoiceDate": "2026-04-07",
+      "amount": 70200,
+      "beforeMetaHash": "997fb80060c0ca5ab2bad63972992746c0401ccbcb90fc3c21b5dac9067c54e5",
+      "afterMetaHash": "6fd7fa2da557703bb2b8e66a99f84408128b46e4afd136f3c483c3cd128ebe59"
+    },
+    {
+      "id": 88,
+      "invoiceNoHash": "2b7beac56da0",
+      "invoiceDate": "2026-04-07",
+      "amount": 251800,
+      "beforeMetaHash": "279d15454e56821d90d980f2bdf0122bbfe9c6e1f4bf526dc85c7c36f0c2c37f",
+      "afterMetaHash": "42412910a9e16ffc46d29975b2bda6f7cc8cb9156eb57cd6f9af99df3979036c"
+    },
+    {
+      "id": 93,
+      "invoiceNoHash": "c99cbd20a3f3",
+      "invoiceDate": "2026-04-07",
+      "amount": 56320,
+      "beforeMetaHash": "22d9ed846144907bada7a2eeb105f80a6b29ade02bd5c4321046cec92c27ee01",
+      "afterMetaHash": "188067ec0fdfb646f11bdc86c61b0da0082ed7941b83a7889af8b700e0eb13dc"
+    },
+    {
+      "id": 94,
+      "invoiceNoHash": "b3153dcce91e",
+      "invoiceDate": "2026-04-07",
+      "amount": 23700,
+      "beforeMetaHash": "9a68fd76e2c90ad1ba08e7f4d2135563538afb02866859d6ec89ad235d509e6d",
+      "afterMetaHash": "f93b248c1dafd91590971141fb183bf9c4621fa3d0bd61f2af4fded1b1c1a234"
+    },
+    {
+      "id": 95,
+      "invoiceNoHash": "30cad182cb8b",
+      "invoiceDate": "2026-04-07",
+      "amount": 85400,
+      "beforeMetaHash": "afea540809379f0c453821235a54288d417c689fe4bc4c6d2961dfcbf647d52a",
+      "afterMetaHash": "47386629899feea5bdca20d193f68ff405c7bf912974d53c6aa12c85a9773447"
+    },
+    {
+      "id": 83,
+      "invoiceNoHash": "b60ed2ed27b8",
+      "invoiceDate": "2026-04-06",
+      "amount": 188800,
+      "beforeMetaHash": "c0bbaf7c114580c5b9ed8a4cbcde3f4bfa2978c4f63bdcd05a6fba90e331df79",
+      "afterMetaHash": "6ee3a5d26ba62d30ebcc290f385bdd0ece39a09aa28ba3a18b13228b363935df"
+    },
+    {
+      "id": 84,
+      "invoiceNoHash": "dc6aee3ba3e3",
+      "invoiceDate": "2026-04-06",
+      "amount": 513400,
+      "beforeMetaHash": "154107723e7df91ef43fa2c3b87de17965064afce264baf6da202ee6910eca43",
+      "afterMetaHash": "0641d9d56e777a6be58f78c9031158c91551648b1c8c82a68ef4e34a279930f0"
+    },
+    {
+      "id": 85,
+      "invoiceNoHash": "2cad03181600",
+      "invoiceDate": "2026-04-06",
+      "amount": 3960000,
+      "beforeMetaHash": "4b2d55ee64f1b18331e9d788e57d2f295c97d855707ff8a27a6c6a47c1cdc8ae",
+      "afterMetaHash": "dfd776b89244941f15cd194db409a9b889eb4d68d7d77dd43c48a24c3862dfd1"
+    },
+    {
+      "id": 82,
+      "invoiceNoHash": "59420a213fd7",
+      "invoiceDate": "2026-04-03",
+      "amount": 54000,
+      "beforeMetaHash": "a40b8e85a5b2f84f8e2a1b64985037020d0515309f289a46d8dc6cb96e85accf",
+      "afterMetaHash": "94048a567ec09727d3810cdcdef6ec114bcb644d40bb2434e49194d751111b57"
+    },
+    {
+      "id": 68,
+      "invoiceNoHash": "74c5f2830988",
+      "invoiceDate": "2026-04-02",
+      "amount": 751200,
+      "beforeMetaHash": "4f5300777bceeb32c1e0914536671c5257fe67a37c18ae2000491eabe8f2f786",
+      "afterMetaHash": "3825a7266a61536545782b448dbc809fd41e75c3512012f36e057e6cc8c3f05d"
+    },
+    {
+      "id": 74,
+      "invoiceNoHash": "da7ebb0399a2",
+      "invoiceDate": "2026-04-01",
+      "amount": 568250,
+      "beforeMetaHash": "b2be522a7a9a573cab3e1aeb612314bb30f1b11a060805d55dc3980dbd8d37c4",
+      "afterMetaHash": "b11feee143c648b6b2d3c087ff2f2c73d01c3e5481a2805eb6dc0ae3ed7aee20"
+    },
+    {
+      "id": 75,
+      "invoiceNoHash": "0c5164483e62",
+      "invoiceDate": "2026-04-01",
+      "amount": 36500,
+      "beforeMetaHash": "62acdc2a50754473b550655484bd0c765226ab74834aef213bee0d9226cccb41",
+      "afterMetaHash": "2921b69c39f20b3903f88aa3c9cf441f9d01ab1f0f4ca8bf7adf5fcfd3cc8ddf"
+    },
+    {
+      "id": 67,
+      "invoiceNoHash": "989d1a115705",
+      "invoiceDate": "2026-03-31",
+      "amount": 51000,
+      "beforeMetaHash": "7a8e5619087c335fdadfef18cb5a0f49f651d0de91f878786442455e51381c39",
+      "afterMetaHash": "567bf216b067c01080d05f66a96b6176cb9f42d83db3a3b98737de7831090ecb"
+    },
+    {
+      "id": 69,
+      "invoiceNoHash": "b85079219bca",
+      "invoiceDate": "2026-03-31",
+      "amount": 1522100,
+      "beforeMetaHash": "162bbce59c14b2bbbeb5c29b6099f61e45a1408853b3b02432fb0db34b85e20e",
+      "afterMetaHash": "9dc9332380de89070c6acada6b97cc1a557f687c3430e6d787bb192a47628d20"
+    },
+    {
+      "id": 70,
+      "invoiceNoHash": "b35220ecb5bc",
+      "invoiceDate": "2026-03-31",
+      "amount": 56700,
+      "beforeMetaHash": "e52243e49b59705c0b9e152c8b26c6a0facb890514b06ce1f9d21910ce4ed74f",
+      "afterMetaHash": "abd575959e2333b89974a8a4613887ec19e5102fb281a063e007f93ef5cc019a"
+    },
+    {
+      "id": 73,
+      "invoiceNoHash": "7d66bd59d267",
+      "invoiceDate": "2026-03-31",
+      "amount": 213400,
+      "beforeMetaHash": "c8b45bbde7b078daecbefd6c111029518fe801625d0ad6982d763dcc42871f6d",
+      "afterMetaHash": "29ddfe71a59b476271a0391d00fcac998b53ad162ff6a173e90fce19941e0997"
+    },
+    {
+      "id": 60,
+      "invoiceNoHash": "8e2c73a9557a",
+      "invoiceDate": "2026-03-30",
+      "amount": 698000,
+      "beforeMetaHash": "72887d7678b5944c8fa90bf15b0cec440cb4cb1fb4f5f07062660d7c2ca7de2e",
+      "afterMetaHash": "6ba798542d78247dc9af22fc1e02995c730d602ad76873d689e21c645843093e"
+    },
+    {
+      "id": 63,
+      "invoiceNoHash": "97ae00429f19",
+      "invoiceDate": "2026-03-30",
+      "amount": 3527000,
+      "beforeMetaHash": "6dfee4b64af32a181fa7c4fbcd74222a24190173965c0eb278ae762cf28e3dc4",
+      "afterMetaHash": "51c916077e68ac016090d6d9c5ce4f7f152e7661d886eb7c7bd633a441e632f3"
+    },
+    {
+      "id": 65,
+      "invoiceNoHash": "6afd466538ca",
+      "invoiceDate": "2026-03-30",
+      "amount": 92160,
+      "beforeMetaHash": "77332a48f302e8c81c6a3aef2bc52f19064257e94be6d49117eb254c1a58f66a",
+      "afterMetaHash": "39223b74b4b4a81558be2cfa9bf6cae35b49644bc081e7b2aa37090250bd8c31"
+    },
+    {
+      "id": 56,
+      "invoiceNoHash": "e64ddac4e90e",
+      "invoiceDate": "2026-03-27",
+      "amount": 180000,
+      "beforeMetaHash": "1bad1c574388d24dc31e710f7383a42306e2c1e3b9d7103679aed65cb541747f",
+      "afterMetaHash": "228669a77541852e4a223741ca0ba6115cc2fb0e7d213a78e4422d2a237b58ab"
+    },
+    {
+      "id": 59,
+      "invoiceNoHash": "0c2df92e4286",
+      "invoiceDate": "2026-03-27",
+      "amount": 117000,
+      "beforeMetaHash": "2f0a3b00aff4e31399ac65ec05c79f5c3c29889d536e3ae4a7cc25eff4446674",
+      "afterMetaHash": "3ee7e06ea4f3e9d1d4cdce3cc33c1d31d849bcb47ddff17411cf5bf091cbcf66"
+    },
+    {
+      "id": 50,
+      "invoiceNoHash": "05137700d030",
+      "invoiceDate": "2026-03-26",
+      "amount": 130000,
+      "beforeMetaHash": "6d72e3f784c827b93ca5360812534237dff3dee6fab9e6c6b99980518ad3837a",
+      "afterMetaHash": "24c1de32e66ca37714a9aa2ad5c34c12357608837477add8b0e640b68c417e7e"
+    },
+    {
+      "id": 51,
+      "invoiceNoHash": "cc9271298d1d",
+      "invoiceDate": "2026-03-26",
+      "amount": 750000,
+      "beforeMetaHash": "7a8e9c26842c52890e17e7c7e8d037235c6690054de829ae0bdfba678a1894ff",
+      "afterMetaHash": "acedf2405ea4f79401737dcb0a57a91a5ea1d59622180b8fe06204e81b6e19bc"
+    },
+    {
+      "id": 52,
+      "invoiceNoHash": "7bc2e95871c0",
+      "invoiceDate": "2026-03-26",
+      "amount": 352500,
+      "beforeMetaHash": "49416961a9eb63ac5851f171dda74b4fe94c2b796bc5b013d767140f08971599",
+      "afterMetaHash": "0335399d8e00121c85095cd5b039c50648e90660f6170d641c0a26af65544b62"
+    },
+    {
+      "id": 54,
+      "invoiceNoHash": "e34af3dea2b6",
+      "invoiceDate": "2026-03-26",
+      "amount": 875000,
+      "beforeMetaHash": "fe8122fa121bda4214a1737e6e8abc3d05b560bf3f696d90f750ae0643f00aea",
+      "afterMetaHash": "2f7e48b06dfd0e888938c1b57458969a24d63772d2d20ed26ff0b244cc04faaa"
+    },
+    {
+      "id": 55,
+      "invoiceNoHash": "25d6b090ac66",
+      "invoiceDate": "2026-03-26",
+      "amount": 400000,
+      "beforeMetaHash": "8efd2431cc0e942b173e158dfb278243491c2b3f90be529d50066ac28ab915a7",
+      "afterMetaHash": "5a64db4df40465c29f79389f67f82370f986c606c8c65a09b671687d9462e238"
+    },
+    {
+      "id": 47,
+      "invoiceNoHash": "83a93607a68c",
+      "invoiceDate": "2026-03-25",
+      "amount": 19800,
+      "beforeMetaHash": "34aa131da196e22035a3fde306d3c7b25c677e7b8b5c1dbea1f63c546f6cbc42",
+      "afterMetaHash": "4cfa733c394716e6604a1325b5012c948eb6e13e4c1b04bc8c20754a5d9de895"
+    },
+    {
+      "id": 48,
+      "invoiceNoHash": "376234f6f557",
+      "invoiceDate": "2026-03-25",
+      "amount": 60000,
+      "beforeMetaHash": "fc0f56d5596249b6b16c4e653973aa6e1cd53c3cbcc5841362d8361a6987c1a4",
+      "afterMetaHash": "c3c39d600bcfdc0dc07ffcacc1fbcd8155af0ff2eed06b6cff3f6a75c4dfecb8"
+    },
+    {
+      "id": 92,
+      "invoiceNoHash": "1f3b350aff68",
+      "invoiceDate": "2026-03-25",
+      "amount": 67370,
+      "beforeMetaHash": "cc594d294c0b6a36aea0a27ccbec10fc6aa66242e2cd08061d50351c4c236b27",
+      "afterMetaHash": "a56c6b14faea8e01d92f400349b8ddfa81ca5e6fc3e70239331f5080456c57ea"
+    },
+    {
+      "id": 44,
+      "invoiceNoHash": "45c6750a97ec",
+      "invoiceDate": "2026-03-24",
+      "amount": 53600,
+      "beforeMetaHash": "b95e7107ef9c1afcb4f83b44e61ca964fc45e64345c14ebcd9c0b78eea399efe",
+      "afterMetaHash": "4818ca7fc66187bf2a5a7702852ac5ad259abedf39a129ae63bfbf439b7d74b3"
+    },
+    {
+      "id": 46,
+      "invoiceNoHash": "2e90e156c028",
+      "invoiceDate": "2026-03-24",
+      "amount": 241500,
+      "beforeMetaHash": "07c9acc7d4fc1f30a78cafc2576618a29c3a601f3676bb7dd83f951836f59ed6",
+      "afterMetaHash": "06d7ed262d8fa130c50b348cd3c9133f72c9b56b18f04f6da3de798ead25c00e"
+    },
+    {
+      "id": 36,
+      "invoiceNoHash": "bcf120819919",
+      "invoiceDate": "2026-03-23",
+      "amount": 965400,
+      "beforeMetaHash": "affeddf91c6269db5daab2adb4befc7033bb2c60dc1f186d47625c9ced3b3dde",
+      "afterMetaHash": "1c9bd40b98047cb49fa18b19689bb08e040ece0c1cbdfb0b30542427e9939e9e"
+    },
+    {
+      "id": 37,
+      "invoiceNoHash": "af702d5e73e8",
+      "invoiceDate": "2026-03-20",
+      "amount": 1312900,
+      "beforeMetaHash": "bafdb96c007f961fa3b12d7942b1103817855332d443dc0bac05f0d6887ef4b9",
+      "afterMetaHash": "d1d250f156c93c07b1091376ef62b369161f6908ce0691e61c38f6f80ddee251"
+    },
+    {
+      "id": 38,
+      "invoiceNoHash": "84126f1b70a9",
+      "invoiceDate": "2026-03-20",
+      "amount": 598000,
+      "beforeMetaHash": "2543eb9813e3f902b3ec1f07b8859baf53a0ff3c697e098880e303634f930d25",
+      "afterMetaHash": "2913f7ce19de9b4e655d4c40b11366b0a898913b54b380c52b40d5262de559fc"
+    },
+    {
+      "id": 40,
+      "invoiceNoHash": "e8acbd2e951e",
+      "invoiceDate": "2026-03-20",
+      "amount": 607000,
+      "beforeMetaHash": "578f552d91b1437536b239af8d83792bfb54653b5a4b134997f6c45ba4e6fa52",
+      "afterMetaHash": "0f47e1af8511413d160d2ab915e68104a3c853b1d25602fb358b83f3839debcd"
+    },
+    {
+      "id": 31,
+      "invoiceNoHash": "865d825aeb34",
+      "invoiceDate": "2026-03-19",
+      "amount": 211200,
+      "beforeMetaHash": "e9a027c88eeabd3425b04c001092acf5f7b1f13d6b12deb8f2cbd3c0d15b58d4",
+      "afterMetaHash": "77f706daeb5b196ba7e834ec78d77d2e30e36030953182ac116a143898a43237"
+    },
+    {
+      "id": 32,
+      "invoiceNoHash": "0114c4d685ba",
+      "invoiceDate": "2026-03-19",
+      "amount": 140000,
+      "beforeMetaHash": "a9a6aa4b91685060926bad47ecc21c7fcd83382def05cd71511e053588fd25cc",
+      "afterMetaHash": "e6aa72798cfcdfbf4836dcfc63ffef61ae7aaf567f303d40da92b51a777f98ea"
+    },
+    {
+      "id": 33,
+      "invoiceNoHash": "00c8942cf3d3",
+      "invoiceDate": "2026-03-19",
+      "amount": 197460,
+      "beforeMetaHash": "476ffc1acbd58130f583873b6469ffe0557d1cdcb6ebc3858db4399387bb620e",
+      "afterMetaHash": "647dc8e8a904f8ff16d4d6347f1b09e98deac7634c1c404560538917e89fc487"
+    },
+    {
+      "id": 22,
+      "invoiceNoHash": "7f9d9ee2c3fe",
+      "invoiceDate": "2026-03-17",
+      "amount": 167650,
+      "beforeMetaHash": "039364dcd913402a81fdfa716c9fbbc20866146fbb13fd9a32fef412edbaae8c",
+      "afterMetaHash": "14fe55487088599554e6f75ca9da1239cb27f3b89c8fe0cb3c367d6815977e36"
+    },
+    {
+      "id": 28,
+      "invoiceNoHash": "b9f75e6fe6b6",
+      "invoiceDate": "2026-03-17",
+      "amount": 769000,
+      "beforeMetaHash": "bb7e40633c623dfd9c848314eedf3304ba67b8945af691add713ecf9f5c07249",
+      "afterMetaHash": "b1c0dc0ce35e297bb679281f16a7323626aec9b318d954811b5d779223c324a3"
+    },
+    {
+      "id": 29,
+      "invoiceNoHash": "3fff80782708",
+      "invoiceDate": "2026-03-17",
+      "amount": 646600,
+      "beforeMetaHash": "6a40aec676f005fe827486df6d117fdc4e1d6cf90170ed4abb5929d183c30e34",
+      "afterMetaHash": "0f429c31e94583f3cb8ec963c5ba62307550a9922d77f265eca795f4cdfcd25c"
+    },
+    {
+      "id": 30,
+      "invoiceNoHash": "a6eae1f6e1ba",
+      "invoiceDate": "2026-03-17",
+      "amount": 209400,
+      "beforeMetaHash": "c6a92a20a4b19e4175b431764d33d922af93e6cc611ab49dc3e473094ccc7536",
+      "afterMetaHash": "d6ae453e2e43b4a7c2758190d4e4a2be484226a37252144468b6e9c604eaa090"
+    },
+    {
+      "id": 18,
+      "invoiceNoHash": "1bf3770db0c0",
+      "invoiceDate": "2026-03-16",
+      "amount": 390000,
+      "beforeMetaHash": "e3fe0c74da1cfc2611801093bd4509b7a76ecd74438800e0f99e76669fc5ee74",
+      "afterMetaHash": "514a8fd5ff232e346807edf83143141a05fbbf5c2ec9553db3e22b9aa0398e0d"
+    },
+    {
+      "id": 19,
+      "invoiceNoHash": "63805ffd9e45",
+      "invoiceDate": "2026-03-16",
+      "amount": 2700000,
+      "beforeMetaHash": "b7668ec6e6c772544883a5c7a0510318394eb9d10205fd9c5bb894d80e0d90ff",
+      "afterMetaHash": "ccf4c46a2483f96a8eb10b930953784ad3945bbada651f1191e16f71c51715a3"
+    },
+    {
+      "id": 20,
+      "invoiceNoHash": "7016fa483b21",
+      "invoiceDate": "2026-03-16",
+      "amount": 99000,
+      "beforeMetaHash": "7f18825573ae17491ab7a9ac9db808d366dcb34ca1f1b181317ba8fbb4e13ee1",
+      "afterMetaHash": "64ae052ec5b347f9f9a94e765f4736f7d54226497e069a8a7b67922207b5011d"
+    },
+    {
+      "id": 14,
+      "invoiceNoHash": "9760c8a1891f",
+      "invoiceDate": "2026-03-13",
+      "amount": 1324100,
+      "beforeMetaHash": "8c1f89ea1fd059115dac8598821f798d2254756736078ff98237b2c8046f1c6b",
+      "afterMetaHash": "a65dcc17cc7d18b684bc71d5aad486b70706f23831bfcd22948b197ff30458c3"
+    },
+    {
+      "id": 15,
+      "invoiceNoHash": "86d646714bef",
+      "invoiceDate": "2026-03-13",
+      "amount": 384000,
+      "beforeMetaHash": "72a88d023298212545c07cad20141e1158afb3f479c2f62071693db8129a5cd9",
+      "afterMetaHash": "16170f5359e5d0adc9fd1b141327320348372beb307493e92cf0e2f8e7a86ae2"
+    },
+    {
+      "id": 26,
+      "invoiceNoHash": "41dd940d6361",
+      "invoiceDate": "2026-03-13",
+      "amount": 71000,
+      "beforeMetaHash": "ab5192e5a4d816b9e5c200bb1f5a51e8226d4a3bb3def1d77c60a42f19ed47b5",
+      "afterMetaHash": "71444f7252b9cac5f5b099addf603f7e3d21cb4cdd1e8b757587c8ca772aadd6"
+    },
+    {
+      "id": 27,
+      "invoiceNoHash": "5ebe3f22087b",
+      "invoiceDate": "2026-03-13",
+      "amount": 104400,
+      "beforeMetaHash": "9e7d0939886ed4504c046bfd525110038a4a99a45f83a91a11b387d113ac9e9c",
+      "afterMetaHash": "be3edf300cddaed38e5e3530fc58094cd914cf221d3026f387f206d75e31e156"
+    },
+    {
+      "id": 2,
+      "invoiceNoHash": "0f970f83b606",
+      "invoiceDate": "2026-03-12",
+      "amount": 10900,
+      "beforeMetaHash": "458bed303c4aef95f69ee15ff9c54760bc5fdb2f60cabb3cf347961a595640a1",
+      "afterMetaHash": "8ea44ade7ae3f4669e8bc33211238e8ea00cd358431ec76287d916da6c186d30"
+    },
+    {
+      "id": 3,
+      "invoiceNoHash": "dda7403e300d",
+      "invoiceDate": "2026-03-12",
+      "amount": 131000,
+      "beforeMetaHash": "048f5e639aeb9364b71eec6c918c4e8d3d416320d6f87f9fb323ba1870c1dd25",
+      "afterMetaHash": "ef3e8ae7ea5c7e39610c8674287409b7520e5dfa042f5e5f8c6a22ca1e687455"
+    },
+    {
+      "id": 4,
+      "invoiceNoHash": "e8e404e5c414",
+      "invoiceDate": "2026-03-12",
+      "amount": 260000,
+      "beforeMetaHash": "f9d82965261744aff018a3b3c1d3948d54dbb935bac7eb80081e46e4c5a642b5",
+      "afterMetaHash": "07041080b8bb7fdb7781950270a295db33aa706412e0808d779a404699134d17"
+    },
+    {
+      "id": 5,
+      "invoiceNoHash": "99e57e230c12",
+      "invoiceDate": "2026-03-12",
+      "amount": 167650,
+      "beforeMetaHash": "3546ac50c75dbe4f3ac0d36bf1ffc0acc5e554bc6698d7b640424ece485076d7",
+      "afterMetaHash": "0e46fd257dfafeb506f26219b6f693cf5c9a2a7f148adec74ffeef4651078d7b"
+    },
+    {
+      "id": 6,
+      "invoiceNoHash": "20b5a6071e8a",
+      "invoiceDate": "2026-03-12",
+      "amount": 59760,
+      "beforeMetaHash": "838d97b3167d7e6a4e2d916defd2cc1b08b162645eb61a32fa596c18ebd76675",
+      "afterMetaHash": "320d6b94f6afe82b990b9a3d86879d58c1e14f832a12ece94d2e45c0ad92b592"
+    },
+    {
+      "id": 7,
+      "invoiceNoHash": "f3c38b7432e5",
+      "invoiceDate": "2026-03-12",
+      "amount": 135000,
+      "beforeMetaHash": "7017262650d6fabac676a5d6611d4d87c0d3a50c46ed61d388af65afbd45f0b0",
+      "afterMetaHash": "07aee743b30d84be2b7dc8eec0c7661c3b217985029230c1601bc266e96f9cdd"
+    },
+    {
+      "id": 9,
+      "invoiceNoHash": "1beaca1f016a",
+      "invoiceDate": "2026-03-12",
+      "amount": 3300,
+      "beforeMetaHash": "46ae2e842ce8927f690bdfd5dd67d1a96d4f72472c2c619c7960a6043ef02ae7",
+      "afterMetaHash": "abb0478ea69c5b3e823374a478582ee6c9a96f189998ed54de2b177f12ce5a03"
+    },
+    {
+      "id": 10,
+      "invoiceNoHash": "05ce8d5c6b17",
+      "invoiceDate": "2026-03-12",
+      "amount": 71000,
+      "beforeMetaHash": "655eca09c0b4dd6cc23cd4aa2c591bb5a8e582c9520b5c0c5bb72b75ed6c6e1c",
+      "afterMetaHash": "f5af3490163f552d37cecf584d28a9ba459e100cb7d2a76c16416024dd35aa75"
+    },
+    {
+      "id": 11,
+      "invoiceNoHash": "ce214e7acce8",
+      "invoiceDate": "2026-03-12",
+      "amount": 104400,
+      "beforeMetaHash": "81866de1e9ed86a954c8200cc0c0afbe0f95da7f25b0cd2ee3e3850f3fe361f0",
+      "afterMetaHash": "4b1a45d359abda767cc7cbc65457dec301303766336aa6a2d68039efb3b695db"
+    },
+    {
+      "id": 12,
+      "invoiceNoHash": "96b317eb01bc",
+      "invoiceDate": "2026-03-12",
+      "amount": 394200,
+      "beforeMetaHash": "5b708aa4040a9dc6c95cdb6623ef342f1deb574e74bc1134a083514fbfab2100",
+      "afterMetaHash": "99c359d6104757c6523e7a9f118454371005f1352bc93b12d59a5c96c9ebb2a9"
+    },
+    {
+      "id": 21,
+      "invoiceNoHash": "3644474c2d88",
+      "invoiceDate": "2026-03-09",
+      "amount": 626900,
+      "beforeMetaHash": "a0a64b90d8120bfe2c4ce4f0ecd21c8f56b1d8f58945ecd76b3947abe233b6bf",
+      "afterMetaHash": "71777e0294b90b12049f7c4dabba3085d1ec064a29357b312b11d62691229441"
+    },
+    {
+      "id": 13,
+      "invoiceNoHash": "25d8cdd67414",
+      "invoiceDate": "2026-02-25",
+      "amount": 27900,
+      "beforeMetaHash": "6a5c88f41436ece508f27c063bf16a3a10c5e4bf8d5f1e13d243fb3c76dbb91a",
+      "afterMetaHash": "c4bd4717431fbac915e130766d2c092578a5154c6ffe868207ad09a467932ca5"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "deployedAt": "2026-04-30T03:33:14.235269Z",
+  "workflowId": "DoAlCOG3OU20Wlvj",
+  "backupPath": "n8n-automation/backups/20260430-120555-monthly-sales-audit-202604/F23-DoAlCOG3OU20Wlvj-before-manual-channel-total-fix.json",
+  "markers": {
+    "active": true,
+    "hasExistingRocket": true,
+    "totalIncludesManual": true,
+    "nocodbRocket": true,
+    "nocodbLegacyOthers": true
+  },
+  "name": "[F23] 통합 일일 매출 리포트",
+  "updatedAt": "2026-04-30T03:33:13.905Z"
+}

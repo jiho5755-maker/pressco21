@@ -1,0 +1,60 @@
+{
+  "executed_at": "2026-04-30T12:20:46",
+  "patches": [
+    {
+      "Id": 1205,
+      "report_date": "2026-04-03",
+      "before_total_revenue": 2901990,
+      "after_total_revenue": 4270690,
+      "diff": 1368700,
+      "rocket_revenue": 1368700,
+      "legacy_others_revenue": 0
+    },
+    {
+      "Id": 1229,
+      "report_date": "2026-04-10",
+      "before_total_revenue": 1761320,
+      "after_total_revenue": 5878400,
+      "diff": 4117080,
+      "rocket_revenue": 4117080,
+      "legacy_others_revenue": 0
+    },
+    {
+      "Id": 1236,
+      "report_date": "2026-04-17",
+      "before_total_revenue": 3379420,
+      "after_total_revenue": 8280640,
+      "diff": 4901220,
+      "rocket_revenue": 4901220,
+      "legacy_others_revenue": 0
+    },
+    {
+      "Id": 1244,
+      "report_date": "2026-04-24",
+      "before_total_revenue": 6788200,
+      "after_total_revenue": 9897730,
+      "diff": 3109530,
+      "rocket_revenue": 3109530,
+      "legacy_others_revenue": 0
+    }
+  ],
+  "results": [
+    {
+      "http_status": 200,
+      "response": [
+        {
+          "Id": 1205
+        },
+        {
+          "Id": 1229
+        },
+        {
+          "Id": 1236
+        },
+        {
+          "Id": 1244
+        }
+      ]
+    }
+  ]
+}

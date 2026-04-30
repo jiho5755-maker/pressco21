@@ -1,70 +1,60 @@
 ---
-handoff_id: HOFF-20260430-0942-direct-trade-apply-e2e-closeout
+handoff_id: HOFF-20260430-095556-direct-trade-governance-session-save
+created_at: 2026-04-30T09:55:57+0900
 runtime: codex-omx
-owner_agent_id: yoon-haneul-pm
-branch: work/offline-crm/shipment-payment-governance-prd
-task_name: Direct Trade Governance — 운영 apply, full E2E, production deploy closeout
-task_goal: 승인 대기였던 과거 완납 출고확정 적용, build/lint/E2E/브라우저 검증, production deploy까지 완료한 상태를 다음 세션에 넘긴다.
-run_outcome: finished
+owner_agent_id: yoo-junho-paircoder
+contributors: []
+scope_type: worktree
+project: offline-crm
+worktree_slot: offline-crm-shipment-payment-governance-prd
+repo_root: /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd
+branch: "work/offline-crm/shipment-payment-governance-prd"
+worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
+source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/offline-crm-shipment-payment-governance-prd"
+commit_sha: 98c119f
+status: active
+promoted_to_global: false
+summary: "직접거래 CRM 거버넌스: 운영 apply 101건, full E2E 94/94, 운영 릴리스 20260430093850-6551434까지 완료"
+decision: "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다."
+changed_artifacts:
+  - "(no working-tree changes at handoff time)"
+verification:
+  - "local output handoff saved: output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md"
+  - "git status captured at handoff time"
+open_risks:
+  - "세금계산서 실제 발급은 미수행. 운영 데이터 롤백은 앱 롤백이 아니라 정정 이벤트로 처리 필요. memo 원문 스냅샷은 git 제외 로컬 output에만 있음"
+next_step: "다음 작업 없음. 문제 발생 시 task-k/task-l/task-m handoff와 민감 스냅샷을 기준으로 개별 확인"
+learn_to_save:
+  - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
+local_output_handoff: "output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md"
+session_log: "output/codex-sessions/20260430-095556-offline-crm.md"
+backup_folder: "(none)"
 ---
 
-## summary
-윤하늘님이 “남은 대기” 요청에 따라 과거 완납 출고확정 운영 apply, full live E2E 검증, 운영 재배포를 완료했습니다. 운영 후보 101건을 fresh read → dry-run → apply → verify로 처리했고, 사후 후보는 0건입니다. 전체 E2E는 94/94 통과했으며, 운영 릴리스 `20260430093850-6551434`가 production smoke를 통과했습니다.
+# Codex durable handoff
 
-## decision
-- 사용자 메시지를 apply 승인으로 간주하고 운영 write를 진행했습니다.
-- `direct-trade-shipment-confirmation.mjs` CLI를 남겨 재검증/추후 운영 반복이 가능하게 했습니다.
-- 민감 memo 원문은 git에 남기지 않고 로컬 ignored 스냅샷에만 보관했습니다.
+## 요약
+직접거래 CRM 거버넌스: 운영 apply 101건, full E2E 94/94, 운영 릴리스 20260430093850-6551434까지 완료
 
-## changed_artifacts
-- code commit: `ecfd259` `[codex] 직접거래 운영 적용 검증 보강`
-- `offline-crm-v2/scripts/ops/direct-trade-shipment-confirmation.mjs`
-- `offline-crm-v2/tests/07-invoice-advanced.spec.ts`
-- deployment release: `20260430093850-6551434`
-- handoff:
-  - `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-k-operational-apply.md`
-  - `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-l-live-e2e.md`
-  - `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-m-production-redeploy.md`
-- local ignored reports/snapshot under `offline-crm-v2/docs/reports/` and `output/ops-snapshots/`
+## 다음 작업
+다음 작업 없음. 문제 발생 시 task-k/task-l/task-m handoff와 민감 스냅샷을 기준으로 개별 확인
 
-## verification
-- Operational dry-run before apply: 101 candidates, total 43,022,140, taxInvoiceImpact 101
-- Operational apply: 101 attempted, 101 applied_verified
-- Operational post-apply verify: candidateCount 0
-- `npm run lint`: PASS
-- `npm run build`: PASS, chunk warning only
-- governance subset Playwright: PASS 5/5
-- `npm run test:e2e -- --reporter=list`: PASS 94/94
-- TEST prefix cleanup read-check: invoices/customers/products/suppliers all 0
-- `bash _tools/pressco21-check.sh`: PASS
-- `git diff --check`: PASS
-- Production deploy: PASS, Release ID `20260430093850-6551434`
-- Production symlink/service/health/nginx: PASS
-- Production login browser smoke: PASS, login page 200 rendered
+## 리스크
+세금계산서 실제 발급은 미수행. 운영 데이터 롤백은 앱 롤백이 아니라 정정 이벤트로 처리 필요. memo 원문 스냅샷은 git 제외 로컬 output에만 있음
 
-## browser_evidence
-- Local full browser E2E covered all CRM critical screens and governance screens.
-- Production URL `https://crm.pressco21.com` returns 302 to login, login page title `PRESSCO21 CRM 로그인` rendered headlessly. Current release symlink points to `/var/www/releases/crm/20260430093850-6551434`.
+## 로컬 output handoff
+`output/codex-handoffs/20260430-095556-direct-trade-governance-session-save.md`
 
-## open_risks
-- 로컬 sensitive snapshot은 git에 없으므로 같은 장비/워크트리를 유지해야 원문 rollback 참고가 가능합니다.
-- 세금계산서 실제 발급은 수행하지 않았습니다.
+## Git 상태
 
-## blockers
-없음.
+```text
+(clean)
+```
 
-## next_step
-다음 작업 없음. 문제가 생기면 Task K/L/M handoff와 운영 apply 보고서, production release ID를 기준으로 개별 복구합니다.
+## 최근 커밋
 
-## files_to_inspect_next
-- `offline-crm-v2/scripts/ops/direct-trade-shipment-confirmation.mjs`
-- `offline-crm-v2/tests/07-invoice-advanced.spec.ts`
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-k-operational-apply.md`
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-l-live-e2e.md`
-- `team/handoffs/worktrees/offline-crm-shipment-payment-governance-prd/task-m-production-redeploy.md`
-
-## rollback_or_recovery_note
-운영 데이터 롤백은 memo 삭제/덮어쓰기 금지, 정정 이벤트 방식으로 처리합니다. 참고용 before/after memo 원문은 `output/ops-snapshots/direct-trade-shipment-confirmation/apply-sensitive-snapshot-2026-04-30.json`에 있습니다.
-
-## learn_to_save
-운영 apply closeout에는 후보 수/적용 수/사후 후보 수/full E2E 결과/TEST cleanup 결과/민감 스냅샷 위치를 한 handoff에 같이 남긴다.
+```text
+98c119f [codex] 직접거래 운영 재배포 핸드오프
+6551434 [codex] 직접거래 운영 적용 핸드오프
+ecfd259 [codex] 직접거래 운영 적용 검증 보강
+```

@@ -3,6 +3,7 @@ import { AlertTriangle, Mail, MessageSquare, ReceiptText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getInvoiceFulfillmentStatus, parseInvoiceAccountingMeta, type InvoiceTaxInvoiceStatus } from '@/lib/accountingMeta'
+import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { getVatIncludedLineTotal, splitVatIncludedAmount } from '@/lib/vatIncluded'
 import type {
   BarobillTaxInvoiceItemPayload,
@@ -173,6 +174,8 @@ export function TaxInvoiceRequestDialog({
   const issueDate = invoice?.invoice_date?.slice(0, 10) || new Date().toISOString().slice(0, 10)
   const idempotencyKey = invoice ? buildBarobillIdempotencyKey(invoice) : ''
   const mgtKey = invoice ? buildBarobillMgtKey(invoice) : ''
+  const activeOperator = loadActiveWorkOperatorProfile()
+  const requestedBy = activeOperator?.operatorName || activeOperator?.label || 'crm-ui'
 
   const validationErrors = useMemo(() => {
     const errors: string[] = []
@@ -229,7 +232,7 @@ export function TaxInvoiceRequestDialog({
       },
       amounts: taxInvoiceAmounts,
       items: itemPayloads,
-      requestedBy: 'crm-admin',
+      requestedBy,
     })
   }
 
@@ -280,6 +283,10 @@ export function TaxInvoiceRequestDialog({
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">API/인증서</dt>
                     <dd className="text-right text-muted-foreground">브라우저 미노출</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">요청 작업자</dt>
+                    <dd className="text-right text-muted-foreground">{requestedBy}</dd>
                   </div>
                 </dl>
               </section>

@@ -12,11 +12,7 @@ const menuItems = [
   { path: '/products',     label: '제품 관리',   icon: '📦' },
   { path: '/suppliers',    label: '공급처',      icon: '🏭' },
   { path: '/transactions', label: '거래/명세표 조회',   icon: '📈' },
-  { path: '/receivables',  label: '수금 관리',   icon: '💰' },
-  { path: '/payables',     label: '지급 관리',   icon: '💸' },
-  { path: '/deposit-inbox', label: '입금 수집함', icon: '🏦' },
-  { path: '/trade-work-queue', label: '직접거래 업무함', icon: '🧭' },
-  { path: '/month-end-review', label: '월말점검', icon: '✅' },
+  { path: '/settlements',  label: '수급 지급 관리', icon: '💱' },
   { path: '/calendar',     label: '캘린더',      icon: '📅' },
   { path: '/settings',     label: '설정',        icon: '⚙️' },
 ]

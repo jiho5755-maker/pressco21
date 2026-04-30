@@ -1,11 +1,11 @@
 /**
- * 테스트 12: 입금수집함 거버넌스 수동/제외 UX
+ * 테스트 12: 입금 반영 거버넌스 수동/제외 UX
  */
 import { test, expect } from '@playwright/test'
 
 const INBOX_KEY = 'pressco21-auto-deposit-inbox-v1'
 
-test('T12-01: 입금수집함은 수동 완료/제외/보류 처리를 장부 write 없이 로컬 이력으로 남긴다', async ({ page }) => {
+test('T12-01: 입금 반영은 수동 완료/제외/보류 처리를 장부 write 없이 로컬 이력으로 남긴다', async ({ page }) => {
   await page.route('**/crm-proxy', async (route) => {
     const body = route.request().postDataJSON() as { table?: string }
     const data = body.table === 'autoDepositReviewQueue'
@@ -32,7 +32,7 @@ test('T12-01: 입금수집함은 수동 완료/제외/보류 처리를 장부 wr
   }, { key: INBOX_KEY })
 
   await page.goto('/deposit-inbox')
-  await expect(page.getByRole('heading', { name: '입금 수집함' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '입금 반영' })).toBeVisible()
   await expect(page.getByText('입금 처리 안전장치')).toBeVisible()
 
   const row = page.locator('tbody tr', { hasText: '쿠팡정산' }).first()

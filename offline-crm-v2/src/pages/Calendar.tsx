@@ -604,7 +604,7 @@ export function Calendar() {
                         variant="outline"
                         size="sm"
                         className="justify-start"
-                        onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                        onClick={() => navigate(`/settlements?section=receivables&asOf=${selectedDate}`)}
                       >
                         기준일 미수 보기
                       </Button>
@@ -679,7 +679,7 @@ export function Calendar() {
                           key={`receivable-${invoice.Id}`}
                           type="button"
                           className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
-                          onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                          onClick={() => navigate(`/settlements?section=receivables&asOf=${selectedDate}`)}
                         >
                           <div className="flex items-start justify-between gap-2 text-xs">
                             <div>

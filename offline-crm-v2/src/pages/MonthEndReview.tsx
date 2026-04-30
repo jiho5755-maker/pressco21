@@ -15,7 +15,7 @@ import {
 
 type ReviewReason =
   | '출고완료 누락'
-  | '입금수집 미처리'
+  | '입금 반영 미처리'
   | '출고완료 미수'
   | '후속입금 지연'
   | '예치금/환불대기 잔액'
@@ -35,6 +35,11 @@ interface ReviewRow {
   remainingAmount: number
   dueDate?: string
   nextAction: string
+}
+
+interface MonthEndReviewProps {
+  titleOverride?: string
+  descriptionOverride?: string
 }
 
 function todayDate(): string {
@@ -83,7 +88,7 @@ function invoiceRow(state: TradeGovernanceState, reason: ReviewReason, nextActio
   }
 }
 
-export function MonthEndReview() {
+export function MonthEndReview({ titleOverride, descriptionOverride }: MonthEndReviewProps = {}) {
   const navigate = useNavigate()
   const currentMonth = todayDate()
   const [dateFrom, setDateFrom] = useState(getMonthStart(currentMonth))
@@ -134,7 +139,7 @@ export function MonthEndReview() {
       .map((state) => invoiceRow(state, '출고완료 미수', '후속입금 예정 등록 또는 입금 확인'))
     const overdueFollowUp = states
       .filter((state) => state.followUpStatus === 'overdue' || state.followUpStatus === 'due_today')
-      .map((state) => invoiceRow(state, '후속입금 지연', state.followUpStatus === 'due_today' ? '오늘 입금 확인' : '고객 연락/입금수집함 확인'))
+      .map((state) => invoiceRow(state, '후속입금 지연', state.followUpStatus === 'due_today' ? '오늘 입금 확인' : '고객 연락/입금 반영 확인'))
     const overpayments = states
       .filter((state) => state.overpaidAmount > 0)
       .map((state) => invoiceRow(state, '초과입금 확인 필요', '명세표 반영액과 예치금/환불대기 분리'))
@@ -163,7 +168,7 @@ export function MonthEndReview() {
       .filter((item) => item.status === 'review' || item.status === 'unmatched')
       .map((item) => ({
         id: `deposit-${item.queueId}`,
-        reason: '입금수집 미처리' as const,
+        reason: '입금 반영 미처리' as const,
         customerName: item.sender,
         fulfillmentLabel: item.status === 'review' ? '검토 필요' : '미매칭',
         totalAmount: item.amount,
@@ -171,7 +176,7 @@ export function MonthEndReview() {
         depositUsedAmount: 0,
         remainingAmount: 0,
         dueDate: item.occurredAt.slice(0, 10),
-        nextAction: '입금수집함에서 후보 확정/수동 완료/제외/보류',
+        nextAction: '입금 반영에서 후보 확정/수동 완료/제외/보류',
       }))
 
     return [
@@ -190,7 +195,7 @@ export function MonthEndReview() {
     return summary
   }, {
     '출고완료 누락': 0,
-    '입금수집 미처리': 0,
+    '입금 반영 미처리': 0,
     '출고완료 미수': 0,
     '후속입금 지연': 0,
     '예치금/환불대기 잔액': 0,
@@ -200,7 +205,7 @@ export function MonthEndReview() {
 
   const cards: Array<{ reason: ReviewReason; description: string }> = [
     { reason: '출고완료 누락', description: '완납인데 출고확정 없음' },
-    { reason: '입금수집 미처리', description: 'review/unmatched 큐' },
+    { reason: '입금 반영 미처리', description: 'review/unmatched 큐' },
     { reason: '출고완료 미수', description: '물건 나감 + 받을 돈 남음' },
     { reason: '후속입금 지연', description: '오늘/기한 지난 약속' },
     { reason: '예치금/환불대기 잔액', description: '고객 잔액 확인' },
@@ -213,9 +218,9 @@ export function MonthEndReview() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.18em] text-[#5a7353]">MONTH-END DIRECT TRADE REVIEW</p>
-          <h2 className="mt-1 text-3xl font-bold text-gray-900">월말점검</h2>
+          <h2 className="mt-1 text-3xl font-bold text-gray-900">{titleOverride ?? '마감 점검'}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            월말 마감 전 출고, 입금수집, 후속입금, 예치금/환불대기, 세금계산서 기준 예외를 확인합니다.
+            {descriptionOverride ?? '마감 전 출고, 입금 반영, 후속입금, 예치금/환불대기, 세금계산서 기준 예외를 확인합니다.'}
           </p>
         </div>
         <div className="grid gap-2 rounded-xl border bg-white p-3 shadow-sm md:grid-cols-[150px_150px_auto]">
@@ -251,7 +256,7 @@ export function MonthEndReview() {
         <div className="rounded-xl border border-[#d8e4d6] bg-[#f8faf7] p-4">
           <CheckSquare className="h-5 w-5 text-[#5e8a6e]" />
           <p className="mt-2 text-sm font-semibold text-[#2f4d37]">예외 행 연결</p>
-          <p className="mt-1 text-xs text-[#5f6f60]">각 행에서 원본 명세표 또는 입금수집함으로 이동합니다.</p>
+          <p className="mt-1 text-xs text-[#5f6f60]">각 행에서 원본 명세표 또는 입금 반영으로 이동합니다.</p>
         </div>
       </div>
 
@@ -259,11 +264,11 @@ export function MonthEndReview() {
         <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">점검 상세</h3>
-            <p className="mt-1 text-xs text-muted-foreground">기간 {dateFrom} ~ {dateTo} · 상세 {rows.length.toLocaleString()}건 · 입금수집 미처리 {pendingDepositCount.toLocaleString()}건</p>
+            <p className="mt-1 text-xs text-muted-foreground">기간 {dateFrom} ~ {dateTo} · 상세 {rows.length.toLocaleString()}건 · 입금 반영 미처리 {pendingDepositCount.toLocaleString()}건</p>
           </div>
           <CalendarDays className="h-5 w-5 text-[#5e8a6e]" />
         </div>
-        <div className="overflow-auto">
+        <div className="overflow-auto" data-guide-id="month-end-review-table">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs text-muted-foreground">
               <tr>
@@ -283,7 +288,7 @@ export function MonthEndReview() {
               {isLoading ? (
                 <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">불러오는 중...</td></tr>
               ) : isError ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-red-600">월말점검 데이터를 불러오지 못했습니다.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-red-600">마감 점검 데이터를 불러오지 못했습니다.</td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">점검할 예외가 없습니다.</td></tr>
               ) : rows.map((row) => (
@@ -303,7 +308,7 @@ export function MonthEndReview() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => row.invoiceId ? navigate(`/invoices?edit=${row.invoiceId}`) : navigate('/deposit-inbox')}
+                        onClick={() => row.invoiceId ? navigate(`/invoices?edit=${row.invoiceId}`) : navigate('/settlements?section=deposits')}
                       >
                         원본 화면 열기
                       </Button>

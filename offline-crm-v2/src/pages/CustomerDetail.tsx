@@ -63,6 +63,7 @@ interface InfoForm {
   memo: string
   depositorAliases: string
   autoDepositDisabled: boolean
+  autoDepositAccountMatchEnabled: boolean
   autoDepositPriority: string
   addressFields: Array<{ label: string; value: string }>
 }
@@ -95,6 +96,7 @@ function buildInfoForm(c: Customer): InfoForm {
     memo: getDisplayMemo(c.memo as string | undefined),
     depositorAliases: accountingMeta.depositorAliases.join('\n'),
     autoDepositDisabled: accountingMeta.autoDepositDisabled,
+    autoDepositAccountMatchEnabled: accountingMeta.autoDepositAccountMatchEnabled,
     autoDepositPriority: accountingMeta.autoDepositPriority > 0 ? String(accountingMeta.autoDepositPriority) : '',
     addressFields: addressFields.length > 0 ? addressFields : [{ label: defaultAddressLabel(0), value: '' }],
   }
@@ -419,7 +421,7 @@ export function CustomerDetail() {
   const [infoForm, setInfoForm] = useState<InfoForm>({
     name: '', phone: '', mobile: '', email: '', biz_no: '', ceo_name: '',
     biz_type: '', biz_item: '', customer_type: '', customer_status: '',
-    price_tier: '1', discount_rate: '', memo: '', depositorAliases: '', autoDepositDisabled: false, autoDepositPriority: '', addressFields: [{ label: defaultAddressLabel(0), value: '' }],
+    price_tier: '1', discount_rate: '', memo: '', depositorAliases: '', autoDepositDisabled: false, autoDepositAccountMatchEnabled: false, autoDepositPriority: '', addressFields: [{ label: defaultAddressLabel(0), value: '' }],
   })
 
   // 기간 매출 필터 상태 (명세표 탭)
@@ -500,6 +502,7 @@ export function CustomerDetail() {
                 .filter(Boolean),
               addressLabels: normalizedAddressFields.map((field) => field.label),
               autoDepositDisabled: infoForm.autoDepositDisabled,
+              autoDepositAccountMatchEnabled: infoForm.autoDepositAccountMatchEnabled,
               autoDepositPriority: infoForm.autoDepositPriority.trim() ? Number(infoForm.autoDepositPriority) : 0,
             },
           ),
@@ -992,6 +995,7 @@ export function CustomerDetail() {
     { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
     { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
     { label: '자동입금 제외', value: customerAccountingMeta.autoDepositDisabled ? '예' : '아니오' },
+    { label: '고객계정 자동반영', value: customerAccountingMeta.autoDepositAccountMatchEnabled ? '허용' : '수동 확인' },
     { label: '자동입금 우선순위', value: customerAccountingMeta.autoDepositPriority > 0 ? `${customerAccountingMeta.autoDepositPriority}` : undefined },
   ]
   const invoiceNameVariants = Array.from(
@@ -1279,16 +1283,16 @@ export function CustomerDetail() {
               <Plus className="mr-1 h-3.5 w-3.5" />
               명세표 작성
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
-              수금 관리
+            <Button size="sm" variant="outline" onClick={() => navigate(`/settlements?section=receivables&customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
+              받을 돈
             </Button>
             <Button
               size="sm"
               variant="ghost"
               className="text-slate-600"
-              onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}
+              onClick={() => navigate(`/settlements?section=outgoing&customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}
             >
-              지급 관리
+              예치·환불·지급
             </Button>
             <Button
               size="sm"
@@ -1566,7 +1570,7 @@ export function CustomerDetail() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-3 md:grid-cols-3">
                     <div className="space-y-2 rounded-lg border border-dashed border-slate-200 px-3 py-3">
                       <div className="space-y-1">
                         <Label className="text-xs">자동입금 제외</Label>
@@ -1581,6 +1585,22 @@ export function CustomerDetail() {
                           onChange={(e) => setInfoForm((f) => ({ ...f, autoDepositDisabled: e.target.checked }))}
                         />
                         자동입금 후보에서 제외
+                      </label>
+                    </div>
+                    <div className="space-y-2 rounded-lg border border-dashed border-[#c9d7c0] bg-[#f8faf7] px-3 py-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">고객계정 자동반영</Label>
+                        <p className="text-xs text-muted-foreground">
+                          단일 고객으로 안전하게 특정될 때 열린 미수에 오래된 순서로 반영하고 초과분은 예치금으로 남깁니다.
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={infoForm.autoDepositAccountMatchEnabled}
+                          onChange={(e) => setInfoForm((f) => ({ ...f, autoDepositAccountMatchEnabled: e.target.checked }))}
+                        />
+                        고객 전체 받을 돈 자동반영 허용
                       </label>
                     </div>
                     <div className="space-y-1">

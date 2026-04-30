@@ -25,6 +25,7 @@ import {
   type HistoricalPaidShipmentDryRun,
   type ShipmentDryRunExclusionReason,
 } from '@/lib/tradeGovernance'
+import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 
 const PAGE_SIZE = 25
 
@@ -41,6 +42,11 @@ function isValidCalendarDate(value: string | null): value is string {
 function getTodayDateString() {
   const now = new Date()
   return formatCalendarDate(now)
+}
+
+function getActiveOperatorName(): string {
+  const activeOperator = loadActiveWorkOperatorProfile()
+  return activeOperator?.operatorName || activeOperator?.label || 'crm-ui'
 }
 
 function formatCalendarDate(date: Date) {
@@ -797,7 +803,9 @@ export function Invoices() {
         return
       }
 
-      const result = await requestBarobillTaxInvoice(payload)
+      const requestedBy = payload.requestedBy || getActiveOperatorName()
+      const normalizedPayload = { ...payload, requestedBy }
+      const result = await requestBarobillTaxInvoice(normalizedPayload)
       const statusCode =
         result.errorCode ??
         (result.barobillResultCode == null ? result.status : String(result.barobillResultCode))
@@ -813,15 +821,15 @@ export function Invoices() {
           idempotencyKey: result.idempotencyKey,
           requestId: result.requestId,
           requestedAt: result.requestedAt ?? latestMeta.taxInvoice?.requestedAt,
-          requestedBy: 'crm-admin',
+          requestedBy,
           lastStatusSyncedAt: result.syncedAt ?? result.requestedAt ?? latestMeta.taxInvoice?.lastStatusSyncedAt,
           statusCode,
           barobillResultCode: result.barobillResultCode == null ? undefined : String(result.barobillResultCode),
           statusMessage: result.message,
           errorCode: result.status === 'failed' ? result.errorCode ?? statusCode : undefined,
           errorMessage: result.status === 'failed' ? result.errorMessage ?? result.message : undefined,
-          mailSent: payload.sendEmail,
-          smsRequested: payload.sendSms,
+          mailSent: normalizedPayload.sendEmail,
+          smsRequested: normalizedPayload.sendSms,
         },
       })
       const updatedInvoice = await updateInvoice(latestInvoice.Id, { memo: nextMemo })
@@ -833,7 +841,7 @@ export function Invoices() {
       } else if (result.status === 'failed') {
         toast.error(result.message)
       } else {
-        toast.success('바로빌 테스트 세금계산서 발급 요청을 보냈습니다')
+        toast.success(result.mode === 'production' ? '바로빌 운영 세금계산서 발급 요청을 보냈습니다' : '바로빌 테스트 세금계산서 발급 요청을 보냈습니다')
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : '세금계산서 발급 요청에 실패했습니다'
@@ -936,7 +944,7 @@ export function Invoices() {
         providerMgtKey,
         mode: latestMeta.taxInvoice?.mode ?? 'test',
         cancelReason: 'CRM 관리자 요청',
-        requestedBy: 'crm-admin',
+        requestedBy: getActiveOperatorName(),
       })
       const statusCode = result.statusCode ??
         (result.barobillState != null ? String(result.barobillState) : result.status)
@@ -959,7 +967,7 @@ export function Invoices() {
           ntsSendResult: result.ntsSendResult ?? latestMeta.taxInvoice?.ntsSendResult,
           statusMessage: result.message,
           cancellationRequestedAt: latestMeta.taxInvoice?.cancellationRequestedAt ?? result.syncedAt,
-          cancellationRequestedBy: 'crm-admin',
+          cancellationRequestedBy: getActiveOperatorName(),
           cancellationReason: 'CRM 관리자 요청',
           cancellationMethod: result.cancellationMethod as InvoiceTaxInvoiceMeta['cancellationMethod'],
           cancellationPending: result.status === 'cancel_requested',
@@ -1077,7 +1085,7 @@ export function Invoices() {
       return
     }
     const ok = window.confirm(
-      `포장·출고완료 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n명세표: ${inv.invoice_no ?? inv.Id}\n명세표 합계: ${formatAmount(inv.total_amount)}\n\n처리 후 이 건은 “출고완료 매출”과 “월말점검”에 포함됩니다.\n아직 입금되지 않았다면 “출고완료 미수” 업무함에 표시됩니다.`,
+      `포장·출고완료 처리할까요?\n\n거래처: ${inv.customer_name ?? '-'}\n명세표: ${inv.invoice_no ?? inv.Id}\n명세표 합계: ${formatAmount(inv.total_amount)}\n\n처리 후 이 건은 “출고완료 매출”과 “마감 점검”에 포함됩니다.\n아직 입금되지 않았다면 “출고완료 미수” 업무함에 표시됩니다.`,
     )
     if (!ok) return
 

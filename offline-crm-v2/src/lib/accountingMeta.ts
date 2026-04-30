@@ -17,6 +17,7 @@ export interface CustomerAccountingMetaState {
   depositorAliases: string[]
   addressLabels: string[]
   autoDepositDisabled: boolean
+  autoDepositAccountMatchEnabled: boolean
   autoDepositPriority: number
   events: CustomerAccountingEvent[]
 }
@@ -523,7 +524,7 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
     .find((line) => line.startsWith(CUSTOMER_ACCOUNTING_META_PREFIX))
 
   if (!metaLine) {
-    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositAccountMatchEnabled: false, autoDepositPriority: 0, events: [] }
   }
 
   try {
@@ -533,6 +534,7 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
       depositorAliases?: string[]
       addressLabels?: string[]
       autoDepositDisabled?: boolean
+      autoDepositAccountMatchEnabled?: boolean
       autoDepositPriority?: number
       events?: Partial<CustomerAccountingEvent>[]
     }
@@ -545,11 +547,12 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
       depositorAliases: sanitizeAliasList(parsed.depositorAliases),
       addressLabels: sanitizeAddressLabelList(parsed.addressLabels),
       autoDepositDisabled: parsed.autoDepositDisabled === true,
+      autoDepositAccountMatchEnabled: parsed.autoDepositAccountMatchEnabled === true,
       autoDepositPriority: Math.max(0, parseInteger(parsed.autoDepositPriority)),
       events,
     }
   } catch {
-    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositAccountMatchEnabled: false, autoDepositPriority: 0, events: [] }
   }
 }
 
@@ -566,6 +569,7 @@ export function serializeCustomerAccountingMeta(
   const depositorAliases = sanitizeAliasList(nextState.depositorAliases)
   const addressLabels = sanitizeAddressLabelList(nextState.addressLabels)
   const autoDepositDisabled = nextState.autoDepositDisabled === true
+  const autoDepositAccountMatchEnabled = nextState.autoDepositAccountMatchEnabled === true
   const autoDepositPriority = Math.max(0, parseInteger(nextState.autoDepositPriority))
 
   if (
@@ -574,6 +578,7 @@ export function serializeCustomerAccountingMeta(
     depositorAliases.length === 0 &&
     addressLabels.length === 0 &&
     !autoDepositDisabled &&
+    !autoDepositAccountMatchEnabled &&
     autoDepositPriority <= 0 &&
     events.length === 0
   ) {
@@ -586,6 +591,7 @@ export function serializeCustomerAccountingMeta(
     depositorAliases,
     addressLabels,
     autoDepositDisabled,
+    autoDepositAccountMatchEnabled,
     autoDepositPriority,
     events,
   })}`
@@ -595,7 +601,7 @@ export function serializeCustomerAccountingMeta(
 export function appendCustomerAccountingEvent(
   memo: string | undefined,
   entry: CustomerAccountingEvent,
-  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance' | 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositPriority'>>,
+  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance' | 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositAccountMatchEnabled' | 'autoDepositPriority'>>,
 ): string {
   const prev = parseCustomerAccountingMeta(memo)
   return serializeCustomerAccountingMeta(memo, {
@@ -604,6 +610,7 @@ export function appendCustomerAccountingEvent(
     depositorAliases: patch?.depositorAliases ?? prev.depositorAliases,
     addressLabels: patch?.addressLabels ?? prev.addressLabels,
     autoDepositDisabled: patch?.autoDepositDisabled ?? prev.autoDepositDisabled,
+    autoDepositAccountMatchEnabled: patch?.autoDepositAccountMatchEnabled ?? prev.autoDepositAccountMatchEnabled,
     autoDepositPriority: patch?.autoDepositPriority ?? prev.autoDepositPriority,
     events: [...prev.events, entry],
   })
@@ -611,7 +618,7 @@ export function appendCustomerAccountingEvent(
 
 export function replaceCustomerAccountingPreferences(
   memo: string | undefined,
-  patch: Pick<CustomerAccountingMetaState, 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositPriority'>,
+  patch: Pick<CustomerAccountingMetaState, 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositAccountMatchEnabled' | 'autoDepositPriority'>,
 ): string {
   const prev = parseCustomerAccountingMeta(memo)
   return serializeCustomerAccountingMeta(memo, {
@@ -620,6 +627,7 @@ export function replaceCustomerAccountingPreferences(
     depositorAliases: patch.depositorAliases,
     addressLabels: patch.addressLabels,
     autoDepositDisabled: patch.autoDepositDisabled,
+    autoDepositAccountMatchEnabled: patch.autoDepositAccountMatchEnabled,
     autoDepositPriority: patch.autoDepositPriority,
     events: prev.events,
   })

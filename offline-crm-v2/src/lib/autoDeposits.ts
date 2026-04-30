@@ -331,6 +331,15 @@ function getCustomerLookupTokens(customer: Customer | undefined, ledger?: Custom
     .filter(Boolean)
 }
 
+function hasLooseSenderTokenMatch(tokens: string[], senderKey: string): boolean {
+  return tokens.some((token) => token && senderKey.includes(token))
+}
+
+function hasExactSenderTokenMatch(tokens: string[], senderKey: string): boolean {
+  // 자동반영 승격은 입금자명과 고객명/별칭이 정규화 후 완전히 같을 때만 허용한다.
+  return tokens.some((token) => token.length >= 2 && token === senderKey)
+}
+
 function createInvoiceCandidate(
   entry: AutoDepositInboxEntry,
   invoice: ResolvedReceivableInvoice,
@@ -446,7 +455,8 @@ export function buildAutoDepositMatchResults(
         const customerMeta = parseCustomerAccountingMeta(customer?.memo as string | undefined)
         if (customerMeta.autoDepositDisabled) return null
         const lookupTokens = getCustomerLookupTokens(customer, undefined, [invoice.customer_name, invoice.resolvedCustomerName])
-        const senderMatched = lookupTokens.some((token) => token && senderKey.includes(token))
+        const senderMatched = hasLooseSenderTokenMatch(lookupTokens, senderKey)
+        const senderExactMatched = hasExactSenderTokenMatch(lookupTokens, senderKey)
         const score = (senderMatched ? 100 : 60) + Math.min(30, customerMeta.autoDepositPriority)
         return createInvoiceCandidate(
           entry,
@@ -454,8 +464,12 @@ export function buildAutoDepositMatchResults(
           customer,
           resolvedCustomerId,
           score,
-          senderMatched ? '입금자명과 고객명이 정확히 맞고 미수 명세표 금액도 같습니다.' : '미수 명세표 잔액과 입금액이 정확히 같습니다.',
-          senderMatched && !hasAmbiguousDepositor && invoices.filter((candidate) => candidate.asOfRemaining === entry.amount).length === 1
+          senderExactMatched
+            ? '입금자명과 고객명/별칭이 정확히 같고 미수 명세표 금액도 같습니다.'
+            : senderMatched
+              ? '입금자명과 고객명이 유사하고 미수 명세표 금액이 같습니다. 자동반영 전 확인이 필요합니다.'
+              : '미수 명세표 잔액과 입금액이 정확히 같습니다.',
+          senderExactMatched && !hasAmbiguousDepositor && invoices.filter((candidate) => candidate.asOfRemaining === entry.amount).length === 1
             ? 'exact'
             : 'review',
         )
@@ -470,30 +484,36 @@ export function buildAutoDepositMatchResults(
         const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
         if (customerMeta.autoDepositDisabled) return null
         const lookupTokens = getCustomerLookupTokens(customer, ledger)
-        const senderMatched = lookupTokens.some((token) => token && senderKey.includes(token))
+        const senderMatched = hasLooseSenderTokenMatch(lookupTokens, senderKey)
+        const senderExactMatched = hasExactSenderTokenMatch(lookupTokens, senderKey)
         const score = (senderMatched ? 95 : 55) + Math.min(30, customerMeta.autoDepositPriority)
         return createLegacyCandidate(
           entry,
           ledger,
           customer,
           score,
-          senderMatched ? '입금자명과 고객명이 맞고 기존 장부 받을 돈과 입금액이 같습니다.' : '기존 장부 받을 돈과 입금액이 정확히 같습니다.',
-          senderMatched && !hasAmbiguousDepositor && ledgers.filter((candidate) => candidate.legacyBaseline === entry.amount).length === 1
+          senderExactMatched
+            ? '입금자명과 고객명/별칭이 정확히 같고 기존 장부 받을 돈과 입금액이 같습니다.'
+            : senderMatched
+              ? '입금자명과 고객명이 유사하고 기존 장부 받을 돈과 입금액이 같습니다. 자동반영 전 확인이 필요합니다.'
+              : '기존 장부 받을 돈과 입금액이 정확히 같습니다.',
+          senderExactMatched && !hasAmbiguousDepositor && ledgers.filter((candidate) => candidate.legacyBaseline === entry.amount).length === 1
             ? 'exact'
             : 'review',
         )
       })
       .filter((candidate): candidate is AutoDepositCandidate => candidate !== null)
 
-    const senderOnlyCandidates = ledgers
-      .filter((ledger) => {
-        const customer = customerById.get(ledger.customerId)
-        if (!customer) return false
-        const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
-        if (customerMeta.autoDepositDisabled) return false
-        const lookupTokens = getCustomerLookupTokens(customer, ledger)
-        return lookupTokens.some((token) => token && senderKey.includes(token))
-      })
+    const senderOnlyMatchedLedgers = ledgers.filter((ledger) => {
+      const customer = customerById.get(ledger.customerId)
+      if (!customer) return false
+      const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+      if (customerMeta.autoDepositDisabled) return false
+      const lookupTokens = getCustomerLookupTokens(customer, ledger)
+      return hasLooseSenderTokenMatch(lookupTokens, senderKey)
+    })
+
+    const senderOnlyCandidates = senderOnlyMatchedLedgers
       .slice(0, 5)
       .map((ledger) => {
         const customer = customerById.get(ledger.customerId)!
@@ -507,14 +527,26 @@ export function buildAutoDepositMatchResults(
             return left.Id - right.Id
           })[0]
         if (ledger.crmRemaining > 0 || ledger.source === 'both') {
+          const senderExactMatched = hasExactSenderTokenMatch(getCustomerLookupTokens(customer, ledger), senderKey)
+          const canUseCustomerAccountAutoMatch =
+            entry.amount > 0 &&
+            ledger.totalRemaining > 0 &&
+            ledger.crmRemaining > 0 &&
+            Boolean(preferredInvoice) &&
+            customerMeta.autoDepositAccountMatchEnabled &&
+            senderExactMatched &&
+            !hasAmbiguousDepositor &&
+            senderOnlyMatchedLedgers.length === 1
           return createCustomerSettlementCandidate(
             entry,
             ledger,
             customer,
             preferredInvoice,
-            40 + Math.min(30, customerMeta.autoDepositPriority),
-            '입금자명과 고객명이 맞아 고객 전체 미수를 오래된 순서대로 정산하는 후보입니다.',
-            'review',
+            (canUseCustomerAccountAutoMatch ? 110 : 40) + Math.min(30, customerMeta.autoDepositPriority),
+            canUseCustomerAccountAutoMatch
+              ? '고객계정 자동반영 허용: 입금자명과 고객명/별칭이 정확히 같아 열린 미수에 오래된 순서로 차감하고 초과분은 예치금으로 보관합니다.'
+              : '입금자명과 고객명이 유사해 고객 전체 미수를 오래된 순서대로 정산하는 후보입니다. 고객 상세의 고객계정 자동반영이 켜져 있어도 자동 승격은 입금자명/별칭이 정확히 같을 때만 허용됩니다.',
+            canUseCustomerAccountAutoMatch ? 'exact' : 'review',
           )
         }
         return createLegacyCandidate(

@@ -1,5 +1,5 @@
 /**
- * 테스트 13: 직접거래 업무함과 월말점검 기본 화면
+ * 테스트 13: 직접거래 업무함과 마감 점검 기본 화면
  */
 import { test, expect, type Page } from '@playwright/test'
 
@@ -25,16 +25,16 @@ test('T13-01: 직접거래 업무함은 핵심 업무 카드와 레인을 표시
   await expect(page.getByRole('heading', { name: '직접거래 업무함' })).toBeVisible({ timeout: PAGE_TIMEOUT })
   await expect(page.getByText('오늘 출고할 건')).toBeVisible()
   await expect(page.getByText('출고완료 후 미수')).toBeVisible()
-  await expect(page.getByText('입금수집 검토 필요')).toBeVisible()
+  await expect(page.getByText('입금 반영 검토 필요')).toBeVisible()
   await expect(page.getByRole('heading', { name: /레인/ })).toBeVisible()
 })
 
-test('T13-02: 월말점검은 점검 항목별 카드와 상세 표를 표시한다', async ({ page }) => {
+test('T13-02: 마감 점검은 점검 항목별 카드와 상세 표를 표시한다', async ({ page }) => {
   await mockReadOnlyCrm(page)
   await page.goto('/month-end-review')
-  await expect(page.getByRole('heading', { name: '월말점검' })).toBeVisible({ timeout: PAGE_TIMEOUT })
+  await expect(page.getByRole('heading', { name: '마감 점검' })).toBeVisible({ timeout: PAGE_TIMEOUT })
   await expect(page.getByText('출고완료 누락').first()).toBeVisible()
-  await expect(page.getByText('입금수집 미처리').first()).toBeVisible()
+  await expect(page.getByText('입금 반영 미처리').first()).toBeVisible()
   await expect(page.getByText('세금계산서 기준 확인').first()).toBeVisible()
   await expect(page.getByRole('heading', { name: '점검 상세' })).toBeVisible()
 })

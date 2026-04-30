@@ -17,6 +17,7 @@ export const ROUTES = {
   suppliers:   '/suppliers',
   transactions:'/transactions',
   calendar:    '/calendar',
+  settlements: '/settlements',
   depositInbox:'/deposit-inbox',
   tradeWorkQueue: '/trade-work-queue',
   monthEndReview: '/month-end-review',

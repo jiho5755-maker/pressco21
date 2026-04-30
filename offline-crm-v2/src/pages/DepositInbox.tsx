@@ -42,6 +42,11 @@ import {
 
 type LocalInboxFilter = 'all' | AutoDepositMatchedEntry['status']
 
+interface DepositInboxProps {
+  titleOverride?: string
+  descriptionOverride?: string
+}
+
 const LOCAL_STATUS_LABELS: Record<AutoDepositMatchedEntry['status'], string> = {
   exact: '정확 후보',
   review: '검토 필요',
@@ -113,7 +118,7 @@ function getAutoDepositSourceLabel(value: string | undefined): string {
   return '수동 파일 업로드'
 }
 
-export function DepositInbox() {
+export function DepositInbox({ titleOverride, descriptionOverride }: DepositInboxProps = {}) {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [entries, setEntries] = useState<AutoDepositInboxEntry[]>(() => loadAutoDepositInbox())
@@ -264,10 +269,10 @@ export function DepositInbox() {
       toast.success(
         appliedCount > 0
           ? `${incoming.length}건을 수집했고, 정확 일치 ${appliedCount}건은 자동 반영했습니다.`
-          : `${incoming.length}건을 입금 수집함에 추가했습니다.`,
+          : `${incoming.length}건을 입금 반영 목록에 추가했습니다.`,
       )
     } else {
-      toast.success(`${incoming.length}건을 입금 수집함에 추가했습니다.`)
+      toast.success(`${incoming.length}건을 입금 반영 목록에 추가했습니다.`)
     }
 
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -369,7 +374,7 @@ export function DepositInbox() {
       accountId: activeOperator?.id,
       accountLabel: activeOperator?.label,
       createdAt: currentTimestamp(),
-      note: `입금 수집함 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
+      note: `입금 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
     })
 
     await updateInvoice(candidate.invoiceId, {
@@ -395,7 +400,7 @@ export function DepositInbox() {
       accountId: activeOperator?.id,
       accountLabel: activeOperator?.label,
       createdAt: currentTimestamp(),
-      note: `입금 수집함 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
+      note: `입금 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
     })
     const nextInvoice: Invoice = {
       ...invoice,
@@ -477,7 +482,7 @@ export function DepositInbox() {
           accountLabel: activeOperator?.label,
           createdAt: currentTimestamp(),
           relatedInvoiceId: candidate.invoiceId,
-          note: `입금 수집함 반영 후 남은 금액 ${depositAdded.toLocaleString()}원 · 기존 예치금 자동상계는 MVP에서 차단`,
+          note: `입금 반영 후 남은 금액 ${depositAdded.toLocaleString()}원 · 기존 예치금 자동상계는 MVP에서 차단`,
         },
         { depositBalance: nextDepositBalance },
       )
@@ -583,7 +588,7 @@ export function DepositInbox() {
     }
     if (entry.amount >= 1_000_000) {
       const ok = window.confirm(
-        `이 입금을 CRM 반영 대상에서 제외할까요?\n\n입금자: ${entry.sender}\n금액: ${entry.amount.toLocaleString()}원\n제외 사유: ${reason}\n\n은행 원본 내역은 삭제되지 않습니다.\n제외 이력은 월말점검에서 다시 확인할 수 있습니다.`,
+        `이 입금을 CRM 반영 대상에서 제외할까요?\n\n입금자: ${entry.sender}\n금액: ${entry.amount.toLocaleString()}원\n제외 사유: ${reason}\n\n은행 원본 내역은 삭제되지 않습니다.\n제외 이력은 마감 점검에서 다시 확인할 수 있습니다.`,
       )
       if (!ok) return
     }
@@ -703,9 +708,9 @@ export function DepositInbox() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">입금 수집함</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{titleOverride ?? '입금 반영'}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            농협 CSV 또는 XLSX 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영합니다.
+            {descriptionOverride ?? '농협 CSV 또는 XLSX 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영합니다.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -722,7 +727,7 @@ export function DepositInbox() {
           </Button>
           <Button type="button" variant="outline" onClick={handleClearInbox}>
             <Trash2 className="mr-2 h-4 w-4" />
-            수집함 비우기
+            목록 비우기
           </Button>
         </div>
       </div>
@@ -954,7 +959,7 @@ export function DepositInbox() {
         </div>
         <Button type="button" variant="outline" onClick={() => persistEntries(loadAutoDepositInbox())}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          저장된 수집함 다시 불러오기
+          저장된 입금 목록 다시 불러오기
         </Button>
       </div>
 

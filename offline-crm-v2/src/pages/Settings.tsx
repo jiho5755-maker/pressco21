@@ -610,7 +610,7 @@ export function Settings() {
             <div className="rounded-lg border bg-gray-50 px-4 py-3">
               <p className="text-sm font-medium text-gray-900">사용 가이드</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                수금 관리, 지급 관리, 고객 관리, 거래원장 화면은 처음 진입 시 화면별 도움말이 뜹니다.
+                수급 지급 관리, 고객 관리, 거래원장 화면은 처음 진입 시 화면별 도움말이 뜹니다.
                 다시 보고 싶으면 아래 버튼으로 초기화할 수 있습니다.
               </p>
               <Button
@@ -767,8 +767,8 @@ export function Settings() {
                 <li>계좌: {[data.auto_deposit_bank_name, data.auto_deposit_account_number, data.auto_deposit_account_holder].filter(Boolean).join(' / ') || '미설정'}</li>
               </ul>
               <div className="mt-3">
-                <Button type="button" variant="outline" size="sm" onClick={() => navigate('/deposit-inbox')}>
-                  입금 수집함 열기
+                <Button type="button" variant="outline" size="sm" onClick={() => navigate('/settlements?section=deposits')}>
+                  입금 반영 열기
                 </Button>
               </div>
             </div>

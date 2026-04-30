@@ -18,7 +18,7 @@ const LANE_LABELS: Record<WorkLane, string> = {
   shipmentReady: '출고준비',
   shippedUnpaid: '출고완료 미수',
   followUpDue: '후속입금 예정',
-  depositReview: '입금수집 예외',
+  depositReview: '입금 반영 예외',
   taxInvoiceAvailable: '세금계산서',
   completed: '정리 완료',
 }
@@ -114,7 +114,7 @@ export function TradeWorkQueue() {
     { lane: 'shipmentReady', label: '오늘 출고할 건', value: queue.shipmentReady.length, help: '완납됐지만 출고확정 전', icon: PackageCheck },
     { lane: 'shippedUnpaid', label: '출고완료 후 미수', value: queue.shippedUnpaid.length, help: '물건은 나갔고 받을 돈 남음', icon: Clock },
     { lane: 'followUpDue', label: '오늘/지연 후속입금', value: queue.followUpDue.length, help: '입금 예정일 확인 필요', icon: Search },
-    { lane: 'depositReview', label: '입금수집 검토 필요', value: depositReviewCount, help: 'review/unmatched 큐', icon: FileText },
+    { lane: 'depositReview', label: '입금 반영 검토 필요', value: depositReviewCount, help: 'review/unmatched 큐', icon: FileText },
     { lane: 'taxInvoiceAvailable', label: '세금계산서 발급 가능', value: queue.taxInvoiceAvailable.length, help: '출고완료 + 미요청', icon: ReceiptText },
     { lane: 'completed', label: '정리 완료', value: completed.length, help: '출고완료 + 받을 돈 없음', icon: CheckCircle2 },
   ]
@@ -137,11 +137,11 @@ export function TradeWorkQueue() {
           <p className="text-xs font-semibold tracking-[0.18em] text-[#5a7353]">DIRECT TRADE WORK QUEUE</p>
           <h2 className="mt-1 text-3xl font-bold text-gray-900">직접거래 업무함</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            출고, 수금, 후속입금, 입금수집 예외, 세금계산서 가능 건을 한 화면에서 확인합니다.
+            출고, 받을 돈, 후속입금, 입금 반영 예외, 세금계산서 가능 건을 한 화면에서 확인합니다.
           </p>
         </div>
         <div className="rounded-xl border bg-white px-4 py-3 text-sm text-gray-700 shadow-sm">
-          월말점검 남은 예외 <span className="font-bold text-red-600">{monthEndExceptionCount.toLocaleString()}건</span>
+          마감 점검 남은 예외 <span className="font-bold text-red-600">{monthEndExceptionCount.toLocaleString()}건</span>
         </div>
       </div>
 
@@ -180,7 +180,7 @@ export function TradeWorkQueue() {
             <div className="rounded-lg bg-red-50 px-4 py-10 text-center text-sm text-red-600">업무함 데이터를 불러오지 못했습니다.</div>
           ) : selectedLane === 'depositReview' ? (
             depositReviewItems.length === 0 ? (
-              <div className="rounded-lg bg-gray-50 px-4 py-10 text-center text-sm text-muted-foreground">입금수집 검토 대기 건이 없습니다.</div>
+              <div className="rounded-lg bg-gray-50 px-4 py-10 text-center text-sm text-muted-foreground">입금 반영 검토 대기 건이 없습니다.</div>
             ) : (
               depositReviewItems.map((item) => (
                 <div key={item.queueId} className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
@@ -190,7 +190,7 @@ export function TradeWorkQueue() {
                       <p className="mt-1 text-xs text-muted-foreground">{item.occurredAt.slice(0, 16).replace('T', ' ')} · {item.status === 'review' ? '검토 필요' : '미매칭'}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{item.reason ?? '후보 확정 또는 제외 처리가 필요합니다.'}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => window.location.assign('/deposit-inbox')}>입금수집함 열기</Button>
+                    <Button variant="outline" size="sm" onClick={() => window.location.assign('/settlements?section=deposits')}>입금 반영 열기</Button>
                   </div>
                 </div>
               ))

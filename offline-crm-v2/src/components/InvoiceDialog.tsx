@@ -1040,7 +1040,7 @@ export function InvoiceDialog({
       return
     }
     if (paidAmt > grandTotal) {
-      toast.warning('입금액은 이번 명세표 합계까지만 입력할 수 있습니다. 초과 입금은 수금 관리에서 예치금으로 보관해 주세요.')
+      toast.warning('입금액은 이번 명세표 합계까지만 입력할 수 있습니다. 초과 입금은 수급 지급 관리에서 예치금으로 보관해 주세요.')
       return
     }
     setIsSaving(true)
@@ -2102,7 +2102,7 @@ export function InvoiceDialog({
                     className="mt-1"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    초과 입금은 수금 관리에서 예치금으로 분리 처리합니다.
+                    초과 입금은 수급 지급 관리에서 예치금으로 분리 처리합니다.
                   </p>
                 </div>
                 <div>

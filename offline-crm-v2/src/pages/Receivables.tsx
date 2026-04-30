@@ -1186,10 +1186,12 @@ function RefundPendingDialog({ target, onClose, onSaved }: RefundPendingDialogPr
 
 interface ReceivablesProps {
   mode?: 'receivable' | 'payable'
+  titleOverride?: string
+  descriptionOverride?: string
 }
 
 // ─── 수금/지급 관리 메인 ───────────────────────────
-export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
+export function Receivables({ mode = 'receivable', titleOverride, descriptionOverride }: ReceivablesProps) {
   const navigate = useNavigate()
   const isPayableMode = mode === 'payable'
   const [searchParams, setSearchParams] = useSearchParams()
@@ -1643,10 +1645,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     return summary
   }, { orphanCount: 0, splitCount: 0 })
 
-  const pageTitle = isPayableMode ? '지급 관리' : '수금 관리'
-  const pageDescription = isPayableMode
+  const pageTitle = titleOverride ?? (isPayableMode ? '지급 관리' : '수금 관리')
+  const pageDescription = descriptionOverride ?? (isPayableMode
     ? '기존 장부 줄 돈과 환불 예정 금액을 함께 확인하고 지급 이력을 관리합니다.'
-    : '기존 장부와 새 입력 기준으로 지금 받을 돈을 확인하고 수금 이력을 관리합니다.'
+    : '기존 장부와 새 입력 기준으로 지금 받을 돈을 확인하고 수금 이력을 관리합니다.')
   const totalSummaryLabel = isPayableMode ? '총 지급 예정' : '총 받을 돈'
   const legacySummaryLabel = isPayableMode ? '기존 장부 받을 돈' : '기존 장부 받을 돈'
   const crmSummaryLabel = isPayableMode ? '새 입력 받을 돈' : '새 입력 받을 돈'

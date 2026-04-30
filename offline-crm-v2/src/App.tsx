@@ -18,6 +18,7 @@ import { Calendar } from '@/pages/Calendar'
 import { DepositInbox } from '@/pages/DepositInbox'
 import { TradeWorkQueue } from '@/pages/TradeWorkQueue'
 import { MonthEndReview } from '@/pages/MonthEndReview'
+import { SettlementManagement } from '@/pages/SettlementManagement'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,6 +88,7 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="settlements" element={<SettlementManagement />} />
             <Route path="receivables" element={<Receivables mode="receivable" />} />
             <Route path="payables" element={<Receivables mode="payable" />} />
             <Route path="deposit-inbox" element={<DepositInbox />} />

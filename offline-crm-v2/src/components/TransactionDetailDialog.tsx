@@ -155,12 +155,12 @@ export function TransactionDetailDialog({
 
   function goToReceivables() {
     const params = new URLSearchParams()
+    params.set('section', transaction?.txType === '지급' ? 'outgoing' : 'receivables')
     if (effectiveCustomerName) params.set('customer', effectiveCustomerName)
     if (effectiveCustomerId) params.set('customerId', String(effectiveCustomerId))
-    const targetPath = transaction?.txType === '지급' ? '/payables' : '/receivables'
     if (transaction?.txType === '지급') params.set('tab', 'payable')
     onClose()
-    navigate(`${targetPath}?${params.toString()}`)
+    navigate(`/settlements?${params.toString()}`)
   }
 
   return (

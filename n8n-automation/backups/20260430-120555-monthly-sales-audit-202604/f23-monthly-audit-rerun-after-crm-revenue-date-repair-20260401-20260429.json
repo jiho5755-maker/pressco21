@@ -1,0 +1,1220 @@
+[
+  {
+    "date": "2026-04-01",
+    "httpStatus": 200,
+    "durationSec": 15.89,
+    "ok": true,
+    "total_revenue": 3716178,
+    "total_orders": 119,
+    "channels": {
+      "makeshop": 764698,
+      "naver": 1554290,
+      "st11": 2100,
+      "crm": 870590,
+      "coupang": 524500
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 92,
+        "range": "일별 매출!C92:G92",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1203,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-01"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-02",
+    "httpStatus": 200,
+    "durationSec": 14.46,
+    "ok": true,
+    "total_revenue": 3725820,
+    "total_orders": 122,
+    "channels": {
+      "makeshop": 1485800,
+      "naver": 878620,
+      "st11": 0,
+      "crm": 751200,
+      "coupang": 610200
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 93,
+        "range": "일별 매출!C93:G93",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1204,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-02"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-03",
+    "httpStatus": 200,
+    "durationSec": 13.74,
+    "ok": true,
+    "total_revenue": 4324690,
+    "total_orders": 110,
+    "channels": {
+      "makeshop": 1092390,
+      "naver": 1248400,
+      "st11": 0,
+      "crm": 145900,
+      "coupang": 469300
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 94,
+        "range": "일별 매출!C94:G94",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1205,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-03"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-04",
+    "httpStatus": 200,
+    "durationSec": 11.83,
+    "ok": true,
+    "total_revenue": 761720,
+    "total_orders": 46,
+    "channels": {
+      "makeshop": 214190,
+      "naver": 415730,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 131800
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 95,
+        "range": "일별 매출!C95:G95",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1206,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-04"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-05",
+    "httpStatus": 200,
+    "durationSec": 13.33,
+    "ok": true,
+    "total_revenue": 783080,
+    "total_orders": 38,
+    "channels": {
+      "makeshop": 324600,
+      "naver": 251580,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 206900
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 96,
+        "range": "일별 매출!C96:G96",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1207,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-05"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-06",
+    "httpStatus": 200,
+    "durationSec": 14.76,
+    "ok": true,
+    "total_revenue": 8289680,
+    "total_orders": 103,
+    "channels": {
+      "makeshop": 2186770,
+      "naver": 1027040,
+      "st11": 36500,
+      "crm": 4662200,
+      "coupang": 377170
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 97,
+        "range": "일별 매출!C97:G97",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1208,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-06"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-07",
+    "httpStatus": 200,
+    "durationSec": 13.22,
+    "ok": true,
+    "total_revenue": 4186625,
+    "total_orders": 106,
+    "channels": {
+      "makeshop": 2396715,
+      "naver": 740600,
+      "st11": 0,
+      "crm": 722410,
+      "coupang": 326900
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 98,
+        "range": "일별 매출!C98:G98",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 11,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-07"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-08",
+    "httpStatus": 200,
+    "durationSec": 11.37,
+    "ok": true,
+    "total_revenue": 4022530,
+    "total_orders": 105,
+    "channels": {
+      "makeshop": 1096180,
+      "naver": 831150,
+      "st11": 47500,
+      "crm": 1916700,
+      "coupang": 131000
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 99,
+        "range": "일별 매출!C99:G99",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 12,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-08"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-09",
+    "httpStatus": 200,
+    "durationSec": 12.42,
+    "ok": true,
+    "total_revenue": 5699260,
+    "total_orders": 90,
+    "channels": {
+      "makeshop": 1639040,
+      "naver": 1074220,
+      "st11": 0,
+      "crm": 2810350,
+      "coupang": 175650
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 100,
+        "range": "일별 매출!C100:G100",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 14,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-09"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-10",
+    "httpStatus": 200,
+    "durationSec": 11.57,
+    "ok": true,
+    "total_revenue": 6750800,
+    "total_orders": 76,
+    "channels": {
+      "makeshop": 970300,
+      "naver": 449420,
+      "st11": 304500,
+      "crm": 872400,
+      "coupang": 37100
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 101,
+        "range": "일별 매출!C101:G101",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1229,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-10"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-11",
+    "httpStatus": 200,
+    "durationSec": 10.91,
+    "ok": true,
+    "total_revenue": 2076160,
+    "total_orders": 91,
+    "channels": {
+      "makeshop": 1195330,
+      "naver": 839030,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 41800
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 102,
+        "range": "일별 매출!C102:G102",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1230,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-11"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-12",
+    "httpStatus": 200,
+    "durationSec": 12.73,
+    "ok": true,
+    "total_revenue": 2718370,
+    "total_orders": 78,
+    "channels": {
+      "makeshop": 2024630,
+      "naver": 535740,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 158000
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 103,
+        "range": "일별 매출!C103:G103",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1231,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-12"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-13",
+    "httpStatus": 200,
+    "durationSec": 13.72,
+    "ok": true,
+    "total_revenue": 9855310,
+    "total_orders": 150,
+    "channels": {
+      "makeshop": 4953570,
+      "naver": 1380690,
+      "st11": 222500,
+      "crm": 3035850,
+      "coupang": 262700
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 104,
+        "range": "일별 매출!C104:G104",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1232,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-13"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-14",
+    "httpStatus": 200,
+    "durationSec": 13.4,
+    "ok": true,
+    "total_revenue": 3532910,
+    "total_orders": 130,
+    "channels": {
+      "makeshop": 1218730,
+      "naver": 1302290,
+      "st11": 100000,
+      "crm": 587700,
+      "coupang": 324190
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 105,
+        "range": "일별 매출!C105:G105",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1233,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-14"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-15",
+    "httpStatus": 200,
+    "durationSec": 16.18,
+    "ok": true,
+    "total_revenue": 4026680,
+    "total_orders": 115,
+    "channels": {
+      "makeshop": 2060030,
+      "naver": 957850,
+      "st11": 78500,
+      "crm": 83500,
+      "coupang": 846800
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 106,
+        "range": "일별 매출!C106:G106",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1234,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-15"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-16",
+    "httpStatus": 200,
+    "durationSec": 15.01,
+    "ok": true,
+    "total_revenue": 5841680,
+    "total_orders": 184,
+    "channels": {
+      "makeshop": 1957550,
+      "naver": 1701560,
+      "st11": 0,
+      "crm": 1624020,
+      "coupang": 558550
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 107,
+        "range": "일별 매출!C107:G107",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1235,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-16"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-17",
+    "httpStatus": 200,
+    "durationSec": 13.17,
+    "ok": true,
+    "total_revenue": 8826640,
+    "total_orders": 120,
+    "channels": {
+      "makeshop": 446650,
+      "naver": 1324790,
+      "st11": 0,
+      "crm": 1844000,
+      "coupang": 309980
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 108,
+        "range": "일별 매출!C108:G108",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1236,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-17"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-18",
+    "httpStatus": 200,
+    "durationSec": 11.88,
+    "ok": true,
+    "total_revenue": 1030510,
+    "total_orders": 55,
+    "channels": {
+      "makeshop": 497050,
+      "naver": 390060,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 143400
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 109,
+        "range": "일별 매출!C109:G109",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1237,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-18"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-19",
+    "httpStatus": 200,
+    "durationSec": 13.62,
+    "ok": true,
+    "total_revenue": 2104480,
+    "total_orders": 66,
+    "channels": {
+      "makeshop": 1271540,
+      "naver": 409660,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 423280
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 110,
+        "range": "일별 매출!C110:G110",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1238,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-19"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-20",
+    "httpStatus": 200,
+    "durationSec": 15.48,
+    "ok": true,
+    "total_revenue": 10041500,
+    "total_orders": 144,
+    "channels": {
+      "makeshop": 4670820,
+      "naver": 1507370,
+      "st11": 0,
+      "crm": 2782640,
+      "coupang": 1080670
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 111,
+        "range": "일별 매출!C111:G111",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1241,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-20"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-21",
+    "httpStatus": 200,
+    "durationSec": 18.5,
+    "ok": true,
+    "total_revenue": 5523390,
+    "total_orders": 193,
+    "channels": {
+      "makeshop": 1893490,
+      "naver": 2459010,
+      "st11": 0,
+      "crm": 575150,
+      "coupang": 595740
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 112,
+        "range": "일별 매출!C112:G112",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1240,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-21"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-22",
+    "httpStatus": 200,
+    "durationSec": 14.13,
+    "ok": true,
+    "total_revenue": 5121590,
+    "total_orders": 156,
+    "channels": {
+      "makeshop": 698380,
+      "naver": 1234210,
+      "st11": 68700,
+      "crm": 2477000,
+      "coupang": 643300
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 113,
+        "range": "일별 매출!C113:G113",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1247,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-22"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-23",
+    "httpStatus": 200,
+    "durationSec": 13.65,
+    "ok": true,
+    "total_revenue": 4452200,
+    "total_orders": 129,
+    "channels": {
+      "makeshop": 912950,
+      "naver": 1668150,
+      "st11": 143000,
+      "crm": 1546100,
+      "coupang": 182000
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 114,
+        "range": "일별 매출!C114:G114",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1248,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-23"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-24",
+    "httpStatus": 200,
+    "durationSec": 14.89,
+    "ok": true,
+    "total_revenue": 10411430,
+    "total_orders": 129,
+    "channels": {
+      "makeshop": 2930420,
+      "naver": 819780,
+      "st11": 2264000,
+      "crm": 513700,
+      "coupang": 774000
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 115,
+        "range": "일별 매출!C115:G115",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1244,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-24"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-25",
+    "httpStatus": 200,
+    "durationSec": 12.0,
+    "ok": true,
+    "total_revenue": 845750,
+    "total_orders": 51,
+    "channels": {
+      "makeshop": 403410,
+      "naver": 283840,
+      "st11": 0,
+      "crm": 0,
+      "coupang": 158500
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 116,
+        "range": "일별 매출!C116:G116",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1223,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-25"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-26",
+    "httpStatus": 200,
+    "durationSec": 12.57,
+    "ok": true,
+    "total_revenue": 1772344,
+    "total_orders": 81,
+    "channels": {
+      "makeshop": 889104,
+      "naver": 686440,
+      "st11": 22000,
+      "crm": 0,
+      "coupang": 174800
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 117,
+        "range": "일별 매출!C117:G117",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1224,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-26"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-27",
+    "httpStatus": 200,
+    "durationSec": 13.97,
+    "ok": true,
+    "total_revenue": 5895770,
+    "total_orders": 168,
+    "channels": {
+      "makeshop": 2575790,
+      "naver": 1640400,
+      "st11": 0,
+      "crm": 1538780,
+      "coupang": 140800
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 118,
+        "range": "일별 매출!C118:G118",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1225,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-27"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-28",
+    "httpStatus": 200,
+    "durationSec": 14.38,
+    "ok": true,
+    "total_revenue": 5497197,
+    "total_orders": 143,
+    "channels": {
+      "makeshop": 2081127,
+      "naver": 794470,
+      "st11": 344000,
+      "crm": 1691000,
+      "coupang": 586600
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 119,
+        "range": "일별 매출!C119:G119",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1226,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-28"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  {
+    "date": "2026-04-29",
+    "httpStatus": 200,
+    "durationSec": 13.68,
+    "ok": true,
+    "total_revenue": 5482274,
+    "total_orders": 140,
+    "channels": {
+      "makeshop": 1473044,
+      "naver": 1965400,
+      "st11": 0,
+      "crm": 1593530,
+      "coupang": 450300
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 120,
+        "range": "일별 매출!C120:G120",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1227,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-29"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  }
+]

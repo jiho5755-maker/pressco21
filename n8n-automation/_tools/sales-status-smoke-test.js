@@ -20,8 +20,10 @@ function codeOf(wf, name) {
   return node.parameters.jsCode;
 }
 
-const f23 = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'), '통합 집계');
-const f23Coupang = codeOf(workflow('workflows/automation/daily-sales-all-channels.json'), '쿠팡윙 주문 조회');
+const f23Workflow = workflow('workflows/automation/daily-sales-all-channels.json');
+const f23 = codeOf(f23Workflow, '통합 집계');
+const f23Nocodb = codeOf(f23Workflow, 'NocoDB 저장');
+const f23Coupang = codeOf(f23Workflow, '쿠팡윙 주문 조회');
 const f26 = codeOf(workflow('workflows/automation/daily-sales-f26-weekly-adjustment.json'), '메이크샵 재조회');
 const f22 = codeOf(workflow('workflows/automation/daily-sales-report.json'), '매출 분석');
 const f23bCandidate = codeOf(workflow('workflows/automation/coupang-pending-backfill-1930.json'), '백필 대상 계산');
@@ -57,6 +59,12 @@ assert(f23Coupang.includes('const maxAttempts = 3;'), 'F23 Coupang must retry tr
 assert(f23Coupang.includes('nextToken'), 'F23 Coupang must support paginated responses');
 assert(f23Coupang.includes('statusSummary'), 'F23 Coupang must return per-status diagnostics');
 assert(f23Coupang.includes('summarizeError'), 'F23 Coupang must preserve sanitized API error details');
+
+assert(f23.includes('const existingRocket = num(existingRow[5]);'), 'F23 must preserve Google Sheet H열 로켓배송 during re-aggregation');
+assert(f23.includes('const existingLegacyOthers = num(existingRow[6]);'), 'F23 must preserve Google Sheet I열 기타 during re-aggregation');
+assert(f23.includes('crmRevenue + existingRocket + existingLegacyOthers'), 'F23 total must include manual H/I channels');
+assert(f23Nocodb.includes('rocket_revenue: aggregate.manual'), 'F23 NocoDB payload must keep rocket revenue in sync');
+assert(f23Nocodb.includes('legacy_others_revenue: aggregate.manual'), 'F23 NocoDB payload must keep legacy others revenue in sync');
 
 assert(f23b.includes('hasUnresolvedCoupang'), 'F23B must classify unresolved Coupang backfill separately');
 assert(f23b.includes('needsBackfill'), 'F23B must treat pending Coupang as unresolved');

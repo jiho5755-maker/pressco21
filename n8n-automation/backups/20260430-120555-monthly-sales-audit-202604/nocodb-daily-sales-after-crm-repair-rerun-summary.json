@@ -1,0 +1,15 @@
+{
+  "rows": 29,
+  "total_revenue": 137316568,
+  "total_orders": 3238,
+  "makeshop_revenue": 46324298,
+  "naver_revenue": 30371790,
+  "st11_revenue": 3633300,
+  "crm_revenue": 32644720,
+  "coupang_revenue": 10845930,
+  "rocket_revenue": 13496530,
+  "legacy_others_revenue": 0,
+  "pendingCoupangDates": [],
+  "totalFormulaMismatchCount": 0,
+  "totalFormulaMismatches": []
+}

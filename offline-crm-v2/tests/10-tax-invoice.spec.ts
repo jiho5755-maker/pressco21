@@ -124,7 +124,8 @@ test('T10-01: 필수 사업자 정보 누락 시 발급 요청이 차단된다',
   await expect(dialog.getByText('공급받는자 사업자번호가 없습니다')).toBeVisible()
   await expect(dialog.getByText('공급받는자 대표자가 없습니다')).toBeVisible()
   await expect(dialog.getByText('전자세금계산서 수신 이메일이 없습니다')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: '테스트 세금계산서 발급' })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: '고객 정보 보완' })).toBeEnabled()
+  await expect(dialog.getByRole('button', { name: '정보 보완 필요' })).toBeDisabled()
 })
 
 test('T10-02: 이미 요청된 명세표는 중복 발급 요청 대신 발급내역을 보여준다', async ({ page, request }) => {

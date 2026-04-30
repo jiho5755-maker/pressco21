@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Mail, MessageSquare, ReceiptText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -150,6 +151,7 @@ export function TaxInvoiceRequestDialog({
   onClose,
   onSubmit,
 }: TaxInvoiceRequestDialogProps) {
+  const navigate = useNavigate()
   const [mailSent, setMailSent] = useState(true)
   const [smsRequested, setSmsRequested] = useState(false)
 
@@ -176,6 +178,11 @@ export function TaxInvoiceRequestDialog({
   const mgtKey = invoice ? buildBarobillMgtKey(invoice) : ''
   const activeOperator = loadActiveWorkOperatorProfile()
   const requestedBy = activeOperator?.operatorName || activeOperator?.label || 'crm-ui'
+  const customerDetailId = useMemo(() => {
+    if (typeof customer?.Id === 'number' && Number.isFinite(customer.Id)) return customer.Id
+    if (typeof invoice?.customer_id === 'number' && Number.isFinite(invoice.customer_id)) return invoice.customer_id
+    return null
+  }, [customer?.Id, invoice?.customer_id])
 
   const validationErrors = useMemo(() => {
     const errors: string[] = []
@@ -205,6 +212,19 @@ export function TaxInvoiceRequestDialog({
     }
     return errors
   }, [customerParty, fulfillmentStatus, idempotencyKey, invoice, itemPayloads, status, taxInvoiceAmounts])
+
+  const submitLabel = useMemo(() => {
+    if (!invoice || !customerParty) return '정보 불러오는 중...'
+    if (isSubmitting) return IS_PRODUCTION_ISSUE_ENABLED ? '실제 발급 요청 중...' : '테스트 발급 요청 중...'
+    if (validationErrors.length > 0) return '정보 보완 필요'
+    return IS_PRODUCTION_ISSUE_ENABLED ? '실제 세금계산서 발급' : '테스트 세금계산서 발급'
+  }, [customerParty, invoice, isSubmitting, validationErrors.length])
+
+  function handleOpenCustomerDetail() {
+    if (!customerDetailId) return
+    onClose()
+    navigate(`/customers/${customerDetailId}`)
+  }
 
   async function handleSubmit() {
     if (!invoice || !customerParty || validationErrors.length > 0) return
@@ -254,7 +274,7 @@ export function TaxInvoiceRequestDialog({
         </DialogHeader>
 
         {!invoice || !customerParty ? (
-          <div className="rounded-lg border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground" aria-busy="true">
             발급 요청 정보를 불러오는 중입니다.
           </div>
         ) : (
@@ -422,6 +442,9 @@ export function TaxInvoiceRequestDialog({
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                   {validationErrors.map((error) => <li key={error}>{error}</li>)}
                 </ul>
+                <p className="mt-3 text-xs">
+                  고객 상세 기본정보에서 사업자번호, 대표자, 전자세금계산서 수신 이메일을 보완한 뒤 다시 발급해주세요.
+                </p>
               </div>
             )}
           </div>
@@ -429,14 +452,17 @@ export function TaxInvoiceRequestDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>닫기</Button>
+          {validationErrors.length > 0 && customerDetailId && (
+            <Button variant="outline" onClick={handleOpenCustomerDetail}>
+              고객 정보 보완
+            </Button>
+          )}
           <Button
             className="bg-[#7d9675] text-white hover:bg-[#6a8462]"
             disabled={!invoice || validationErrors.length > 0 || isSubmitting}
             onClick={() => void handleSubmit()}
           >
-            {isSubmitting
-              ? (IS_PRODUCTION_ISSUE_ENABLED ? '실제 발급 요청 중...' : '테스트 발급 요청 중...')
-              : (IS_PRODUCTION_ISSUE_ENABLED ? '실제 세금계산서 발급' : '테스트 세금계산서 발급')}
+            {submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

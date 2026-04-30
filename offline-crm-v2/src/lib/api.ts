@@ -33,6 +33,7 @@ const BAROBILL_TAX_INVOICE_MODE =
   import.meta.env.VITE_BAROBILL_TAX_INVOICE_MODE === 'production' ? 'production' : 'test'
 const BAROBILL_ALLOW_PRODUCTION_ISSUE =
   import.meta.env.VITE_BAROBILL_ALLOW_PRODUCTION_ISSUE === 'true'
+const BAROBILL_WEBHOOK_TIMEOUT_MS = 30_000
 // CRM 전용 API Key (NocoDB 토큰과 무관한 별도 키)
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
@@ -887,6 +888,38 @@ async function parseBarobillWebhookResponse(res: Response): Promise<Record<strin
   return json
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === 'AbortError'
+    : error instanceof Error && error.name === 'AbortError'
+}
+
+async function fetchBarobillWebhook(
+  url: string,
+  init: RequestInit,
+  label: string,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), BAROBILL_WEBHOOK_TIMEOUT_MS)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(
+        `${label} 응답이 ${Math.round(BAROBILL_WEBHOOK_TIMEOUT_MS / 1000)}초 이상 없어 중단했습니다. ` +
+        '중복 발급을 막기 위해 바로빌/발급내역 상태를 먼저 확인한 뒤 다시 시도해주세요.',
+      )
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 function assertBarobillProductionBlocked(mode: BarobillTaxInvoiceMode) {
   if (mode === 'production' && !BAROBILL_ALLOW_PRODUCTION_ISSUE) {
     throw new Error('운영 바로빌 발급/상태조회는 별도 승인 전까지 CRM에서 차단됩니다')
@@ -914,7 +947,7 @@ export async function requestBarobillTaxInvoice(
   const mode = normalizeBarobillMode(payload.mode || BAROBILL_TAX_INVOICE_MODE)
   assertBarobillProductionBlocked(mode)
 
-  const res = await fetch(BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL, {
+  const res = await fetchBarobillWebhook(BAROBILL_TAX_INVOICE_ISSUE_WEBHOOK_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -924,7 +957,7 @@ export async function requestBarobillTaxInvoice(
       ...payload,
       mode,
     }),
-  })
+  }, '바로빌 세금계산서 발급')
   const json = await parseBarobillWebhookResponse(res)
   const duplicate = json.duplicate === true
   const success = json.success !== false && json.ok !== false
@@ -970,7 +1003,7 @@ export async function syncBarobillTaxInvoiceStatus(params: {
   const mode = BAROBILL_TAX_INVOICE_MODE
   assertBarobillProductionBlocked(mode)
 
-  const res = await fetch(BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL, {
+  const res = await fetchBarobillWebhook(BAROBILL_TAX_INVOICE_STATUS_WEBHOOK_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -984,7 +1017,7 @@ export async function syncBarobillTaxInvoiceStatus(params: {
       providerMgtKey: params.providerMgtKey,
       mode,
     }),
-  })
+  }, '바로빌 세금계산서 상태조회')
   const json = await parseBarobillWebhookResponse(res)
   const success = json.success !== false && json.ok !== false
   if (!success) {
@@ -1025,7 +1058,7 @@ export async function cancelBarobillTaxInvoice(
   const mode = normalizeBarobillMode(payload.mode || BAROBILL_TAX_INVOICE_MODE)
   assertBarobillProductionBlocked(mode)
 
-  const res = await fetch(BAROBILL_TAX_INVOICE_CANCEL_WEBHOOK_URL, {
+  const res = await fetchBarobillWebhook(BAROBILL_TAX_INVOICE_CANCEL_WEBHOOK_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1035,7 +1068,7 @@ export async function cancelBarobillTaxInvoice(
       ...payload,
       mode,
     }),
-  })
+  }, '바로빌 세금계산서 취소/상쇄')
   const json = await parseBarobillWebhookResponse(res)
   const success = json.success !== false && json.ok !== false
   if (!success) {

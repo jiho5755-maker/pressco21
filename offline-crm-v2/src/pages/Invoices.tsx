@@ -28,11 +28,30 @@ import {
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 
 const PAGE_SIZE = 25
+const TAX_INVOICE_DIALOG_REQUIRED_TIMEOUT_MS = 15_000
+const TAX_INVOICE_DIALOG_OPTIONAL_TIMEOUT_MS = 8_000
 
 interface TaxInvoiceDialogData {
   invoice: Invoice
   customer: Customer | null
   items: InvoiceItem[]
+}
+
+function withTaxInvoiceTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error(`${label} 응답이 지연되어 세금계산서 발급 화면을 중단했습니다`))
+    }, timeoutMs)
+  })
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) clearTimeout(timeout)
+  })
 }
 
 function isValidCalendarDate(value: string | null): value is string {
@@ -733,15 +752,25 @@ export function Invoices() {
 
   async function loadTaxInvoiceDialogData(inv: Invoice): Promise<TaxInvoiceDialogData> {
     const [latestInvoice, itemsData] = await Promise.all([
-      getInvoice(inv.Id),
-      getItems(inv.Id),
+      withTaxInvoiceTimeout(getInvoice(inv.Id), TAX_INVOICE_DIALOG_REQUIRED_TIMEOUT_MS, '명세표 최신 정보'),
+      withTaxInvoiceTimeout(getItems(inv.Id), TAX_INVOICE_DIALOG_REQUIRED_TIMEOUT_MS, '명세표 품목'),
     ])
     const customerId = typeof latestInvoice.customer_id === 'number'
       ? latestInvoice.customer_id
       : typeof inv.customer_id === 'number'
         ? inv.customer_id
         : undefined
-    const linkedCustomer = await findCustomerByInvoiceLink(customerId, latestInvoice.customer_name)
+    let linkedCustomer: Customer | null = null
+    try {
+      linkedCustomer = await withTaxInvoiceTimeout(
+        findCustomerByInvoiceLink(customerId, latestInvoice.customer_name),
+        TAX_INVOICE_DIALOG_OPTIONAL_TIMEOUT_MS,
+        '고객 사업자 정보',
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '고객 사업자 정보 조회가 지연되었습니다'
+      toast.warning(`${message}. 명세표에 저장된 거래처 정보만으로 먼저 확인 화면을 열었습니다.`)
+    }
     return {
       invoice: latestInvoice,
       customer: linkedCustomer,
@@ -775,8 +804,9 @@ export function Invoices() {
         return
       }
       setTaxInvoiceDialogData(dialogData)
-    } catch {
-      toast.error('세금계산서 발급 요청 정보를 불러오지 못했습니다')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '세금계산서 발급 요청 정보를 불러오지 못했습니다'
+      toast.error(message)
     } finally {
       setLoadingTaxInvoiceId(null)
     }
@@ -788,7 +818,11 @@ export function Invoices() {
 
     setRequestingTaxInvoiceId(dialogData.invoice.Id)
     try {
-      const latestInvoice = await getInvoice(dialogData.invoice.Id)
+      const latestInvoice = await withTaxInvoiceTimeout(
+        getInvoice(dialogData.invoice.Id),
+        TAX_INVOICE_DIALOG_REQUIRED_TIMEOUT_MS,
+        '발급 직전 명세표 최신 정보',
+      )
       const latestMeta = parseInvoiceAccountingMeta(latestInvoice.memo as string | undefined)
       const latestStatus = latestMeta.taxInvoiceStatus ?? 'not_requested'
       if (!isTaxInvoiceRequestAvailable(latestStatus)) {
